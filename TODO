@@ -1,0 +1,13 @@
+Todo:
+  ✔ Set up git repo @done(25-06-02 14:09) 
+  ✔ Set up frontend and backend folder and under stand the structure @30m @started(25-06-02 14:09) @done(25-06-02 14:59) @lasted(50m1s)
+    - I followed bun doc.
+  ☐ Create simple working frontend @2h @started(25-06-02 15:00)
+    ✔ Header @done(25-06-05 18:16)
+    ☐ Mode selection button
+    ☐ Monster with HP bar
+    ☐ Typing area
+    ☐ Level bar and WPM
+  ☐ Create simple backend API
+  ☐ Deploy frontend to cloudflare pages
+  ☐ Deploy backend to cloudflare workers
