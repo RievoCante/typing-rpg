@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Header from './components/Header';
+import ModeSelector from './components/ModeSelector';
 import TypingInterface from './components/TypingInterface';
 import { ThemeProvider } from './context/ThemeProvider';
 import PlayerLevel from './components/PlayerLevel';
@@ -16,6 +17,10 @@ function App() {
   return (
     <ThemeProvider>
       <Header />
+      <ModeSelector
+        currentMode={currentMode}
+        onModeChange={handleModeChange}
+      />
       <PlayerLevel
         level={level}
         currentXp={currentXp}
@@ -23,7 +28,6 @@ function App() {
       />
       <TypingInterface
         currentMode={currentMode}
-        onModeChange={handleModeChange}
         addXp={addXp}
       />
     </ThemeProvider>

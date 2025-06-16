@@ -5,7 +5,6 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import ModeSelector from './ModeSelector';
 import TypingText, { type CharStatus } from './TypingText';
 import { generateText } from '../utils/textGenerator';
 import { calculateXP } from '../utils/calculateXP';
@@ -13,13 +12,11 @@ import WPMDisplay from './WPMDisplay';
 
 interface TypingInterfaceProps {
   currentMode: 'daily' | 'endless';
-  onModeChange: (mode: 'daily' | 'endless') => void;
   addXp: (amount: number) => void;
 }
 
 export default function TypingInterface({
   currentMode,
-  onModeChange,
   addXp,
 }: TypingInterfaceProps) {
   // Core state - text never changes after initialization
@@ -341,10 +338,6 @@ export default function TypingInterface({
       tabIndex={0}
       className="max-w-3xl mx-auto mt-8 p-8 bg-slate-800 rounded-lg shadow-xl text-white flex flex-col space-y-6 focus:outline-none"
     >
-      <div className="flex justify-between items-center">
-        <ModeSelector currentMode={currentMode} onModeChange={onModeChange} />
-      </div>
-
       <TypingText
         text={text}
         charStatus={charStatus}

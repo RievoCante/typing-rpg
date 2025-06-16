@@ -1,94 +1,66 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 interface ModeSelectorProps {
   currentMode: 'daily' | 'endless';
   onModeChange: (mode: 'daily' | 'endless') => void;
 }
 
-export default function GameModeSelector({
+export default function ModeSelector({
   currentMode,
   onModeChange,
 }: ModeSelectorProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Close modal when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        setIsModalOpen(false);
-      }
-    }
-
-    if (isModalOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isModalOpen]);
+  const { theme } = useTheme();
 
   return (
-    <div className="relative">
-      <button
-        className="flex items-center gap-2 px-4 py-2 bg-gray-700 dark:bg-gray-700 hover:bg-gray-600 dark:hover:bg-gray-600 
-                  text-white rounded-md transition-colors duration-200 font-medium shadow-md"
-        onClick={() => setIsModalOpen(!isModalOpen)}
-        aria-haspopup="true"
-        aria-expanded={isModalOpen}
+    <div className="flex justify-center w-full py-6">
+      <div 
+        className={`relative flex rounded-lg p-1 transition-colors duration-300 ${
+          theme === 'dark' 
+            ? 'bg-gray-800 border border-gray-700' 
+            : 'bg-gray-100 border border-gray-200'
+        }`}
       >
-        {currentMode === 'daily' ? 'Daily Mode' : 'Endless Mode'}
-        <ChevronDown
-          className={`w-4 h-4 transition-transform duration-200 ${isModalOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {isModalOpen && (
+        {/* Sliding background indicator */}
         <div
-          ref={modalRef}
-          className="absolute top-full left-0 mt-2 bg-gray-800 dark:bg-gray-800 rounded-md shadow-lg p-2 z-10 w-48 border border-gray-700 dark:border-gray-600"
+          className={`absolute top-1 bottom-1 w-1/2 rounded-md transition-all duration-300 ease-in-out ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-white shadow-sm'
+          } ${
+            currentMode === 'endless' ? 'translate-x-full' : 'translate-x-0'
+          }`}
+        />
+        
+        {/* Daily Mode Button */}
+        <button
+          onClick={() => onModeChange('daily')}
+          className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
+            currentMode === 'daily'
+              ? theme === 'dark'
+                ? 'text-white'
+                : 'text-gray-900'
+              : theme === 'dark'
+                ? 'text-gray-400 hover:text-gray-300'
+                : 'text-gray-500 hover:text-gray-700'
+          }`}
         >
-          <button
-            className={`w-full text-left px-4 py-3 rounded-md flex items-center gap-2 transition-colors duration-200
-              ${
-                currentMode === 'daily'
-                  ? 'bg-yellow-500/20 text-yellow-400 font-medium'
-                  : 'hover:bg-gray-700 dark:hover:bg-gray-700 text-white'
-              }`}
-            onClick={() => {
-              onModeChange('daily');
-              setIsModalOpen(false);
-            }}
-          >
-            <div
-              className={`w-3 h-3 rounded-full ${currentMode === 'daily' ? 'bg-yellow-400' : 'bg-gray-600'}`}
-            ></div>
-            Daily Mode
-          </button>
-          <button
-            className={`w-full text-left px-4 py-3 rounded-md flex items-center gap-2 transition-colors duration-200
-              ${
-                currentMode === 'endless'
-                  ? 'bg-yellow-500/20 text-yellow-400 font-medium'
-                  : 'hover:bg-gray-700 dark:hover:bg-gray-700 text-white'
-              }`}
-            onClick={() => {
-              onModeChange('endless');
-              setIsModalOpen(false);
-            }}
-          >
-            <div
-              className={`w-3 h-3 rounded-full ${currentMode === 'endless' ? 'bg-yellow-400' : 'bg-gray-600'}`}
-            ></div>
-            Endless Mode
-          </button>
-        </div>
-      )}
+          Daily
+        </button>
+        
+        {/* Endless Mode Button */}
+        <button
+          onClick={() => onModeChange('endless')}
+          className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
+            currentMode === 'endless'
+              ? theme === 'dark'
+                ? 'text-white'
+                : 'text-gray-900'
+              : theme === 'dark'
+                ? 'text-gray-400 hover:text-gray-300'
+                : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Endless
+        </button>
+      </div>
     </div>
   );
 }
