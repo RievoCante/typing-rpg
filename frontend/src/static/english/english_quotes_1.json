@@ -1,0 +1,29 @@
+{
+    "easy": [
+        "Be yourself; everyone else is already taken. - Oscar Wilde",
+        "I think, therefore I am. - Rene Descartes",
+        "To be or not to be. - William Shakespeare",
+        "Less is more. - Ludwig Mies van der Rohe",
+        "The unexamined life is not worth living. - Socrates",
+        "The only thing I know is that I know nothing. - Socrates",
+        "Stay hungry, stay foolish. - Steve Jobs"
+    ],
+    "medium": [
+        "Happiness is not something ready made. It comes from your own actions. - Dalai Lama",
+        "You must be the change you wish to see in the world. - Mahatma Gandhi",
+        "It is better to be feared than loved, if you cannot be both. - Niccolo Machiavelli",
+        "Education is the most powerful weapon which you can use to change the world. - Nelson Mandela",
+        "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment. - Buddha",
+        "The way to get started is to quit talking and begin doing. - Walt Disney",
+        "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt"
+    ],
+    "hard": [
+        "The greatest glory in living lies not in never falling, but in rising every time we fall. - Nelson Mandela",
+        "It is not the critic who counts; not the man who points out how the strong man stumbles, or where the doer of deeds could have done them better. The credit belongs to the man who is actually in the arena. - Theodore Roosevelt",
+        "I have a dream that my four little children will one day live in a nation where they will not be judged by the color of their skin but by the content of their character. - Martin Luther King Jr.",
+        "Ask not what your country can do for you; ask what you can do for your country. - John F. Kennedy",
+        "The best and most beautiful things in the world cannot be seen or even touched - they must be felt with the heart. - Helen Keller",
+        "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment. - Ralph Waldo Emerson",
+        "The world is a dangerous place to live; not because of the people who are evil, but because of the people who don't do anything about it. - Albert Einstein"
+    ]
+}

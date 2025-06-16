@@ -4,20 +4,27 @@ import {
   type KeyboardEvent,
   useRef,
   useCallback,
+  useMemo,
 } from 'react';
 import TypingText, { type CharStatus } from './TypingText';
 import { generateText } from '../utils/textGenerator';
 import { calculateXP } from '../utils/calculateXP';
+import { analyzeWords } from '../utils/wordAnalysis';
+import { checkDailyFailure, getDailyFailureMessage, getDailySuccessMessage } from '../utils/dailyFailureDetection';
+import { useDailyProgress } from '../hooks/useDailyProgress';
+import CongratModal from './CongratsModal';
 import WPMDisplay from './WPMDisplay';
 
 interface TypingInterfaceProps {
   currentMode: 'daily' | 'endless';
   addXp: (amount: number) => void;
+  onModeChange?: (mode: 'daily' | 'endless') => void;
 }
 
 export default function TypingInterface({
   currentMode,
   addXp,
+  onModeChange,
 }: TypingInterfaceProps) {
   // Core state - text never changes after initialization
   const [text, setText] = useState<string>('');
@@ -30,11 +37,45 @@ export default function TypingInterface({
   const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
   const [wpm, setWpm] = useState<number>(0);
 
+  // Daily mode state
+  const [currentAttempts, setCurrentAttempts] = useState<number>(1);
+  const [showCongratModal, setShowCongratModal] = useState<boolean>(false);
+  
+  // Daily progress hook (always call hook, use conditionally)
+  const dailyProgress = useDailyProgress();
+  
+  // Memoize specific values to avoid infinite re-renders
+  const currentDifficulty = useMemo(() => dailyProgress.getCurrentDifficulty(), [dailyProgress.currentQuote]);
+  const completedQuotes = useMemo(() => dailyProgress.completedQuotes, [dailyProgress.completedQuotes]);
+  const quoteStats = useMemo(() => dailyProgress.quoteStats, [dailyProgress.quoteStats]);
+  
+  // Create stable references to dailyProgress methods
+  const completeCurrentQuote = useCallback((wpm: number, attempts: number) => {
+    dailyProgress.completeCurrentQuote(wpm, attempts);
+  }, [dailyProgress.completeCurrentQuote]);
+  
+  const getAverageWPM = useCallback(() => {
+    return dailyProgress.getAverageWPM();
+  }, [dailyProgress.getAverageWPM]);
+
+  // Add state to track if daily completion modal has been shown for this completion
+  const [hasShownDailyCompletion, setHasShownDailyCompletion] = useState(false);
+  const [hasAwardedDailyXP, setHasAwardedDailyXP] = useState(false);
+  const [hasProcessedCompletion, setHasProcessedCompletion] = useState(false);
+  
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize new text - this is the only place where text changes
   const initializeNewText = useCallback(() => {
-    const newText = generateText(currentMode);
+    let newText: string;
+    
+    if (currentMode === 'daily') {
+      // Get current difficulty from daily progress
+      newText = generateText(currentMode, currentDifficulty);
+    } else {
+      newText = generateText(currentMode);
+    }
+    
     setText(newText);
     setCharStatus(Array(newText.length).fill('pending'));
     setTypedChars(Array(newText.length).fill(null));
@@ -46,11 +87,24 @@ export default function TypingInterface({
     if (containerRef.current) {
       containerRef.current.focus();
     }
-  }, [currentMode]);
+  }, [currentMode, currentDifficulty]); // Use memoized value
 
   useEffect(() => {
     initializeNewText();
   }, [initializeNewText]);
+
+  // Reset daily completion modal state when daily progress is reset or when not completed
+  useEffect(() => {
+    if (!dailyProgress.isCompleted) {
+      setHasShownDailyCompletion(false);
+      setHasAwardedDailyXP(false);
+    }
+  }, [dailyProgress.isCompleted]);
+
+  // Reset completion processing flag when text changes
+  useEffect(() => {
+    setHasProcessedCompletion(false);
+  }, [text]);
 
   // Calculate WPM and handle completion
   const handleCompletion = useCallback(() => {
@@ -60,42 +114,9 @@ export default function TypingInterface({
     }
 
     const elapsedMinutes = (Date.now() - startTime) / 60000;
-    let correctWords = 0;
-    let totalCharsIncludingSpaces = 0;
-    let incorrectWords = 0;
-
-    // Use regex to find words with their positions in the original text
-    const wordMatches = [...text.matchAll(/\S+/g)];
-
-    for (const match of wordMatches) {
-      const word = match[0];
-      const wordStartIndex = match.index!;
-      const wordEndIndex = wordStartIndex + word.length;
-      
-      let isWordCorrect = true;
-      
-      // Check if all characters in this word are correct or locked
-      for (let i = wordStartIndex; i < wordEndIndex; i++) {
-        const status = charStatus[i];
-        if (status !== 'correct' && status !== 'locked') {
-          isWordCorrect = false;
-          break;
-        }
-      }
-
-      if (isWordCorrect) {
-        correctWords++;
-        // Add word length + 1 space (except for last word)
-        totalCharsIncludingSpaces += word.length;
-        
-        // Add space after word if there's a space character following it
-        if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
-          totalCharsIncludingSpaces += 1;
-        }
-      } else {
-        incorrectWords++;
-      }
-    }
+    
+    // Use the new word analysis utility instead of duplicate logic
+    const { correctWords, incorrectWords, totalCharsIncludingSpaces } = analyzeWords(text, charStatus);
 
     const calculatedWpm = elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
     const finalWpm = Math.round(calculatedWpm);
@@ -103,29 +124,58 @@ export default function TypingInterface({
     // Save the final WPM to display until next session starts
     setWpm(finalWpm);
 
-    // Add XP for endless mode
-    if (currentMode === 'endless') {
-      const rewardXp = calculateXP(currentMode, incorrectWords);
-      addXp(rewardXp);
-    }
-
     console.log('--- Completion Stats ---');
     console.log(`Correct words: ${correctWords}, Incorrect: ${incorrectWords}`);
     console.log(`Total chars including spaces: ${totalCharsIncludingSpaces}`);
     console.log(`Elapsed minutes: ${elapsedMinutes.toFixed(2)}`);
     console.log(`WPM: ${finalWpm}`);
+
+    // Handle daily mode failure detection
+    if (currentMode === 'daily') {
+      const failed = checkDailyFailure(incorrectWords);
+      
+      if (failed) {
+        // Quote failed - retry same quote
+        console.log(getDailyFailureMessage(incorrectWords, currentDifficulty));
+        setCurrentAttempts(prev => prev + 1);
+        initializeNewText(); // This will load the same quote again
+        return; // Don't proceed to success logic
+      } else {
+        // Quote succeeded - complete it and move to next
+        console.log(getDailySuccessMessage(incorrectWords, currentDifficulty));
+        completeCurrentQuote(finalWpm, currentAttempts);
+        setCurrentAttempts(1); // Reset attempts for next quote
+        
+        // Check if all 3 quotes are completed
+        if (completedQuotes >= 2 && !hasShownDailyCompletion) { // Will be 3 after this completion
+          // Show congratulations modal only once
+          console.log('--- DAILY CHALLENGE COMPLETED! ---');
+          console.log(`Average WPM: ${getAverageWPM()}`);
+          console.log('-----------------------------------');
+          setShowCongratModal(true);
+          setHasShownDailyCompletion(true);
+          return; // Don't load new text, let modal handle continuation
+        }
+      }
+    } else {
+      // Endless mode - existing logic
+      const rewardXp = calculateXP(currentMode, incorrectWords);
+      addXp(rewardXp);
+    }
+
     console.log('----------------------');
 
     // Load new text
     initializeNewText();
-  }, [text, charStatus, hasStartedTyping, startTime, currentMode, addXp, initializeNewText]);
+  }, [text, charStatus, hasStartedTyping, startTime, currentMode, addXp, initializeNewText, currentAttempts, completedQuotes, currentDifficulty, completeCurrentQuote, getAverageWPM]); // Use memoized values and only the function we need
 
   // Check for completion
   useEffect(() => {
-    if (hasStartedTyping && cursorPosition >= text.length) {
+    if (hasStartedTyping && cursorPosition >= text.length && !hasProcessedCompletion) {
+      setHasProcessedCompletion(true);
       handleCompletion();
     }
-  }, [cursorPosition, text.length, hasStartedTyping, handleCompletion]);
+  }, [cursorPosition, text.length, hasStartedTyping, hasProcessedCompletion, handleCompletion]);
 
   // Handle character input
   const handleCharacterInput = useCallback((key: string) => {
@@ -331,24 +381,67 @@ export default function TypingInterface({
     }
   }, [charStatus, hasStartedTyping, calculateCurrentWpm, cursorPosition, text.length]);
 
-  return (
-    <div
-      ref={containerRef}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      className="max-w-3xl mx-auto mt-8 p-8 bg-slate-800 rounded-lg shadow-xl text-white flex flex-col space-y-6 focus:outline-none"
-    >
-      <TypingText
-        text={text}
-        charStatus={charStatus}
-        typedChars={typedChars}
-        cursorPosition={cursorPosition}
-        hasStartedTyping={hasStartedTyping}
-      />
+  // Calculate total XP for daily completion (500 base + performance bonus)
+  const calculateDailyXP = (): number => {
+    // Base XP: 500
+    // Performance bonus: +10 XP per WPM over 30, max +200
+    const avgWpm = getAverageWPM();
+    const performanceBonus = Math.min(Math.max(0, avgWpm - 30) * 10, 200);
+    return 500 + performanceBonus;
+  };
 
-      <div className="flex justify-between items-center pt-4">
-        <WPMDisplay wpm={wpm} isCalculating={false} />
+  const handleModalContinue = () => {
+    // Award daily completion XP only once
+    if (!hasAwardedDailyXP) {
+      addXp(calculateDailyXP());
+      setHasAwardedDailyXP(true);
+    }
+    
+    if (onModeChange) {
+      onModeChange('endless'); // Switch to endless mode
+    }
+    setShowCongratModal(false);
+  };
+
+  const handleModalClose = () => {
+    // Award daily completion XP only once
+    if (!hasAwardedDailyXP) {
+      addXp(calculateDailyXP());
+      setHasAwardedDailyXP(true);
+    }
+    setShowCongratModal(false);
+  };
+
+  return (
+    <>
+      <div
+        ref={containerRef}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        className="max-w-3xl mx-auto mt-8 p-8 bg-slate-800 rounded-lg shadow-xl text-white flex flex-col space-y-6 focus:outline-none"
+      >
+        <TypingText
+          text={text}
+          charStatus={charStatus}
+          typedChars={typedChars}
+          cursorPosition={cursorPosition}
+          hasStartedTyping={hasStartedTyping}
+        />
+
+        <div className="flex justify-between items-center pt-4">
+          <WPMDisplay wpm={wpm} isCalculating={false} />
+        </div>
       </div>
-    </div>
+
+      {/* Congratulations Modal for Daily Challenge Completion */}
+      <CongratModal
+        isOpen={showCongratModal}
+        onClose={handleModalClose}
+        totalXP={calculateDailyXP()}
+        averageWPM={getAverageWPM()}
+        quoteStats={quoteStats}
+        onContinue={handleModalContinue}
+      />
+    </>
   );
 }
