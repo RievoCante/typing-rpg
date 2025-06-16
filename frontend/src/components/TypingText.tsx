@@ -3,22 +3,14 @@ export type CharStatus =
   | 'correct'
   | 'incorrect'
   | 'skipped'
-  | 'extra'
   | 'locked';
-
-interface Segment {
-  type: 'word' | 'space';
-  content: string;
-  startIndex: number;
-  underline?: boolean; // Optional because it's only relevant for words
-}
 
 interface TypingTextProps {
   text: string;
   charStatus: CharStatus[];
-  typedChars: (string | null)[]; // User's actual keystrokes
+  typedChars: (string | null)[];
   cursorPosition: number;
-  hasStartedTyping: boolean; // New prop
+  hasStartedTyping: boolean;
 }
 
 export default function TypingText({
@@ -26,159 +18,149 @@ export default function TypingText({
   charStatus,
   typedChars,
   cursorPosition,
-  hasStartedTyping, // Destructure new prop
+  hasStartedTyping,
 }: TypingTextProps) {
-  // TODO: Add loading state
+  // ADJUST THIS NUMBER to change max characters per line
+  const MAX_CHARS_PER_LINE = 40;
+
   if (!text) {
     return (
-      <div className="text-2xl text-slate-500 my-6 leading-relaxed font-mono whitespace-pre-wrap">
+      <div className="text-2xl text-slate-500 my-6 leading-relaxed font-mono">
         Loading text...
       </div>
     );
   }
 
-  // Helper to process text into segments (words and spaces with underline info)
-  const segments: Segment[] = [];
-  if (text.length > 0) {
-    let currentSegment: Segment = {
-      type: /\s/.test(text[0]) ? 'space' : 'word',
-      content: '',
-      startIndex: 0,
-    };
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const isSpace = /\s/.test(char);
-      const currentTypeIsSpace = currentSegment.type === 'space';
-
-      if (isSpace !== currentTypeIsSpace) {
-        segments.push(currentSegment);
-        currentSegment = {
-          type: isSpace ? 'space' : 'word',
-          content: '',
-          startIndex: i,
-        };
-      }
-      currentSegment.content += char;
+  // Helper function to get character color based on status
+  const getCharStyle = (status: CharStatus): string => {
+    switch (status) {
+      case 'locked':
+        return 'text-green-400';
+      case 'correct':
+        return 'text-slate-100';
+      case 'incorrect':
+        return 'text-red-500';
+      case 'skipped':
+        return 'text-slate-400';
+      case 'pending':
+      default:
+        return 'text-slate-500';
     }
-    segments.push(currentSegment);
+  };
 
-    segments.forEach((segment: Segment) => {
-      // Explicitly type segment here for clarity
-      if (segment.type === 'word') {
-        segment.underline = false;
-        for (let i = 0; i < segment.content.length; i++) {
-          const charIdxInOriginalText = segment.startIndex + i;
-          if (
-            charIdxInOriginalText < charStatus.length &&
-            (charStatus[charIdxInOriginalText] === 'incorrect' ||
-              charStatus[charIdxInOriginalText] === 'skipped' ||
-              charStatus[charIdxInOriginalText] === 'extra')
-          ) {
-            segment.underline = true;
-            break;
-          }
-        }
+  // Helper function to determine what character to display
+  const getDisplayChar = (originalChar: string, index: number): string => {
+    const status = charStatus[index];
+    if (status === 'incorrect' && typedChars[index]) {
+      return typedChars[index] as string;
+    }
+    return originalChar;
+  };
+
+  // Helper function to check if a character is part of a word with errors
+  const isInErrorWord = (index: number): boolean => {
+    // Find word boundaries
+    let wordStart = index;
+    let wordEnd = index;
+    
+    // Find start of word
+    while (wordStart > 0 && !/\s/.test(text[wordStart - 1])) {
+      wordStart--;
+    }
+    
+    // Find end of word
+    while (wordEnd < text.length - 1 && !/\s/.test(text[wordEnd + 1])) {
+      wordEnd++;
+    }
+    
+    // Check if any character in this word has errors
+    for (let i = wordStart; i <= wordEnd; i++) {
+      const status = charStatus[i];
+      if (status === 'incorrect' || status === 'skipped') {
+        return true;
       }
-    });
-  }
+    }
+    
+    return false;
+  };
+
+  // Split text into fixed lines based on character limit (word-aware)
+  const createFixedLines = () => {
+    const lines: { chars: string[]; startIndex: number }[] = [];
+    const words = text.split(/(\s+)/); // Split by spaces but keep the spaces
+    
+    let currentLineChars: string[] = [];
+    let currentLineStartIndex = 0;
+    let currentCharIndex = 0;
+
+    for (const word of words) {
+      // Check if adding this word would exceed the line limit
+      const wouldExceed = currentLineChars.length + word.length > MAX_CHARS_PER_LINE;
+      
+      if (wouldExceed && currentLineChars.length > 0) {
+        // Start a new line with this word
+        lines.push({
+          chars: [...currentLineChars],
+          startIndex: currentLineStartIndex,
+        });
+        
+        // Start new line
+        currentLineChars = [];
+        currentLineStartIndex = currentCharIndex;
+      }
+      
+      // Add the word to current line
+      for (const char of word) {
+        currentLineChars.push(char);
+      }
+      
+      currentCharIndex += word.length;
+    }
+
+    // Add the last line if it has content
+    if (currentLineChars.length > 0) {
+      lines.push({
+        chars: currentLineChars,
+        startIndex: currentLineStartIndex,
+      });
+    }
+
+    return lines;
+  };
+
+  const textLines = createFixedLines();
 
   return (
-    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider whitespace-pre-wrap">
-      {segments.map((segment, segmentIndex) => {
-        const segmentKey = `segment-${segmentIndex}`;
-        if (segment.type === 'word') {
-          const wordSpanClass = segment.underline
-            ? 'underline decoration-red-500 decoration-2 underline-offset-2'
-            : '';
-          return (
-            <span key={segmentKey} className={wordSpanClass}>
-              {
-                // Note: The outer span is necessary for the underline to wrap correctly.
-                segment.content.split('').map((char, charInWordIndex) => {
-                  const originalIndex = segment.startIndex + charInWordIndex;
-                  let charStyle = '';
-                  switch (charStatus[originalIndex]) {
-                    case 'locked':
-                      charStyle = 'text-green-400'; // Locked-in correct words
-                      break;
-                    case 'correct':
-                      charStyle = 'text-slate-100';
-                      break;
-                    case 'incorrect':
-                    case 'extra':
-                      charStyle = 'text-red-500';
-                      break;
-                    case 'skipped':
-                      charStyle = 'text-slate-400'; // Style for skipped characters
-                      break;
-                    case 'pending':
-                    default:
-                      charStyle = 'text-slate-500';
-                      break;
-                  }
+    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider">
+      <div className="space-y-0">
+        {textLines.map((line, lineIndex) => (
+          <div key={lineIndex} className="block">
+            {line.chars.map((char, charIndexInLine) => {
+              const absoluteIndex = line.startIndex + charIndexInLine;
+              const charStyle = getCharStyle(charStatus[absoluteIndex] || 'pending');
+              const displayChar = getDisplayChar(char, absoluteIndex);
+              const isInError = !/\s/.test(char) && isInErrorWord(absoluteIndex);
+              const underlineClass = isInError ? 'underline decoration-red-500 decoration-2 underline-offset-2' : '';
 
-                  let charToDisplay = char;
-                  if (
-                    charStatus[originalIndex] === 'incorrect' ||
-                    charStatus[originalIndex] === 'extra'
-                  ) {
-                    if (typedChars[originalIndex] === ' ' && char !== ' ') {
-                      charToDisplay = char;
-                    } else if (typedChars[originalIndex]) {
-                      charToDisplay = typedChars[originalIndex];
-                    }
-                  } else if (charStatus[originalIndex] === 'skipped') {
-                    charToDisplay = char; // Display original character for skipped ones
-                  }
-
-                  return (
+              return (
+                <span
+                  key={absoluteIndex}
+                  className={`${charStyle} ${underlineClass} relative`}
+                >
+                  {displayChar}
+                  {absoluteIndex === cursorPosition && (
                     <span
-                      key={`char-${originalIndex}`}
-                      className={`${charStyle} relative`}
-                    >
-                      {charToDisplay}
-                      {originalIndex === cursorPosition && (
-                        <span
-                          className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
-                            !hasStartedTyping ? 'animate-blink' : ''
-                          }`}
-                        />
-                      )}
-                    </span>
-                  );
-                })
-              }
-            </span>
-          );
-        }
-        // Segment is a space
-        const spaceChars = segment.content
-          .split('')
-          .map((spaceChar, spaceInSegmentIndex) => {
-            const originalIndex = segment.startIndex + spaceInSegmentIndex;
-            let charStyle = 'text-slate-500'; // Default for pending spaces
-            if (charStatus[originalIndex] === 'correct') {
-              charStyle = 'text-slate-100';
-            }
-
-            return (
-              <span
-                key={`char-${originalIndex}`}
-                className={`${charStyle} relative`}
-              >
-                {spaceChar}
-                {originalIndex === cursorPosition && (
-                  <span
-                    className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
-                      !hasStartedTyping ? 'animate-blink' : ''
-                    }`}
-                  />
-                )}
-              </span>
-            );
-          });
-        return <span key={segmentKey}>{spaceChars}</span>;
-      })}
+                      className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
+                        !hasStartedTyping ? 'animate-blink' : ''
+                      }`}
+                    />
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

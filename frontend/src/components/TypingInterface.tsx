@@ -22,378 +22,257 @@ export default function TypingInterface({
   onModeChange,
   addXp,
 }: TypingInterfaceProps) {
-  const originalTextRef = useRef<string>('');
-  const [textToType, setTextToType] = useState<string>(''); // DISPLAY text
+  // Core state - text never changes after initialization
+  const [text, setText] = useState<string>('');
   const [charStatus, setCharStatus] = useState<CharStatus[]>([]);
   const [typedChars, setTypedChars] = useState<(string | null)[]>([]);
-  const [originIndices, setOriginIndices] = useState<(number | null)[]>([]); // Maps display index to original index
   const [cursorPosition, setCursorPosition] = useState(0);
+  
+  // Timing and stats
   const [startTime, setStartTime] = useState<number | null>(null);
   const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
   const [wpm, setWpm] = useState<number>(0);
-  const [isCalculatingWpm, setIsCalculatingWpm] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const fetchNewText = useCallback(() => {
+  // Initialize new text - this is the only place where text changes
+  const initializeNewText = useCallback(() => {
     const newText = generateText(currentMode);
-    originalTextRef.current = newText;
-    setTextToType(newText);
+    setText(newText);
     setCharStatus(Array(newText.length).fill('pending'));
     setTypedChars(Array(newText.length).fill(null));
-    setOriginIndices(Array.from({ length: newText.length }, (_, i) => i));
     setCursorPosition(0);
     setStartTime(null);
     setHasStartedTyping(false);
-    setIsCalculatingWpm(false);
+    setWpm(0);
+    
     if (containerRef.current) {
       containerRef.current.focus();
     }
   }, [currentMode]);
 
   useEffect(() => {
-    fetchNewText();
-  }, [fetchNewText]);
+    initializeNewText();
+  }, [initializeNewText]);
 
+  // Calculate WPM and handle completion
   const handleCompletion = useCallback(() => {
-    const originalText = originalTextRef.current;
-    let incorrectWordCount = 0;
-    // WPM Calculation
-    if (hasStartedTyping && startTime && originalText.length > 0) {
-      let correctlyTypedWordsCount = 0;
-      let totalCharsInCorrectWords = 0;
+    if (!hasStartedTyping || !startTime || text.length === 0) {
+      initializeNewText();
+      return;
+    }
 
-      const elapsedSeconds = (Date.now() - startTime) / 1000;
-      const elapsedTimeInMinutes = elapsedSeconds / 60;
+    const elapsedMinutes = (Date.now() - startTime) / 60000;
+    let correctWords = 0;
+    let totalCharsInCorrectWords = 0;
+    let incorrectWords = 0;
 
-      const wordRegex = /\S+/g;
-      let match;
+    // Count words and calculate WPM
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    let charIndex = 0;
 
-      while ((match = wordRegex.exec(originalText)) !== null) {
-        const word = match[0];
-        const wordStartIndex = match.index;
-        const wordEndIndex = wordStartIndex + word.length;
-
-        const startDisplayIndex = originIndices.indexOf(wordStartIndex);
-        const endDisplayIndex = originIndices.lastIndexOf(wordEndIndex - 1);
-
-        let isWordCorrect = true;
-        if (startDisplayIndex === -1 || endDisplayIndex === -1) {
-          isWordCorrect = false; // Word was deleted or mangled
-        } else {
-          // Check for extra characters inserted within the word's span in the display text
-          for (let i = startDisplayIndex; i <= endDisplayIndex; i++) {
-            if (originIndices[i] === null) {
-              isWordCorrect = false;
-              break;
-            }
-          }
-          if (!isWordCorrect) {
-            incorrectWordCount++;
-            continue;
-          }
-
-          // Check if all characters of the original word are marked 'correct'
-          for (let i = wordStartIndex; i < wordEndIndex; i++) {
-            const displayIndex = originIndices.indexOf(i);
-            if (displayIndex === -1 || charStatus[displayIndex] !== 'correct') {
-              isWordCorrect = false;
-              break;
-            }
-          }
-        }
-
-        if (isWordCorrect) {
-          correctlyTypedWordsCount++;
-          totalCharsInCorrectWords += word.length;
-        } else {
-          incorrectWordCount++;
+    for (const word of words) {
+      let isWordCorrect = true;
+      
+      // Check if all characters in this word are correct or locked
+      for (let i = 0; i < word.length; i++) {
+        const status = charStatus[charIndex + i];
+        if (status !== 'correct' && status !== 'locked') {
+          isWordCorrect = false;
+          break;
         }
       }
 
-      const calculatedWpm =
-        elapsedTimeInMinutes > 0
-          ? totalCharsInCorrectWords / 5 / elapsedTimeInMinutes
-          : 0;
-      setWpm(Math.round(calculatedWpm));
-      setIsCalculatingWpm(false);
+      if (isWordCorrect) {
+        correctWords++;
+        totalCharsInCorrectWords += word.length;
+      } else {
+        incorrectWords++;
+      }
 
-      console.log('--- Typing Stats ---');
-      console.log(`Time taken: ${elapsedSeconds.toFixed(2)} seconds`);
-      console.log(`Correctly typed words: ${correctlyTypedWordsCount}`);
-      console.log(`Incorrectly typed words: ${incorrectWordCount}`);
-      console.log(
-        `Total characters in correct words: ${totalCharsInCorrectWords}`
-      );
-      console.log(`Calculated WPM (Corrected): ${Math.round(calculatedWpm)}`);
-      console.log('--------------------');
+      // Move past word and spaces
+      charIndex += word.length;
+      while (charIndex < text.length && /\s/.test(text[charIndex])) {
+        charIndex++;
+      }
     }
 
-    // XP Logic
+    const calculatedWpm = elapsedMinutes > 0 ? totalCharsInCorrectWords / 5 / elapsedMinutes : 0;
+    setWpm(Math.round(calculatedWpm));
+
+    // Add XP for endless mode
     if (currentMode === 'endless') {
-      const rewardXp = calculateXP(currentMode, incorrectWordCount);
+      const rewardXp = calculateXP(currentMode, incorrectWords);
       addXp(rewardXp);
-    } else if (currentMode === 'daily') {
-      // NOTE: Daily mode logic
     }
 
-    fetchNewText();
-  }, [
-    addXp,
-    fetchNewText,
-    charStatus,
-    hasStartedTyping,
-    startTime,
-    originIndices,
-    currentMode,
-  ]);
+    console.log('--- Completion Stats ---');
+    console.log(`Correct words: ${correctWords}, Incorrect: ${incorrectWords}`);
+    console.log(`WPM: ${Math.round(calculatedWpm)}`);
+    console.log('----------------------');
 
-  // This useEffect MUST be after handleCompletion is defined
+    // Load new text
+    initializeNewText();
+  }, [text, charStatus, hasStartedTyping, startTime, currentMode, addXp, initializeNewText]);
+
+  // Check for completion
   useEffect(() => {
-    const originalText = originalTextRef.current;
-    if (
-      hasStartedTyping &&
-      cursorPosition >= textToType.length &&
-      originIndices.includes(originalText.length - 1) &&
-      textToType.length > 0
-    ) {
+    if (hasStartedTyping && cursorPosition >= text.length) {
       handleCompletion();
     }
-  }, [
-    cursorPosition,
-    textToType.length,
-    hasStartedTyping,
-    handleCompletion,
-    originIndices,
-  ]);
+  }, [cursorPosition, text.length, hasStartedTyping, handleCompletion]);
 
-  const handleBackspace = useCallback(() => {
-    if (cursorPosition > 0 && charStatus[cursorPosition - 1] !== 'locked') {
-      const newCursorPosition = cursorPosition - 1;
-      const wasExtraChar = originIndices[newCursorPosition] === null;
-
-      if (wasExtraChar) {
-        setTextToType(
-          prev =>
-            prev.slice(0, newCursorPosition) + prev.slice(newCursorPosition + 1)
-        );
-        setCharStatus(prev =>
-          prev
-            .slice(0, newCursorPosition)
-            .concat(prev.slice(newCursorPosition + 1))
-        );
-        setTypedChars(prev =>
-          prev
-            .slice(0, newCursorPosition)
-            .concat(prev.slice(newCursorPosition + 1))
-        );
-        setOriginIndices(prev =>
-          prev
-            .slice(0, newCursorPosition)
-            .concat(prev.slice(newCursorPosition + 1))
-        );
-      } else {
-        const newCharStatus = [...charStatus];
-        newCharStatus[newCursorPosition] = 'pending';
-        setCharStatus(newCharStatus);
-        const newTypedChars = [...typedChars];
-        newTypedChars[newCursorPosition] = null;
-        setTypedChars(newTypedChars);
-      }
-      setCursorPosition(newCursorPosition);
+  // Handle character input
+  const handleCharacterInput = useCallback((key: string) => {
+    if (!hasStartedTyping) {
+      setStartTime(Date.now());
+      setHasStartedTyping(true);
     }
-  }, [
-    charStatus,
-    cursorPosition,
-    originIndices,
-    typedChars,
-    setTextToType,
-    setCharStatus,
-    setTypedChars,
-    setOriginIndices,
-    setCursorPosition,
-  ]);
 
-  const handleCharacter = useCallback(
-    (key: string) => {
-      if (!hasStartedTyping) {
-        setStartTime(Date.now());
-        setHasStartedTyping(true);
-        console.log('start!');
+    if (cursorPosition >= text.length) return;
+
+    const isCorrect = key === text[cursorPosition];
+    const newCharStatus = [...charStatus];
+    const newTypedChars = [...typedChars];
+
+    if (isCorrect) {
+      newCharStatus[cursorPosition] = 'correct';
+    } else {
+      newCharStatus[cursorPosition] = 'incorrect';
+    }
+
+    newTypedChars[cursorPosition] = key;
+    setCharStatus(newCharStatus);
+    setTypedChars(newTypedChars);
+    setCursorPosition(prev => prev + 1);
+  }, [cursorPosition, text, charStatus, typedChars, hasStartedTyping]);
+
+  // Handle backspace
+  const handleBackspace = useCallback(() => {
+    if (cursorPosition <= 0) return;
+
+    const newPosition = cursorPosition - 1;
+    const status = charStatus[newPosition];
+
+    // Don't allow deleting locked characters
+    if (status === 'locked') return;
+
+    const newCharStatus = [...charStatus];
+    const newTypedChars = [...typedChars];
+
+    newCharStatus[newPosition] = 'pending';
+    newTypedChars[newPosition] = null;
+
+    setCharStatus(newCharStatus);
+    setTypedChars(newTypedChars);
+    setCursorPosition(newPosition);
+  }, [cursorPosition, charStatus, typedChars]);
+
+  // Handle word deletion (Ctrl/Alt + Backspace)
+  const handleWordDeletion = useCallback(() => {
+    if (cursorPosition <= 0) return;
+
+    let newPosition = cursorPosition - 1;
+
+    // Skip spaces
+    while (newPosition >= 0 && /\s/.test(text[newPosition])) {
+      newPosition--;
+    }
+
+    // Skip word characters
+    while (newPosition >= 0 && !/\s/.test(text[newPosition])) {
+      newPosition--;
+    }
+
+    newPosition++; // Move to start of word
+
+    const newCharStatus = [...charStatus];
+    const newTypedChars = [...typedChars];
+
+    // Clear from newPosition to cursorPosition
+    for (let i = newPosition; i < cursorPosition; i++) {
+      if (charStatus[i] !== 'locked') {
+        newCharStatus[i] = 'pending';
+        newTypedChars[i] = null;
+      }
+    }
+
+    setCharStatus(newCharStatus);
+    setTypedChars(newTypedChars);
+    setCursorPosition(newPosition);
+  }, [cursorPosition, text, charStatus, typedChars]);
+
+  // Handle space bar (with word locking and skipping)
+  const handleSpaceBar = useCallback(() => {
+    // First, try to lock the current word if it's correct
+    let wordStart = cursorPosition - 1;
+    while (wordStart >= 0 && !/\s/.test(text[wordStart])) {
+      wordStart--;
+    }
+    wordStart++;
+
+    if (wordStart < cursorPosition) {
+      // Check if the word is completely correct
+      let isWordCorrect = true;
+      for (let i = wordStart; i < cursorPosition; i++) {
+        if (charStatus[i] !== 'correct') {
+          isWordCorrect = false;
+          break;
+        }
       }
 
-      const isAtEnd = cursorPosition >= textToType.length;
-      const isCorrect =
-        !isAtEnd &&
-        key === textToType[cursorPosition] &&
-        charStatus[cursorPosition] !== 'extra';
-
-      if (isCorrect) {
+      if (isWordCorrect) {
         const newCharStatus = [...charStatus];
-        newCharStatus[cursorPosition] = 'correct';
+        for (let i = wordStart; i < cursorPosition; i++) {
+          newCharStatus[i] = 'locked';
+        }
         setCharStatus(newCharStatus);
-        const newTypedChars = [...typedChars];
-        newTypedChars[cursorPosition] = key;
-        setTypedChars(newTypedChars);
-      } else {
-        setTextToType(
-          prev =>
-            prev.slice(0, cursorPosition) + key + prev.slice(cursorPosition)
-        );
-        setCharStatus(prev =>
-          prev
-            .slice(0, cursorPosition)
-            .concat('extra', prev.slice(cursorPosition))
-        );
-        setTypedChars(prev =>
-          prev.slice(0, cursorPosition).concat(key, prev.slice(cursorPosition))
-        );
-        setOriginIndices(prev =>
-          prev.slice(0, cursorPosition).concat(null, prev.slice(cursorPosition))
-        );
+      }
+    }
+
+    // Handle space input or word skipping
+    if (cursorPosition < text.length && text[cursorPosition] === ' ') {
+      // Normal space - just input it
+      handleCharacterInput(' ');
+    } else if (cursorPosition < text.length) {
+      // Skip to next word
+      let nextPos = cursorPosition;
+      
+      // Skip remaining characters in current word
+      while (nextPos < text.length && !/\s/.test(text[nextPos])) {
+        if (charStatus[nextPos] === 'pending') {
+          const newCharStatus = [...charStatus];
+          newCharStatus[nextPos] = 'skipped';
+          setCharStatus(newCharStatus);
+        }
+        nextPos++;
       }
 
-      setCursorPosition(prev => prev + 1);
-    },
-    [
-      cursorPosition,
-      charStatus,
-      typedChars,
-      textToType,
-      hasStartedTyping,
-      setStartTime,
-      setHasStartedTyping,
-      setTextToType,
-      setCharStatus,
-      setTypedChars,
-      setOriginIndices,
-      setCursorPosition,
-    ]
-  );
+      // Skip spaces to get to next word
+      while (nextPos < text.length && /\s/.test(text[nextPos])) {
+        nextPos++;
+      }
 
+      setCursorPosition(nextPos);
+    }
+  }, [cursorPosition, text, charStatus, handleCharacterInput]);
+
+  // Main keyboard handler
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     e.preventDefault();
+
     const { key } = e;
 
     if (key === ' ') {
-      // Lock the preceding word if it was typed 100% correctly.
-      let wordStartIndex = cursorPosition - 1;
-      while (wordStartIndex >= 0 && !/\s/.test(textToType[wordStartIndex])) {
-        wordStartIndex--;
-      }
-      wordStartIndex++; // Move to the first character of the word.
-
-      if (wordStartIndex < cursorPosition) {
-        const wordToCheck = textToType.substring(
-          wordStartIndex,
-          cursorPosition
-        );
-        const isWordFullyCorrect =
-          wordToCheck.length > 0 &&
-          wordToCheck.split('').every((_, index) => {
-            return charStatus[wordStartIndex + index] === 'correct';
-          });
-
-        if (isWordFullyCorrect) {
-          const newCharStatus = [...charStatus];
-          for (let i = wordStartIndex; i < cursorPosition; i++) {
-            newCharStatus[i] = 'locked';
-          }
-          setCharStatus(newCharStatus);
-        }
-      }
-
-      // Handle space press (skip word or move cursor)
-      if (
-        cursorPosition < textToType.length &&
-        !/\s/.test(textToType[cursorPosition])
-      ) {
-        // Premature spacebar press, skip the rest of the word
-        let endOfWordIndex = cursorPosition;
-        while (
-          endOfWordIndex < textToType.length &&
-          !/\s/.test(textToType[endOfWordIndex])
-        ) {
-          endOfWordIndex++;
-        }
-
-        // Create a new status array to avoid stale state from the locking logic above
-        setCharStatus(prevStatus => {
-          const newStatus = [...prevStatus];
-          for (let i = cursorPosition; i < endOfWordIndex; i++) {
-            if (originIndices[i] !== null) newStatus[i] = 'skipped';
-          }
-          return newStatus;
-        });
-
-        let nextWordStartIndex = endOfWordIndex;
-        while (
-          nextWordStartIndex < textToType.length &&
-          /\s/.test(textToType[nextWordStartIndex])
-        ) {
-          nextWordStartIndex++;
-        }
-        setCursorPosition(nextWordStartIndex);
+      handleSpaceBar();
+    } else if (key === 'Backspace') {
+      if (e.ctrlKey || e.altKey) {
+        handleWordDeletion();
       } else {
-        // Normal spacebar press
-        handleCharacter(' ');
-      }
-      return;
-    }
-
-    if (key === 'Backspace') {
-      if ((e.altKey || e.ctrlKey) && cursorPosition > 0) {
-        // Word deletion logic
-        if (charStatus[cursorPosition - 1] === 'locked') return;
-
-        let currentWordStartIndex = cursorPosition - 1;
-        while (
-          currentWordStartIndex >= 0 &&
-          /\s/.test(textToType[currentWordStartIndex])
-        ) {
-          currentWordStartIndex--;
-        }
-        while (
-          currentWordStartIndex > 0 &&
-          !/\s/.test(textToType[currentWordStartIndex - 1])
-        ) {
-          currentWordStartIndex--;
-        }
-        if (currentWordStartIndex < 0) currentWordStartIndex = 0;
-
-        const newCharStatus = [...charStatus];
-        const newTypedChars = [...typedChars];
-        const newTextToTypeChars = textToType.split('');
-        const newOriginIndices = [...originIndices];
-
-        for (let i = cursorPosition - 1; i >= currentWordStartIndex; i--) {
-          if (i < 0 || i >= newOriginIndices.length) continue;
-
-          if (newOriginIndices[i] === null) {
-            newTextToTypeChars.splice(i, 1);
-            newCharStatus.splice(i, 1);
-            newTypedChars.splice(i, 1);
-            newOriginIndices.splice(i, 1);
-          } else {
-            newCharStatus[i] = 'pending';
-            newTypedChars[i] = null;
-          }
-        }
-
-        setTextToType(newTextToTypeChars.join(''));
-        setCharStatus(newCharStatus);
-        setTypedChars(newTypedChars);
-        setOriginIndices(newOriginIndices);
-        setCursorPosition(currentWordStartIndex);
-      } else {
-        // Normal single character backspace
         handleBackspace();
       }
-      return;
-    }
-
-    if (key.length === 1) {
-      handleCharacter(key);
+    } else if (key.length === 1) {
+      handleCharacterInput(key);
     }
   };
 
@@ -409,7 +288,7 @@ export default function TypingInterface({
       </div>
 
       <TypingText
-        text={textToType}
+        text={text}
         charStatus={charStatus}
         typedChars={typedChars}
         cursorPosition={cursorPosition}
@@ -417,7 +296,7 @@ export default function TypingInterface({
       />
 
       <div className="flex justify-between items-center pt-4">
-        <WPMDisplay wpm={wpm} isCalculating={isCalculatingWpm} />
+        <WPMDisplay wpm={wpm} isCalculating={false} />
       </div>
     </div>
   );
