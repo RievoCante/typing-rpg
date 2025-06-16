@@ -1,13 +1,44 @@
 Todo:
   ✔ Set up git repo @done(25-06-02 14:09) 
   ✔ Set up frontend and backend folder and under stand the structure @30m @started(25-06-02 14:09) @done(25-06-02 14:59) @lasted(50m1s)
-    - I followed bun doc.
+    // I followed bun doc.
   ☐ Create simple working frontend @2h @started(25-06-02 15:00)
     ✔ Header @done(25-06-05 18:16)
-    ☐ Mode selection button
-    ☐ Monster with HP bar
-    ☐ Typing area
-    ☐ Level bar and WPM
+
+    ☐ Mode system
+      ✔ Button @done(25-06-10 14:49)
+      ☐ Daily mode
+        ☐ Quote display
+        ☐ A set of 3 quotes for each day of the week
+        ☐ milestone tracking on left side of the screen
+
+      ☐ Endless mode
+
+    ☐ Monster UI
+      ☐ Monster graphic
+      ☐ HP bar
+
+    ✔ Typing Area @done(25-06-10 14:57)
+
+    ✔ Level system @started(25-06-10 15:19) @done(25-06-10 16:05) @lasted(46m48s)
+      ✔ Level calculation @done(25-06-10 16:05)
+      ✔ Level display @done(25-06-10 16:05)
+
+    ✔ WPM @started(25-06-11 16:35) @done(25-06-13 14:51) @lasted(1d22h16m46s)
+      ✔ WPM calculation @done(25-06-13 14:51)
+      ✔ WPM display @done(25-06-13 14:51)
+    
+  ☐ Login system
+    ☐ Login page
+    ☐ Register page
+    ☐ User data storage
+    
   ☐ Create simple backend API
   ☐ Deploy frontend to cloudflare pages
-  ☐ Deploy backend to cloudflare workers
+  ☐ Deploy backend to cloudflare workers and D1 database
+
+
+Future features:
+  ☐ Theme selection
+  ☐ Consistent quotes for every user for Daily mode
+  ☐ Music
