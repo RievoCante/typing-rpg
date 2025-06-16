@@ -44,7 +44,7 @@ export default function TypingInterface({
     setCursorPosition(0);
     setStartTime(null);
     setHasStartedTyping(false);
-    setWpm(0);
+    // Don't reset WPM here - keep the last session's WPM visible
     
     if (containerRef.current) {
       containerRef.current.focus();
@@ -64,19 +64,22 @@ export default function TypingInterface({
 
     const elapsedMinutes = (Date.now() - startTime) / 60000;
     let correctWords = 0;
-    let totalCharsInCorrectWords = 0;
+    let totalCharsIncludingSpaces = 0;
     let incorrectWords = 0;
 
-    // Count words and calculate WPM
-    const words = text.split(/\s+/).filter(word => word.length > 0);
-    let charIndex = 0;
+    // Use regex to find words with their positions in the original text
+    const wordMatches = [...text.matchAll(/\S+/g)];
 
-    for (const word of words) {
+    for (const match of wordMatches) {
+      const word = match[0];
+      const wordStartIndex = match.index!;
+      const wordEndIndex = wordStartIndex + word.length;
+      
       let isWordCorrect = true;
       
       // Check if all characters in this word are correct or locked
-      for (let i = 0; i < word.length; i++) {
-        const status = charStatus[charIndex + i];
+      for (let i = wordStartIndex; i < wordEndIndex; i++) {
+        const status = charStatus[i];
         if (status !== 'correct' && status !== 'locked') {
           isWordCorrect = false;
           break;
@@ -85,20 +88,23 @@ export default function TypingInterface({
 
       if (isWordCorrect) {
         correctWords++;
-        totalCharsInCorrectWords += word.length;
+        // Add word length + 1 space (except for last word)
+        totalCharsIncludingSpaces += word.length;
+        
+        // Add space after word if there's a space character following it
+        if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
+          totalCharsIncludingSpaces += 1;
+        }
       } else {
         incorrectWords++;
       }
-
-      // Move past word and spaces
-      charIndex += word.length;
-      while (charIndex < text.length && /\s/.test(text[charIndex])) {
-        charIndex++;
-      }
     }
 
-    const calculatedWpm = elapsedMinutes > 0 ? totalCharsInCorrectWords / 5 / elapsedMinutes : 0;
-    setWpm(Math.round(calculatedWpm));
+    const calculatedWpm = elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
+    const finalWpm = Math.round(calculatedWpm);
+    
+    // Save the final WPM to display until next session starts
+    setWpm(finalWpm);
 
     // Add XP for endless mode
     if (currentMode === 'endless') {
@@ -108,7 +114,9 @@ export default function TypingInterface({
 
     console.log('--- Completion Stats ---');
     console.log(`Correct words: ${correctWords}, Incorrect: ${incorrectWords}`);
-    console.log(`WPM: ${Math.round(calculatedWpm)}`);
+    console.log(`Total chars including spaces: ${totalCharsIncludingSpaces}`);
+    console.log(`Elapsed minutes: ${elapsedMinutes.toFixed(2)}`);
+    console.log(`WPM: ${finalWpm}`);
     console.log('----------------------');
 
     // Load new text
@@ -125,6 +133,8 @@ export default function TypingInterface({
   // Handle character input
   const handleCharacterInput = useCallback((key: string) => {
     if (!hasStartedTyping) {
+      // Reset WPM only when starting a new session
+      setWpm(0);
       setStartTime(Date.now());
       setHasStartedTyping(true);
     }
@@ -275,6 +285,54 @@ export default function TypingInterface({
       handleCharacterInput(key);
     }
   };
+
+  // Calculate current WPM in real-time
+  const calculateCurrentWpm = useCallback(() => {
+    if (!hasStartedTyping || !startTime) return 0;
+
+    const elapsedMinutes = (Date.now() - startTime) / 60000;
+    if (elapsedMinutes === 0) return 0;
+
+    // Count completed words (locked words)
+    const wordMatches = [...text.matchAll(/\S+/g)];
+    let totalCharsIncludingSpaces = 0;
+
+    for (const match of wordMatches) {
+      const word = match[0];
+      const wordStartIndex = match.index!;
+      const wordEndIndex = wordStartIndex + word.length;
+      
+      let isWordCompleted = true;
+      
+      // Check if all characters in this word are locked
+      for (let i = wordStartIndex; i < wordEndIndex; i++) {
+        if (charStatus[i] !== 'locked') {
+          isWordCompleted = false;
+          break;
+        }
+      }
+
+      if (isWordCompleted) {
+        // Add word length + 1 space (except for last word)
+        totalCharsIncludingSpaces += word.length;
+        
+        // Add space after word if there's a space character following it
+        if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
+          totalCharsIncludingSpaces += 1;
+        }
+      }
+    }
+
+    return Math.round(totalCharsIncludingSpaces / 5 / elapsedMinutes);
+  }, [text, charStatus, hasStartedTyping, startTime]);
+
+  // Update WPM in real-time (only during active typing, not after completion)
+  useEffect(() => {
+    if (hasStartedTyping && cursorPosition < text.length) {
+      const currentWpm = calculateCurrentWpm();
+      setWpm(currentWpm);
+    }
+  }, [charStatus, hasStartedTyping, calculateCurrentWpm, cursorPosition, text.length]);
 
   return (
     <div
