@@ -19,7 +19,7 @@ const calculateXpToNextLevel = (level: number): number => {
   // Iterate from level 2 up to the player's current 'level'.
   for (let i = 2; i <= level; i++) {
     requiredXpForPreviousLevelTransition = Math.ceil(
-      requiredXpForPreviousLevelTransition * 1.2
+      requiredXpForPreviousLevelTransition * 1.2 // 20% increase in XP required for each level
     );
   }
   return requiredXpForPreviousLevelTransition;

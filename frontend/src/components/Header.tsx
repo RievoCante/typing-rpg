@@ -1,9 +1,16 @@
 import React from 'react';
-import { useTheme } from '../hooks/useTheme';
 import { Sun, Moon } from 'lucide-react';
+import { useDailyProgress } from '../hooks/useDailyProgress';
+import MilestoneProgress from './MilestoneProgress';
+
+// Contexts
+import { useGameContext } from '../hooks/useGameContext';
+import { useThemeContext } from '../hooks/useThemeContext';
 
 const Header: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useThemeContext();
+  const {currentMode} = useGameContext();
+  const dailyProgress = useDailyProgress();
   // const { isMuted, toggleMute } = useContext(AudioProvider);
 
   return (
@@ -32,6 +39,15 @@ const Header: React.FC = () => {
           Beta
         </span>
       </div>
+      
+      {currentMode === 'daily' && (
+        <div className="flex items-center">
+          <MilestoneProgress 
+            currentMilestone={dailyProgress.completedQuotes} 
+            totalMilestones={3} 
+          />
+        </div>
+      )}
 
       <div className="flex space-x-4">
         {/* <button

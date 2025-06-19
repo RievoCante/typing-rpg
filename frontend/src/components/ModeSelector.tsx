@@ -1,15 +1,9 @@
-import { useTheme } from '../hooks/useTheme';
+import { useThemeContext } from '../hooks/useThemeContext';
+import { useGameContext } from '../hooks/useGameContext';
 
-interface ModeSelectorProps {
-  currentMode: 'daily' | 'endless';
-  onModeChange: (mode: 'daily' | 'endless') => void;
-}
-
-export default function ModeSelector({
-  currentMode,
-  onModeChange,
-}: ModeSelectorProps) {
-  const { theme } = useTheme();
+export default function ModeSelector() {
+  const { theme } = useThemeContext();
+  const { currentMode, setCurrentMode } = useGameContext();
 
   return (
     <div className="flex justify-center w-full py-6">
@@ -31,7 +25,7 @@ export default function ModeSelector({
         
         {/* Daily Mode Button */}
         <button
-          onClick={() => onModeChange('daily')}
+          onClick={() => setCurrentMode('daily')}
           className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
             currentMode === 'daily'
               ? theme === 'dark'
@@ -47,7 +41,7 @@ export default function ModeSelector({
         
         {/* Endless Mode Button */}
         <button
-          onClick={() => onModeChange('endless')}
+          onClick={() => setCurrentMode('endless')}
           className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
             currentMode === 'endless'
               ? theme === 'dark'

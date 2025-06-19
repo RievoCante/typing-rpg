@@ -59,10 +59,6 @@ export const analyzeWords = (text: string, charStatus: CharStatus[]): WordAnalys
   };
 };
 
-/**
- * Quick utility to get just the incorrect word count.
- * Useful for failure detection without full analysis.
- */
 export const getIncorrectWordCount = (text: string, charStatus: CharStatus[]): number => {
   return analyzeWords(text, charStatus).incorrectWords;
 }; 

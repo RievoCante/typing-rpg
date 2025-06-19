@@ -9,7 +9,7 @@ interface QuoteStats {
 interface DailyState {
   currentQuote: 'easy' | 'medium' | 'hard';
   completedQuotes: number; // 0-3
-  isCompleted: boolean;
+  isCompleted: boolean; // Completed all 3 quotes or not
   lastCompletionDate: string; // YYYY-MM-DD format
   quoteStats: QuoteStats[]; // Stats for each completed quote
 }
@@ -36,6 +36,7 @@ export const useDailyProgress = () => {
     const today = getUTCDateString();
     const savedState = localStorage.getItem(`daily_progress_${today}`);
     
+    // If there is a saved state, parse it and set the state
     if (savedState) {
       try {
         const parsedState = JSON.parse(savedState) as DailyState;
@@ -58,17 +59,18 @@ export const useDailyProgress = () => {
         };
         
         setDailyState(cleanedState);
+
       } catch (error) {
         console.error('Failed to parse daily progress from localStorage:', error);
         setDailyState(getDefaultDailyState());
       }
-    } else {
-      // Check if we need to reset from previous day
+    } else { // If there is no saved state, set the state to the default state
+      
       const allKeys = Object.keys(localStorage).filter(key => 
         key.startsWith('daily_progress_')
       );
       
-      // Clean up old daily progress entries (optional)
+      // Clean up old daily progress entries
       allKeys.forEach(key => {
         const date = key.replace('daily_progress_', '');
         if (date !== today) {
@@ -91,6 +93,7 @@ export const useDailyProgress = () => {
     setDailyState(prev => {
       // Check if this difficulty has already been completed to prevent duplicates
       const alreadyCompleted = prev.quoteStats.some(stat => stat.difficulty === prev.currentQuote);
+      
       if (alreadyCompleted) {
         console.warn(`Quote difficulty ${prev.currentQuote} already completed, skipping duplicate`);
         return prev; // Don't add duplicate
@@ -101,7 +104,7 @@ export const useDailyProgress = () => {
         wpm, 
         attempts 
       }];
-      const newCompletedQuotes = prev.completedQuotes + 1;
+      const newCompletedQuotes = newQuoteStats.length; // Use array length directly
       
       // Determine next difficulty level
       let newCurrentQuote: 'easy' | 'medium' | 'hard' = 'easy';
@@ -110,12 +113,12 @@ export const useDailyProgress = () => {
       } else if (prev.currentQuote === 'medium') {
         newCurrentQuote = 'hard';
       } else {
-        newCurrentQuote = 'hard'; // Stay at hard if completed
+        newCurrentQuote = 'hard'; // FIXME: Think what to do if completed all quotes
       }
       
       const isCompleted = newCompletedQuotes >= 3;
       
-      return {
+      const newState = {
         ...prev,
         currentQuote: isCompleted ? 'hard' : newCurrentQuote,
         completedQuotes: newCompletedQuotes,
@@ -123,25 +126,11 @@ export const useDailyProgress = () => {
         lastCompletionDate: isCompleted ? getUTCDateString() : prev.lastCompletionDate,
         quoteStats: newQuoteStats,
       };
+
+      console.log(`Daily progress updated: ${prev.completedQuotes} -> ${newCompletedQuotes} (${prev.currentQuote} -> ${newCurrentQuote})`);
+      
+      return newState;
     });
-  }, []);
-
-  // NOTE: Reset daily progress (for testing or manual reset)
-  const resetDailyProgress = useCallback(() => {
-    setDailyState(getDefaultDailyState());
-    const today = getUTCDateString();
-    localStorage.removeItem(`daily_progress_${today}`);
-    console.log('Daily progress reset');
-  }, []);
-
-  // Force clear all daily progress data (for debugging)
-  const clearAllDailyData = useCallback(() => {
-    const allKeys = Object.keys(localStorage).filter(key => 
-      key.startsWith('daily_progress_')
-    );
-    allKeys.forEach(key => localStorage.removeItem(key));
-    setDailyState(getDefaultDailyState());
-    console.log('All daily progress data cleared');
   }, []);
 
   // Get time until next reset (midnight UTC)
@@ -173,19 +162,17 @@ export const useDailyProgress = () => {
 
   return {
     // State
-    currentQuote: dailyState.currentQuote,
-    completedQuotes: dailyState.completedQuotes,
-    isCompleted: dailyState.isCompleted,
-    quoteStats: dailyState.quoteStats,
+    currentQuote: dailyState.currentQuote, // Current difficulty level
+    completedQuotes: dailyState.completedQuotes, // Number of quotes completed today (0-3)
+    isCompleted: dailyState.isCompleted, // Whether all daily quotes are completed
+    quoteStats: dailyState.quoteStats, // Stats for each completed quote (WPM, attempts)
     
     // Actions
-    completeCurrentQuote,
-    resetDailyProgress,
-    clearAllDailyData,
+    completeCurrentQuote, // Mark current quote as completed and advance to next
     
     // Computed values
-    getTimeUntilReset,
-    getAverageWPM,
-    getCurrentDifficulty,
+    getTimeUntilReset, // Get time remaining until daily reset
+    getAverageWPM, // Calculate average WPM across completed quotes
+    getCurrentDifficulty, // Get current difficulty level
   };
-}; 
+};
