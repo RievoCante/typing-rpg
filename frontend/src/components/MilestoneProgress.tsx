@@ -27,50 +27,50 @@ export default function MilestoneProgress({ completedQuotes, totalMilestones }: 
           Daily Progress
         </h3>
       </div>
-      
+        
       {/* Vertical milestone layout */}
       <div className="flex flex-col items-center space-y-3">
-        {Array.from({ length: totalMilestones }).map((_, index) => {
-          const isCompleted = index < safeCurrentMilestone;
-          const isCurrent = index === safeCurrentMilestone && safeCurrentMilestone < totalMilestones;
-          
-          return (  
+          {Array.from({ length: totalMilestones }).map((_, index) => {
+             const isCompleted = index < safeCurrentMilestone;
+             const isCurrent = index === safeCurrentMilestone && safeCurrentMilestone < totalMilestones;
+            
+            return (  
             <div key={index} className="flex flex-col items-center">
-              {/* Milestone dot */}
-              <div className="relative group">
-                <div
+                {/* Milestone dot */}
+                <div className="relative group">
+                  <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                    isCompleted
-                      ? 'bg-green-500 text-white shadow-lg scale-110'
-                      : isCurrent
-                      ? theme === 'dark'
-                        ? 'bg-yellow-500 text-gray-900 shadow-lg animate-pulse'
-                        : 'bg-yellow-400 text-gray-900 shadow-lg animate-pulse'
-                      : theme === 'dark'
-                      ? 'bg-gray-600 text-gray-400'
-                      : 'bg-gray-300 text-gray-500'
-                  }`}
-                >
-                  {isCompleted ? (
-                    '✓'
-                  ) : index === totalMilestones - 1 ? (
-                    '👑'
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                
-                {/* Tooltip */}
+                      isCompleted
+                        ? 'bg-green-500 text-white shadow-lg scale-110'
+                        : isCurrent
+                        ? theme === 'dark'
+                          ? 'bg-yellow-500 text-gray-900 shadow-lg animate-pulse'
+                          : 'bg-yellow-400 text-gray-900 shadow-lg animate-pulse'
+                        : theme === 'dark'
+                        ? 'bg-gray-600 text-gray-400'
+                        : 'bg-gray-300 text-gray-500'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      '✓'
+                    ) : index === totalMilestones - 1 ? (
+                      '👑'
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  
+                  {/* Tooltip */}
                 <div className={`absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap ${
-                  theme === 'dark'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-800 text-white'
-                }`}>
-                  {MILESTONE_LABELS[index]}
-                  {isCompleted && ' ✓'}
-                  {isCurrent && ' (Current)'}
+                    theme === 'dark'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-800 text-white'
+                  }`}>
+                    {MILESTONE_LABELS[index]}
+                    {isCompleted && ' ✓'}
+                    {isCurrent && ' (Current)'}
+                  </div>
                 </div>
-              </div>
 
               {/* Label below dot */}
               <span className={`text-xs mt-1 text-center ${
@@ -87,36 +87,36 @@ export default function MilestoneProgress({ completedQuotes, totalMilestones }: 
                 {MILESTONE_LABELS[index]}
               </span>
 
-              {/* Connecting line */}
-              {index < totalMilestones - 1 && (
-                <div
+                {/* Connecting line */}
+                {index < totalMilestones - 1 && (
+                  <div
                   className={`w-0.5 h-4 my-1 transition-colors duration-300 ${
-                    isCompleted 
-                      ? 'bg-green-500' 
-                      : theme === 'dark'
-                      ? 'bg-gray-600'
-                      : 'bg-gray-300'
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
+                      isCompleted 
+                        ? 'bg-green-500' 
+                        : theme === 'dark'
+                        ? 'bg-gray-600'
+                        : 'bg-gray-300'
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
         
         {/* Progress text at bottom */}
         <div className="pt-2 border-t border-gray-300 dark:border-gray-600 w-full">
           <span className={`text-xs font-medium text-center block ${
-            safeCurrentMilestone === totalMilestones
-              ? 'text-green-500'
-              : theme === 'dark' 
-              ? 'text-gray-300' 
-              : 'text-gray-600'
-          }`}>
-            {safeCurrentMilestone === totalMilestones 
-              ? 'Complete!' 
-              : `${safeCurrentMilestone}/${totalMilestones}`
-            }
-          </span>
+          safeCurrentMilestone === totalMilestones
+            ? 'text-green-500'
+            : theme === 'dark' 
+            ? 'text-gray-300' 
+            : 'text-gray-600'
+        }`}>
+          {safeCurrentMilestone === totalMilestones 
+            ? 'Complete!' 
+            : `${safeCurrentMilestone}/${totalMilestones}`
+          }
+        </span>
         </div>
       </div>
     </div>

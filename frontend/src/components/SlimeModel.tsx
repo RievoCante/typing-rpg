@@ -88,16 +88,16 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       {/* Main slime body - simple sphere */}
       <mesh ref={meshRef} position={[0, 0, 0]}>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshPhongMaterial
-          color={config.color}
-          shininess={80}
-          transparent={true}
-          opacity={0.9}
-          // Slimy, bouncy appearance
-          specular="#ffffff"
-          reflectivity={0.3}
-        />
-      </mesh>
+      <meshPhongMaterial
+        color={config.color}
+        shininess={80}
+        transparent={true}
+        opacity={0.9}
+        // Slimy, bouncy appearance
+        specular="#ffffff"
+        reflectivity={0.3}
+      />
+    </mesh>
 
       {/* Left eye */}
       <mesh ref={leftEyeRef} position={[-0.3, 0.2, 0.7]}>
