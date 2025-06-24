@@ -1,49 +1,43 @@
 import {
-useState,
-useEffect,
+  useState,
+  useEffect,
   type KeyboardEvent,
   useRef,
   useCallback,
   useMemo,
 } from 'react';
-import TypingText, { type CharStatus } from './TypingText';
+import TypingText from './TypingText';
 import { generateText } from '../utils/textGenerator';
-import { calculateXP } from '../utils/calculateXP';
-import { analyzeWords } from '../utils/wordAnalysis';
-import { checkDailyFailure, getDailyFailureMessage, getDailySuccessMessage } from '../utils/dailyFailureDetection';
-import { useDailyProgress } from '../hooks/useDailyProgress';
 import CongratsModal from './CongratsModal';
 import WPMDisplay from './WPMDisplay';
 
 // Context
 import { useGameContext } from '../hooks/useGameContext';
+import { useThemeContext } from '../hooks/useThemeContext';
+
+// Custom Hooks
+import { useTypingMechanics } from '../hooks/useTypingMechanics';
+import { usePerformanceTracking } from '../hooks/usePerformanceTracking';
+import { useCompletionDetection } from '../hooks/useCompletionDetection';
+import { useCompletionHandler } from '../hooks/useCompletionHandler';
+import type { DailyProgressType } from '../hooks/useDailyProgress';
 
 interface TypingInterfaceProps {
   addXp: (amount: number) => void;
+  dailyProgress: DailyProgressType;
 }
 
-export default function TypingInterface({ addXp }: TypingInterfaceProps) {
+export default function TypingInterface({ addXp, dailyProgress }: TypingInterfaceProps) {
   // Context
-  const { currentMode, setCurrentMode } = useGameContext();
-  
-  // Daily progress hook (always call hook, use conditionally)
-  const dailyProgress = useDailyProgress();
+  const { currentMode, setCurrentMode, setTotalWords, setRemainingWords, decrementRemainingWords } = useGameContext();
+  const { theme } = useThemeContext();
 
-  // Core state - text never changes after initialization
+  // Core state - text
   const [text, setText] = useState<string>('');
-  const [charStatus, setCharStatus] = useState<CharStatus[]>([]);
-  const [typedChars, setTypedChars] = useState<(string | null)[]>([]);
-  const [cursorPosition, setCursorPosition] = useState(0);
   
-  // Timing and stats
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
-  const [wpm, setWpm] = useState<number>(0);
-
   // Daily mode state
   const [currentAttempts, setCurrentAttempts] = useState<number>(1);
   const [showCongratsModal, setShowCongratsModal] = useState<boolean>(false);
-  const [hasCompletedCurrentSession, setHasCompletedCurrentSession] = useState<boolean>(false); // Flag to prevent duplicate completion processing
   
   // Memoize specific values to avoid infinite re-renders
   const currentDifficulty = useMemo(() => dailyProgress.getCurrentDifficulty(), [dailyProgress]);
@@ -57,9 +51,43 @@ export default function TypingInterface({ addXp }: TypingInterfaceProps) {
   // Add state to track if daily completion modal has been shown for this completion
   const [hasShownDailyCompletion, setHasShownDailyCompletion] = useState(false);
   const [hasAwardedDailyXP, setHasAwardedDailyXP] = useState(false);
-  const [hasProcessedCompletion, setHasProcessedCompletion] = useState(false);
+  
+  // Add processing flag to prevent duplicate completion processing
+  const [isProcessingCompletion, setIsProcessingCompletion] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Separate hasStartedTyping state to avoid circular dependency
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
+
+  // Create callback for word completion
+  const handleWordCompleted = useCallback(() => {
+    decrementRemainingWords();
+  }, [decrementRemainingWords]);
+
+  // Use custom hooks
+  const typingMechanics = useTypingMechanics({
+    text,
+    onWordCompleted: handleWordCompleted
+  });
+
+  const performance = usePerformanceTracking({
+    text,
+    charStatus: typingMechanics.charStatus,
+    hasStartedTyping,
+    cursorPosition: typingMechanics.cursorPosition
+  });
+
+  const completion = useCompletionDetection({
+    cursorPosition: typingMechanics.cursorPosition,
+    textLength: text.length,
+    hasStartedTyping,
+  });
+
+  // Extract reset methods
+  const { resetTypingState } = typingMechanics;
+  const { resetSession } = performance;
+  const { resetForNewSession } = completion;
 
   // Initialize new text - this is the only place where text changes
   const initializeNewText = useCallback(() => {
@@ -73,18 +101,22 @@ export default function TypingInterface({ addXp }: TypingInterfaceProps) {
     }
     
     setText(newText);
-    setCharStatus(Array(newText.length).fill('pending'));
-    setTypedChars(Array(newText.length).fill(null));
-    setCursorPosition(0);
-    setStartTime(null);
+    
+    // Calculate and set word counts for GameContext
+    const wordCount = newText.match(/\S+/g)?.length || 0;
+    setTotalWords(wordCount);
+    setRemainingWords(wordCount);
+    
+    resetTypingState();
+    resetSession();
+    resetForNewSession();
     setHasStartedTyping(false);
-    setHasCompletedCurrentSession(false); // Reset completion flag for new session
-    // Don't reset WPM here - keep the last session's WPM visible
+    setIsProcessingCompletion(false); // Reset processing flag for new text
     
     if (containerRef.current) {
       containerRef.current.focus();
     }
-  }, [currentMode, currentDifficulty]); // Use memoized value
+  }, [currentMode, currentDifficulty, setTotalWords, setRemainingWords, resetTypingState, resetSession, resetForNewSession]);
 
   useEffect(() => {
     initializeNewText();
@@ -98,223 +130,129 @@ export default function TypingInterface({ addXp }: TypingInterfaceProps) {
     }
   }, [dailyProgress.isCompleted]);
 
-  // Reset completion processing flag when text changes
-  useEffect(() => {
-    setHasProcessedCompletion(false);
-  }, [text]);
+  // Extract methods to avoid dependency issues
+  const { markAsProcessed, markSessionCompleted, isCompleted, isSessionAlreadyCompleted } = completion;
+  const { startTime, calculateFinalStats } = performance;
 
-  // Check for completion
+  // Create stable callback for modal showing to prevent handler recreation
+  const onShowModal = useCallback(() => {
+    setShowCongratsModal(true);
+    setHasShownDailyCompletion(true);
+  }, []);
+
+  // Completion handler for clean separation of concerns
+  const completionHandler = useCompletionHandler({
+    currentMode,
+    addXp,
+    completeCurrentQuote,
+    getAverageWPM,
+    onShowModal
+  });
+
+  // Handle completion when detected
   useEffect(() => {
-    if (hasStartedTyping && cursorPosition >= text.length && !hasProcessedCompletion) {
-      setHasProcessedCompletion(true);
+    if (isCompleted && !isProcessingCompletion) {
+      setIsProcessingCompletion(true);
+      markAsProcessed();
       
-      // Handle completion inline to avoid dependency issues
+      // Basic validation
       if (!hasStartedTyping || !startTime || text.length === 0) {
+        setIsProcessingCompletion(false);
         initializeNewText();
         return;
       }
 
       // Prevent duplicate completion calls
-      if (hasCompletedCurrentSession) {
+      if (isSessionAlreadyCompleted) {
         console.log('Completion already processed for this session, skipping...');
+        setIsProcessingCompletion(false);
         return;
       }
-      setHasCompletedCurrentSession(true);
+      markSessionCompleted();
 
-      const elapsedMinutes = (Date.now() - startTime) / 60000;
-      
-      // Use the new word analysis utility instead of duplicate logic
-      const { correctWords, incorrectWords, totalCharsIncludingSpaces } = analyzeWords(text, charStatus);
+      // Calculate final performance stats
+      const stats = calculateFinalStats();
+      if (!stats) {
+        setIsProcessingCompletion(false);
+        initializeNewText();
+        return;
+      }
 
-      const calculatedWpm = elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
-      const finalWpm = Math.round(calculatedWpm);
-      
-      // Save the final WPM to display until next session starts
-      setWpm(finalWpm);
+      // Use the completion handler to process the result
+      const context = currentMode === 'daily' ? {
+        currentAttempts,
+        completedQuotes,
+        hasShownDailyCompletion,
+        currentDifficulty
+      } : undefined;
 
-      console.log('--- Completion Stats ---');
-      console.log(`Correct words: ${correctWords}, Incorrect: ${incorrectWords}`);
-      console.log(`Total chars including spaces: ${totalCharsIncludingSpaces}`);
-      console.log(`Elapsed minutes: ${elapsedMinutes.toFixed(2)}`);
-      console.log(`WPM: ${finalWpm}`);
+      const result = completionHandler.handleCompletion(stats, context);
 
-      // Handle daily mode failure detection
-      if (currentMode === 'daily') {
-        const failed = checkDailyFailure(incorrectWords);
-        
-        if (failed) {
-          // Quote failed - retry same quote
-          console.log(getDailyFailureMessage(incorrectWords, currentDifficulty));
-          setCurrentAttempts(prev => prev + 1);
-          initializeNewText(); // This will load the same quote again
-          return; // Don't proceed to success logic
-        } else {
-          // Quote succeeded - complete it and move to next
-          console.log(getDailySuccessMessage(incorrectWords, currentDifficulty));
-          completeCurrentQuote(finalWpm, currentAttempts);
-          setCurrentAttempts(1); // Reset attempts for next quote
-          
-          // Check if all 3 quotes are completed
-          if (completedQuotes >= 2 && !hasShownDailyCompletion) { // Will be 3 after this completion
-            // Show congratulations modal only once
-            console.log('--- DAILY CHALLENGE COMPLETED! ---');
-            console.log(`Average WPM: ${getAverageWPM()}`);
-            console.log('-----------------------------------');
-            setShowCongratsModal(true);
-            setHasShownDailyCompletion(true);
-            return; // Don't load new text, let modal handle continuation
+      // Handle the result based on the action
+      switch (result.action) {
+        case 'retry':
+          if (result.newAttempts !== undefined) {
+            setCurrentAttempts(result.newAttempts);
           }
-        }
-      } else {
-        // Endless mode - existing logic
-        const rewardXp = calculateXP(currentMode, incorrectWords);
-        addXp(rewardXp);
-      }
-
-      console.log('----------------------');
-
-      // Load new text
-      initializeNewText();
-    }
-  }, [cursorPosition, text.length, hasStartedTyping, hasProcessedCompletion, hasCompletedCurrentSession, startTime, text, charStatus, currentMode, currentDifficulty, currentAttempts, completedQuotes, hasShownDailyCompletion, initializeNewText, completeCurrentQuote, getAverageWPM, addXp]);
-
-  // Handle character input
-  const handleCharacterInput = useCallback((key: string) => {
-    if (!hasStartedTyping) {
-      // Reset WPM only when starting a new session
-      setWpm(0);
-      setStartTime(Date.now());
-      setHasStartedTyping(true);
-    }
-
-    // Prevent typing beyond the text length
-    if (cursorPosition >= text.length) return;
-
-    const isCorrect = key === text[cursorPosition];
-    const newCharStatus = [...charStatus];
-    const newTypedChars = [...typedChars];
-
-    if (isCorrect) {
-      newCharStatus[cursorPosition] = 'correct';
-    } else {
-      newCharStatus[cursorPosition] = 'incorrect';
-    }
-
-    newTypedChars[cursorPosition] = key;
-    setCharStatus(newCharStatus);
-    setTypedChars(newTypedChars);
-    setCursorPosition(prev => prev + 1);
-  }, [cursorPosition, text, charStatus, typedChars, hasStartedTyping]);
-
-  // Handle backspace
-  const handleBackspace = useCallback(() => {
-    if (cursorPosition <= 0) return;
-
-    const newPosition = cursorPosition - 1;
-    const status = charStatus[newPosition];
-
-    // Don't allow deleting locked characters
-    if (status === 'locked') return;
-
-    const newCharStatus = [...charStatus];
-    const newTypedChars = [...typedChars];
-
-    newCharStatus[newPosition] = 'pending';
-    newTypedChars[newPosition] = null;
-
-    setCharStatus(newCharStatus);
-    setTypedChars(newTypedChars);
-    setCursorPosition(newPosition);
-  }, [cursorPosition, charStatus, typedChars]);
-
-  // Handle word deletion (Ctrl/Alt + Backspace)
-  const handleWordDeletion = useCallback(() => {
-    if (cursorPosition <= 0) return;
-
-    let newPosition = cursorPosition - 1;
-
-    // Skip spaces
-    while (newPosition >= 0 && /\s/.test(text[newPosition])) {
-      newPosition--;
-    }
-
-    // Skip word characters
-    while (newPosition >= 0 && !/\s/.test(text[newPosition])) {
-      newPosition--;
-    }
-
-    newPosition++; // Move to start of word
-
-    const newCharStatus = [...charStatus];
-    const newTypedChars = [...typedChars];
-
-    // Clear from newPosition to cursorPosition
-    for (let i = newPosition; i < cursorPosition; i++) {
-      if (charStatus[i] !== 'locked') {
-        newCharStatus[i] = 'pending';
-        newTypedChars[i] = null;
-      }
-    }
-
-    setCharStatus(newCharStatus);
-    setTypedChars(newTypedChars);
-    setCursorPosition(newPosition);
-  }, [cursorPosition, text, charStatus, typedChars]);
-
-  // Handle space bar (with word locking and skipping)
-  const handleSpaceBar = useCallback(() => {
-    // First, try to lock the current word if it's correct
-    let wordStart = cursorPosition - 1;
-    while (wordStart >= 0 && !/\s/.test(text[wordStart])) {
-      wordStart--;
-    }
-    wordStart++;
-
-    if (wordStart < cursorPosition) {
-      // Check if the word is completely correct
-      let isWordCorrect = true;
-      for (let i = wordStart; i < cursorPosition; i++) {
-        if (charStatus[i] !== 'correct') {
-          isWordCorrect = false;
+          // Delay text initialization to keep WPM visible briefly
+          setTimeout(() => {
+            setIsProcessingCompletion(false);
+            initializeNewText();
+          }, 1000);
           break;
-        }
-      }
-
-      if (isWordCorrect) {
-        const newCharStatus = [...charStatus];
-        for (let i = wordStart; i < cursorPosition; i++) {
-          newCharStatus[i] = 'locked';
-        }
-        setCharStatus(newCharStatus);
+          
+        case 'nextQuote':
+          if (result.newAttempts !== undefined) {
+            setCurrentAttempts(result.newAttempts);
+          }
+          // Delay text initialization to keep WPM visible briefly
+          setTimeout(() => {
+            setIsProcessingCompletion(false);
+            initializeNewText();
+          }, 1000);
+          break;
+          
+        case 'showModal':
+          // Modal will be shown by the handler's onShowModal callback
+          // Don't load new text, let modal handle continuation
+          setIsProcessingCompletion(false);
+          break;
+          
+        case 'loadNewText':
+          // Delay text initialization to keep WPM visible briefly
+          setTimeout(() => {
+            setIsProcessingCompletion(false);
+            initializeNewText();
+          }, 1000);
+          break;
+          
+        default:
+          // Fallback - load new text
+          setTimeout(() => {
+            setIsProcessingCompletion(false);
+            initializeNewText();
+          }, 1000);
+          break;
       }
     }
-
-    // Handle space input or word skipping
-    if (cursorPosition < text.length && text[cursorPosition] === ' ') {
-      // Normal space - just input it
-      handleCharacterInput(' ');
-    } else if (cursorPosition < text.length) {
-      // Skip to next word
-      let nextPos = cursorPosition;
-      
-      // Skip remaining characters in current word
-      while (nextPos < text.length && !/\s/.test(text[nextPos])) {
-        if (charStatus[nextPos] === 'pending') {
-          const newCharStatus = [...charStatus];
-          newCharStatus[nextPos] = 'skipped';
-          setCharStatus(newCharStatus);
-        }
-        nextPos++;
-      }
-
-      // Skip spaces to get to next word
-      while (nextPos < text.length && /\s/.test(text[nextPos])) {
-        nextPos++;
-      }
-
-      setCursorPosition(nextPos);
-    }
-  }, [cursorPosition, text, charStatus, handleCharacterInput]);
+  }, [
+    isCompleted,
+    isProcessingCompletion,
+    isSessionAlreadyCompleted,
+    startTime,
+    text.length,
+    currentMode,
+    currentDifficulty,
+    currentAttempts,
+    completedQuotes,
+    hasShownDailyCompletion,
+    hasStartedTyping,
+    markAsProcessed,
+    markSessionCompleted,
+    calculateFinalStats,
+    initializeNewText,
+    completionHandler
+  ]);
 
   // Main keyboard handler
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -323,65 +261,22 @@ export default function TypingInterface({ addXp }: TypingInterfaceProps) {
     const { key } = e;
 
     if (key === ' ') {
-      handleSpaceBar();
+      typingMechanics.handleSpaceBar();
     } else if (key === 'Backspace') {
       if (e.ctrlKey || e.altKey) {
-        handleWordDeletion();
+        typingMechanics.handleWordDeletion();
       } else {
-        handleBackspace();
+        typingMechanics.handleBackspace();
       }
     } else if (key.length === 1) {
-      handleCharacterInput(key);
+      // Start performance tracking on first character
+      if (!hasStartedTyping) {
+        setHasStartedTyping(true);
+        performance.startSession();
+      }
+      typingMechanics.handleCharacterInput(key);
     }
   };
-
-  // Calculate current WPM in real-time
-  const calculateCurrentWpm = useCallback(() => {
-    if (!hasStartedTyping || !startTime) return 0;
-
-    const elapsedMinutes = (Date.now() - startTime) / 60000;
-    if (elapsedMinutes === 0) return 0;
-
-    // Count completed words (locked words)
-    const wordMatches = [...text.matchAll(/\S+/g)];
-    let totalCharsIncludingSpaces = 0;
-
-    for (const match of wordMatches) {
-      const word = match[0];
-      const wordStartIndex = match.index!;
-      const wordEndIndex = wordStartIndex + word.length;
-      
-      let isWordCompleted = true;
-      
-      // Check if all characters in this word are locked
-      for (let i = wordStartIndex; i < wordEndIndex; i++) {
-        if (charStatus[i] !== 'locked') {
-          isWordCompleted = false;
-          break;
-        }
-      }
-
-      if (isWordCompleted) {
-        // Add word length + 1 space (except for last word)
-        totalCharsIncludingSpaces += word.length;
-        
-        // Add space after word if there's a space character following it
-        if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
-          totalCharsIncludingSpaces += 1;
-        }
-      }
-    }
-
-    return Math.round(totalCharsIncludingSpaces / 5 / elapsedMinutes);
-  }, [text, charStatus, hasStartedTyping, startTime]);
-
-  // Update WPM in real-time (only during active typing, not after completion)
-  useEffect(() => {
-    if (hasStartedTyping && cursorPosition < text.length) {
-      const currentWpm = calculateCurrentWpm();
-      setWpm(currentWpm);
-    }
-  }, [charStatus, hasStartedTyping, calculateCurrentWpm, cursorPosition, text.length]);
 
   // Calculate total XP for daily completion (500 base + performance bonus)
   const calculateDailyXP = (): number => {
@@ -418,18 +313,22 @@ export default function TypingInterface({ addXp }: TypingInterfaceProps) {
         ref={containerRef}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        className="max-w-3xl mx-auto mt-8 p-8 bg-slate-800 rounded-lg shadow-xl text-white flex flex-col space-y-6 focus:outline-none"
+        className={`max-w-3xl mx-auto mt-8 p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-colors duration-300 ${
+          theme === 'dark' 
+            ? 'bg-slate-800 text-white border border-gray-700' 
+            : 'bg-white text-gray-900 border border-gray-200'
+        }`}
       >
         <TypingText
           text={text}
-          charStatus={charStatus}
-          typedChars={typedChars}
-          cursorPosition={cursorPosition}
+          charStatus={typingMechanics.charStatus}
+          typedChars={typingMechanics.typedChars}
+          cursorPosition={typingMechanics.cursorPosition}
           hasStartedTyping={hasStartedTyping}
         />
 
         <div className="flex justify-between items-center pt-4">
-          <WPMDisplay wpm={wpm} isCalculating={false} />
+          <WPMDisplay wpm={performance.wpm} isCalculating={false} />
         </div>
       </div>
 

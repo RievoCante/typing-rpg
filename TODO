@@ -5,18 +5,18 @@ Todo:
   ☐ Create simple working frontend @2h @started(25-06-02 15:00)
     ✔ Header @done(25-06-05 18:16)
 
-    ☐ Mode system
+    ✔ Mode system @done(25-06-24 11:47)
       ✔ Button @done(25-06-10 14:49)
-      ☐ Daily mode @started(25-06-16 15:46)
+      ✔ Daily mode @started(25-06-16 15:46) @done(25-06-22 13:46) @lasted(5d22h56s)
         ✔ Quote display @done(25-06-16 15:46)
-        ☐ A set of 3 quotes for each day of the week
-        ☐ milestone tracking on left side of the screen
+        ✔ A set of 3 quotes for each day of the week @done(25-06-22 13:43)
+        ✔ Milestone tracking on left side of the screen @done(25-06-22 13:47)
 
       ✔ Endless mode @done(25-06-16 15:46)
 
-    ☐ Monster UI
-      ☐ Monster graphic
-      ☐ HP bar
+    ✔ Monster UI with ThreeJS @started(25-06-22 13:49) @done(25-06-24 11:47) @lasted(1d21h58m19s)
+      ✔ Monster graphic @done(25-06-24 11:47)
+      ✔ HP bar @done(25-06-23 13:26)
 
     ✔ Typing Area @done(25-06-10 14:57)
 
@@ -45,97 +45,3 @@ Future features:
   ☐ User History
   ☐ Guide
   ☐ Leaderboard
-
-    ## Step-by-Step Implementation Plan
-    
-    ### Step 1: Create Daily State Management Hook
-    **File: `frontend/src/hooks/useDailyProgress.ts`**
-    ```typescript
-    // Track daily progress, completion status, reset logic
-    interface DailyState {
-      currentQuote: number; // 0, 1, or 2
-      completedQuotes: number; // 0-3
-      isCompleted: boolean;
-      lastCompletionDate: string;
-      quoteStats: Array<{ wpm: number; attempts: number }>;
-    }
-    ```
-    
-    ### Step 2: Update Text Generator for Daily Mode
-    **File: `frontend/src/utils/textGenerator.ts`**
-    - Add function to get specific daily quote by index (0, 1, 2)
-    - Use date-based seed for consistent daily quotes
-    - Ensure same quotes for all users on same day
-    
-    ### Step 3: Create Failure Detection Logic
-    **File: `frontend/src/hooks/useFailureDetection.ts`**
-    - Track incorrect words count
-    - Trigger failure at 5 incorrect words
-    - Reset counter on quote retry
-    
-    ### Step 4: Update TypingInterface for Daily Mode
-    **File: `frontend/src/components/TypingInterface.tsx`**
-    - Add daily-specific logic
-    - Handle quote progression (1→2→3)
-    - Handle failure detection and retry
-    - Collect stats per quote (WPM, attempts)
-    - Trigger congratulations modal after quote 3
-    
-    ### Step 5: Create Congratulations Modal
-    **File: `frontend/src/components/CongratModal.tsx`**
-    ```typescript
-    interface CongratModalProps {
-      isOpen: boolean;
-      onClose: () => void;
-      totalXP: number;
-      averageWPM: number;
-      onContinue: () => void; // Switch to endless mode
-    }
-    ```
-    
-    ### Step 6: Update MilestoneProgress Integration
-    **File: `frontend/src/components/MilestoneProgress.tsx`**
-    - Update to receive current quote progress
-    - Show 1/3, 2/3, 3/3 states
-    
-    ### Step 7: Create Daily Timer Component
-    **File: `frontend/src/components/DailyTimer.tsx`**
-    - Show time until UTC midnight
-    - Display when daily challenge is completed
-    
-    ### Step 8: Update App.tsx Layout
-    - Add `MilestoneProgress` only for Daily mode
-    - Add `CongratModal` 
-    - Add `DailyTimer` when daily is completed
-    - Handle mode switching after modal
-    
-    ### Step 9: Update XP Calculation
-    **File: `frontend/src/utils/calculateXP.ts`**
-    - Add daily completion XP logic (500 base + performance bonus)
-    
-    ### Step 10: Add Daily Completion State UI
-    - Show "completed" state when all 3 quotes done
-    - Display next reset timer
-    - Disable typing interface or show message
-    
-    ## Implementation Order:
-    
-    1. **useDailyProgress hook** (core state management)
-    2. **Update textGenerator** (daily quote selection)
-    3. **useFailureDetection hook** (failure logic)
-    4. **Update TypingInterface** (daily mode integration)
-    5. **CongratModal component** (success modal)
-    6. **DailyTimer component** (reset countdown)
-    7. **Update App layout** (component integration)
-    8. **Update XP calculation** (reward logic)
-    9. **Polish UI states** (completed state, styling)
-    
-    ## Key Technical Decisions:
-    
-    - **localStorage keys**: `daily_progress_${YYYY-MM-DD}` for persistence
-    - **Date handling**: Use UTC dates for consistency
-    - **State flow**: `currentQuote` (0-2) → `completedQuotes` (0-3) → `isCompleted` (boolean)
-    - **Failure reset**: Clear incorrect word count on new quote or retry
-    - **Modal trigger**: After completing quote 3 and calculating final stats
-    
-    Would you like me to start implementing this plan? Which step should I begin with?

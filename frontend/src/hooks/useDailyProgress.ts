@@ -14,6 +14,18 @@ interface DailyState {
   quoteStats: QuoteStats[]; // Stats for each completed quote
 }
 
+// Export the type for the return value of useDailyProgress
+export type DailyProgressType = {
+  currentQuote: 'easy' | 'medium' | 'hard';
+  completedQuotes: number;
+  isCompleted: boolean;
+  quoteStats: QuoteStats[];
+  completeCurrentQuote: (wpm: number, attempts: number) => void;
+  getTimeUntilReset: () => { hours: number; minutes: number; seconds: number };
+  getAverageWPM: () => number;
+  getCurrentDifficulty: () => 'easy' | 'medium' | 'hard';
+};
+
 const getUTCDateString = (): string => {
   const now = new Date();
   return now.toISOString().split('T')[0]; // Returns YYYY-MM-DD
@@ -35,6 +47,7 @@ export const useDailyProgress = () => {
   useEffect(() => {
     const today = getUTCDateString();
     const savedState = localStorage.getItem(`daily_progress_${today}`);
+
     
     // If there is a saved state, parse it and set the state
     if (savedState) {

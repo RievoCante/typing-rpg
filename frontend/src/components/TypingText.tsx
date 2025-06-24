@@ -1,3 +1,5 @@
+import { useThemeContext } from '../hooks/useThemeContext';
+
 export type CharStatus =
   | 'pending'
   | 'correct'
@@ -20,31 +22,35 @@ export default function TypingText({
   cursorPosition,
   hasStartedTyping,
 }: TypingTextProps) {
+  const { theme } = useThemeContext();
+  
   // ADJUST THIS NUMBER to change max characters per line
-  const MAX_CHARS_PER_LINE = 40;
+  const MAX_CHARS_PER_LINE = 43;
 
   if (!text) {
     return (
-      <div className="text-2xl text-slate-500 my-6 leading-relaxed font-mono">
+      <div className={`text-2xl my-6 leading-relaxed font-mono ${
+        theme === 'dark' ? 'text-slate-500' : 'text-gray-500'
+      }`}>
         Loading text...
       </div>
     );
   }
 
-  // Helper function to get character color based on status
+  // Helper function to get character color based on status and theme
   const getCharStyle = (status: CharStatus): string => {
     switch (status) {
       case 'locked':
         return 'text-green-400';
       case 'correct':
-        return 'text-slate-100';
+        return theme === 'dark' ? 'text-slate-100' : 'text-[#1D221F]';
       case 'incorrect':
         return 'text-red-500';
       case 'skipped':
-        return 'text-slate-400';
+        return theme === 'dark' ? 'text-slate-400' : 'text-gray-400';
       case 'pending':
       default:
-        return 'text-slate-500';
+        return theme === 'dark' ? 'text-slate-500' : 'text-[#D5D5D5]';
     }
   };
 
@@ -142,22 +148,22 @@ export default function TypingText({
               const isInError = !/\s/.test(char) && isInErrorWord(absoluteIndex);
               const underlineClass = isInError ? 'underline decoration-red-500 decoration-2 underline-offset-2' : '';
 
-              return (
-                <span
+                  return (
+                    <span
                   key={absoluteIndex}
                   className={`${charStyle} ${underlineClass} relative`}
-                >
+              >
                   {displayChar}
                   {absoluteIndex === cursorPosition && (
-                    <span
-                      className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
-                        !hasStartedTyping ? 'animate-blink' : ''
-                      }`}
-                    />
-                  )}
-                </span>
-              );
-            })}
+                  <span
+                    className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
+                      !hasStartedTyping ? 'animate-blink' : ''
+                    }`}
+                  />
+                )}
+              </span>
+            );
+      })}
           </div>
         ))}
       </div>

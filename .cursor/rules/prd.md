@@ -40,7 +40,6 @@ trigger: always_on
 - **Guest Mode**: Play without logging in, but progress isn't saved.
 - **Game Mode**: Daily mode: where players can play for a day and earn rewards; Endless mode: where players can play indefinitely.
 - **Logged-In Mode**: Save progress, access leaderboards, and compete with others.
-- **Difficulty Modes**: Easy, Normal, Hard, each with different word lists for slimes and bosses.
 
 ## Technical Requirements
 
@@ -63,51 +62,91 @@ After entering the website, user can start typing right away in daily mode witho
 ### Current file structure
 
 .
+├── .cursor
+│   └── rules
+│       ├── commands.md
+│       └── prd.md
 ├── .gitignore
-├── .windsurf
-│ └── rules
-│ └── prd.md
 ├── backend
-│ ├── .gitignore
-│ ├── bun.lock
-│ ├── package.json
-│ ├── README.md
-│ ├── src
-│ │ └── index.ts
-│ └── tsconfig.json
+│   ├── .gitignore
+│   ├── bun.lock
+│   ├── package.json
+│   ├── README.md
+│   ├── src
+│   │   └── index.ts
+│   └── tsconfig.json
+├── command.md
 ├── frontend
-│ ├── .gitignore
-│ ├── .prettierrc
-│ ├── bun.lock
-│ ├── bunfig.toml
-│ ├── eslint.config.js
-│ ├── index.html
-│ ├── package-lock.json
-│ ├── package.json
-│ ├── public
-│ │ └── vite.svg
-│ ├── README.md
-│ ├── src
-│ │ ├── App.tsx
-│ │ ├── assets
-│ │ │ └── react.svg
-│ │ ├── components
-│ │ │ └── Header.tsx
-│ │ ├── context
-│ │ │ ├── ThemeContext.ts
-│ │ │ └── ThemeProvider.tsx
-│ │ ├── hooks
-│ │ │ └── useTheme.tsx
-│ │ ├── index.css
-│ │ ├── main.tsx
-│ │ └── vite-env.d.ts
-│ ├── tailwind.config.js
-│ ├── tsconfig.app.json
-│ ├── tsconfig.json
-│ ├── tsconfig.node.json
-│ └── vite.config.ts
+│   ├── .gitignore
+│   ├── .prettierrc
+│   ├── bun.lock
+│   ├── bunfig.toml
+│   ├── dist
+│   │   ├── assets
+│   │   │   ├── index-KNd3zYGh.js
+│   │   │   └── index-ygCSfc2V.css
+│   │   ├── index.html
+│   │   └── vite.svg
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   └── vite.svg
+│   ├── README.md
+│   ├── src
+│   │   ├── .DS_Store
+│   │   ├── App.tsx
+│   │   ├── assets
+│   │   │   └── react.svg
+│   │   ├── components
+│   │   │   ├── .DS_Store
+│   │   │   ├── CongratsModal.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── MilestoneProgress.tsx
+│   │   │   ├── ModeSelector.tsx
+│   │   │   ├── Monster.tsx
+│   │   │   ├── PlayerLevel.tsx
+│   │   │   ├── TypingInterface.tsx
+│   │   │   ├── TypingText.tsx
+│   │   │   └── WPMDisplay.tsx
+│   │   ├── context
+│   │   │   ├── GameContext.ts
+│   │   │   ├── GameProvider.tsx
+│   │   │   ├── ThemeContext.ts
+│   │   │   └── ThemeProvider.tsx
+│   │   ├── handlers
+│   │   │   ├── DailyCompletionHandler.ts
+│   │   │   └── EndlessCompletionHandler.ts
+│   │   ├── hooks
+│   │   │   ├── useCompletionDetection.ts
+│   │   │   ├── useCompletionHandler.ts
+│   │   │   ├── useDailyProgress.ts
+│   │   │   ├── useGameContext.ts
+│   │   │   ├── usePerformanceTracking.ts
+│   │   │   ├── usePlayerStats.ts
+│   │   │   ├── useThemeContext.ts
+│   │   │   └── useTypingMechanics.ts
+│   │   ├── index.css
+│   │   ├── main.tsx
+│   │   ├── static
+│   │   │   └── english
+│   │   ├── types
+│   │   │   └── completion.ts
+│   │   ├── utils
+│   │   │   ├── .DS_Store
+│   │   │   ├── calculateXP.ts
+│   │   │   ├── dailyFailureDetection.ts
+│   │   │   ├── textGenerator.ts
+│   │   │   └── wordAnalysis.ts
+│   │   └── vite-env.d.ts
+│   ├── tailwind.config.js
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── full-prd.md
 ├── package.json
-├── prd.md
 ├── README.md
 ├── TODO
 └── todo.md
