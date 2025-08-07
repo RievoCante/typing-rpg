@@ -1,0 +1,24 @@
+# This is the configuration file for Cloudflare Workers.
+# It tells the Wrangler CLI how to build and deploy your Hono application.
+
+# The name of your Worker. This will be part of its URL.
+name = "typing-rpg-backend"
+
+# The entry point for your application.
+main = "src/index.ts"
+
+# This setting ensures your Worker uses a recent, stable version of the Workers runtime.
+compatibility_date = "2024-05-12"
+
+# This section defines the binding to our D1 database.
+# This is how our code gets access to the database.
+[[d1_databases]]
+# `binding` is the name we will use in our code to refer to the database.
+# It's like a variable name for the database connection.
+binding = "DB"
+# `database_name` is the human-readable name you see in the Cloudflare dashboard.
+database_name = "typing-rpg-db"
+# `database_id` is the unique identifier for your database.
+database_id = "d1c1d295-2035-4109-9c2b-f5693c835cd5"
+# This tells Wrangler where to find the SQL migration files.
+migrations_dir = "drizzle"

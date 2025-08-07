@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 // Contexts
 import { useThemeContext } from '../hooks/useThemeContext';
@@ -46,6 +47,13 @@ const Header: React.FC = () => {
         >
           {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button> */}
+
+        <SignedOut>
+          <SignInButton />
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
 
         <button
           onClick={toggleTheme}
