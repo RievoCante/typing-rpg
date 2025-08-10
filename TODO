@@ -30,8 +30,8 @@ Todo:
     
   ☐ Create simple backend API @started(25-08-01 12:32)
   ☐ Login system
-    ☐ Login page
-    ☐ Register page
+    ✔ Login page @done(25-08-10 11:37)
+    ✔ Register page @done(25-08-10 11:37)
     ☐ User data storage    
   ☐ Deploy backend to cloudflare workers and D1 database
   ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)

@@ -9,7 +9,7 @@ CREATE TABLE `game_sessions` (
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
---> statement-breakpoint
+
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,

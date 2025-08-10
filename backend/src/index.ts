@@ -3,26 +3,31 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 
 import { createDbClient } from './db';
-import { getUser } from './handlers/user';
+import { getUser, createUser } from './handlers/user';
 import { Bindings, Variables } from './core/types';
+import { authMiddleware } from './core/auth';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
   '/api',
 );
 
-// --- Middleware ---
+// MIDDLEWARE
 app.use('*', cors());
 app.use('*', logger());
 
 // DB client middleware.
 app.use('*', async (c, next) => {
-  const db = createDbClient(c.env.DB);
-  c.set('db', db);
+const db = createDbClient(c.env.DB);
+c.set('db', db);
   await next();
 });
 
-// --- API Routes ---
+// ROUTES
+// test route
 app.get('/', (c) => c.text('Welcome to the Typing RPG API!'));
-app.get('/me', getUser);
+
+// user routes
+app.get('/me', authMiddleware, getUser);
+app.post('/me', authMiddleware, createUser)
 
 export default app;

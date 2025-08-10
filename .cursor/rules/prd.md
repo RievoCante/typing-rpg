@@ -67,29 +67,54 @@ After entering the website, user can start typing right away in daily mode witho
 │       ├── commands.md
 │       └── prd.md
 ├── .gitignore
+├── .vscode
+│   └── settings.json
 ├── backend
+│   ├── .env
 │   ├── .gitignore
+│   ├── .wrangler
+│   │   ├── state
+│   │   │   └── v3
+│   │   └── tmp
+│   │       ├── bundle-7Tsnpd
+│   │       └── dev-lZE3b9
 │   ├── bun.lock
+│   ├── drizzle
+│   │   ├── 0000_initial-schema.sql
+│   │   └── meta
+│   │       ├── _journal.json
+│   │       └── 0000_snapshot.json
+│   ├── drizzle.config.ts
 │   ├── package.json
 │   ├── README.md
 │   ├── src
+│   │   ├── core
+│   │   │   ├── auth.ts
+│   │   │   └── types.ts
+│   │   ├── db
+│   │   │   ├── index.ts
+│   │   │   └── schema.ts
+│   │   ├── handlers
+│   │   │   ├── index.ts
+│   │   │   └── user.ts
 │   │   └── index.ts
-│   └── tsconfig.json
+│   ├── tsconfig.json
+│   └── wrangler.toml
 ├── command.md
 ├── frontend
+│   ├── .env
 │   ├── .gitignore
 │   ├── .prettierrc
 │   ├── bun.lock
 │   ├── bunfig.toml
 │   ├── dist
 │   │   ├── assets
-│   │   │   ├── index-KNd3zYGh.js
-│   │   │   └── index-ygCSfc2V.css
+│   │   │   ├── index-DdID-C1Y.js
+│   │   │   └── index-REcPRfVc.css
 │   │   ├── index.html
 │   │   └── vite.svg
 │   ├── eslint.config.js
 │   ├── index.html
-│   ├── package-lock.json
 │   ├── package.json
 │   ├── public
 │   │   └── vite.svg
@@ -103,10 +128,12 @@ After entering the website, user can start typing right away in daily mode witho
 │   │   │   ├── .DS_Store
 │   │   │   ├── CongratsModal.tsx
 │   │   │   ├── Header.tsx
+│   │   │   ├── HealthBar.tsx
 │   │   │   ├── MilestoneProgress.tsx
 │   │   │   ├── ModeSelector.tsx
 │   │   │   ├── Monster.tsx
 │   │   │   ├── PlayerLevel.tsx
+│   │   │   ├── SlimeModel.tsx
 │   │   │   ├── TypingInterface.tsx
 │   │   │   ├── TypingText.tsx
 │   │   │   └── WPMDisplay.tsx
@@ -132,7 +159,8 @@ After entering the website, user can start typing right away in daily mode witho
 │   │   ├── static
 │   │   │   └── english
 │   │   ├── types
-│   │   │   └── completion.ts
+│   │   │   ├── completion.ts
+│   │   │   └── SlimeTypes.ts
 │   │   ├── utils
 │   │   │   ├── .DS_Store
 │   │   │   ├── calculateXP.ts
@@ -146,6 +174,7 @@ After entering the website, user can start typing right away in daily mode witho
 │   ├── tsconfig.node.json
 │   └── vite.config.ts
 ├── full-prd.md
+├── package-lock.json
 ├── package.json
 ├── README.md
 ├── TODO
