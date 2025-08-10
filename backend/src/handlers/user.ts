@@ -2,23 +2,43 @@ import { AppContext } from '../core/types';
 import { users } from '../db/schema';
 import { getAuth } from '@hono/clerk-auth';
 import { createClerkClient } from '@clerk/backend';
+import { z } from 'zod';
+import { jsonError } from '../core/errors';
 
-// Gets a user's profile from the database, or creates one if it doesn't exist.
+const meCreateSchema = z
+  .object({
+    username: z.string().min(1).max(50).optional(),
+  })
+  .optional();
 
+// Creates a user in the database, or updates their username if they already exist.
 export const createUser = async (c: AppContext) => {
   const auth = getAuth(c);
-  if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
+  if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
+
+  // optional body (e.g., allow client to propose a username)
+  let body: unknown = undefined;
+  try {
+    if (c.req.header('content-type')?.includes('application/json')) {
+      body = await c.req.json();
+    }
+  } catch {
+    // ignore malformed body; we can still create from Clerk
+  }
+  const parsed = meCreateSchema.safeParse(body);
+  if (!parsed.success && body !== undefined) {
+    return jsonError(c, 400, 'Validation failed', parsed.error.format());
+  }
 
   const db = c.get('db');
 
-  // pull username from Clerk (fallback if unavailable)
-  let username = 'NewPlayer';
+  let username = parsed.success && parsed.data?.username ? parsed.data.username : 'NewPlayer';
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
     const clerkUser = await clerkClient.users.getUser(auth.userId);
-    username = clerkUser.username ?? username;
-  } catch (_) {
-    // ignore and keep fallback
+    username = parsed.success && parsed.data?.username ? parsed.data.username : (clerkUser.username ?? username);
+  } catch {
+    // keep fallback/parsed username
   }
 
   await db
@@ -33,14 +53,15 @@ export const createUser = async (c: AppContext) => {
   return c.json({ success: true, user }, 200);
 };
 
+// Gets a user's profile from the database.
 export const getUser = async (c: AppContext) => {
   const auth = getAuth(c);
-  if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
+  if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
 
   const user = await c
     .get('db')
     .query.users.findFirst({ where: (u, { eq }) => eq(u.id, auth.userId) });
-  if (!user) return c.json({ error: 'Not found' }, 404);
+  if (!user) return jsonError(c, 404, 'Not found');
 
   return c.json({ success: true, user });
 };

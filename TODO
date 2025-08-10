@@ -28,11 +28,11 @@ Todo:
       ✔ WPM calculation @done(25-06-13 14:51)
       ✔ WPM display @done(25-06-13 14:51)
     
-  ☐ Create simple backend API @started(25-08-01 12:32)
-  ☐ Login system
+  ✔ Create simple backend API @started(25-08-01 12:32) @done(25-08-10 16:11) @lasted(1w2d3h39m29s)
+  ✔ Login system @done(25-08-10 16:11)
     ✔ Login page @done(25-08-10 11:37)
     ✔ Register page @done(25-08-10 11:37)
-    ☐ User data storage    
+    ✔ User data storage @done(25-08-10 16:11)
   ☐ Deploy backend to cloudflare workers and D1 database
   ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)
 

@@ -1,4 +1,4 @@
-CREATE TABLE `game_sessions` (
+CREATE TABLE IF NOT EXISTS `game_sessions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` text NOT NULL,
 	`mode` text NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE `game_sessions` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`level` integer DEFAULT 1 NOT NULL,

@@ -4,8 +4,11 @@ import { logger } from 'hono/logger';
 
 import { createDbClient } from './db';
 import { getUser, createUser } from './handlers/user';
+import { createSession, getSessions } from './handlers/sessions';
 import { Bindings, Variables } from './core/types';
 import { authMiddleware } from './core/auth';
+import { kvRateLimit } from './core/rateLimit';
+import { getAuth } from '@hono/clerk-auth';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
   '/api',
@@ -17,17 +20,24 @@ app.use('*', logger());
 
 // DB client middleware.
 app.use('*', async (c, next) => {
-const db = createDbClient(c.env.DB);
-c.set('db', db);
+  const db = createDbClient(c.env.DB);
+  c.set('db', db);
   await next();
 });
 
+// Rate limit: per-user if signed in, else per-IP. No-op if KV not bound.
+const keyFn = (c: any) => getAuth(c)?.userId ?? c.req.header('cf-connecting-ip') ?? 'anon';
+const limiter = kvRateLimit(keyFn, { windowMs: 60_000, limit: 120, prefix: 'api' });
+
 // ROUTES
-// test route
 app.get('/', (c) => c.text('Welcome to the Typing RPG API!'));
 
 // user routes
-app.get('/me', authMiddleware, getUser);
-app.post('/me', authMiddleware, createUser)
+app.get('/me', limiter, authMiddleware, getUser);
+app.post('/me', limiter, authMiddleware, createUser);
+
+// session routes
+app.post('/sessions', limiter, authMiddleware, createSession);
+app.get('/sessions', limiter, authMiddleware, getSessions);
 
 export default app;

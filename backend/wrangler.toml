@@ -22,9 +22,11 @@ CLERK_PUBLISHABLE_KEY = "${CLERK_PUBLISHABLE_KEY}"
 # `binding` is the name we will use in our code to refer to the database.
 # It's like a variable name for the database connection.
 binding = "DB"
-# `database_name` is the human-readable name you see in the Cloudflare dashboard.
 database_name = "typing-rpg-db"
-# `database_id` is the unique identifier for your database.
 database_id = "d1c1d295-2035-4109-9c2b-f5693c835cd5"
-# This tells Wrangler where to find the SQL migration files.
 migrations_dir = "drizzle"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "0e8f22caff7a40f596a9bcded20f2f6f"
+
