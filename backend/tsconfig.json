@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "strict": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
+    "skipLibCheck": true,
+    "types": ["@cloudflare/workers-types", "node"]
   }
 }

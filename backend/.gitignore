@@ -1,2 +1,15 @@
-# deps
+# Dependencies
 node_modules/
+
+# Cloudflare Wrangler local development files
+.wrangler/
+
+# Environment files - !!! DO NOT COMMIT SECRETS !!!
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Log files
+*.log

@@ -2,7 +2,7 @@ Todo:
   ✔ Set up git repo @done(25-06-02 14:09) 
   ✔ Set up frontend and backend folder and under stand the structure @30m @started(25-06-02 14:09) @done(25-06-02 14:59) @lasted(50m1s)
     // I followed bun doc.
-  ☐ Create simple working frontend @2h @started(25-06-02 15:00)
+  ✔ Create simple working frontend @2h @started(25-06-02 15:00) @done(25-08-01 12:32) @lasted(8w3d21h32m34s)
     ✔ Header @done(25-06-05 18:16)
 
     ✔ Mode system @done(25-06-24 11:47)
@@ -28,14 +28,13 @@ Todo:
       ✔ WPM calculation @done(25-06-13 14:51)
       ✔ WPM display @done(25-06-13 14:51)
     
-  ☐ Login system
-    ☐ Login page
-    ☐ Register page
-    ☐ User data storage
-    
-  ☐ Create simple backend API
-  ☐ Deploy frontend to cloudflare pages
+  ✔ Create simple backend API @started(25-08-01 12:32) @done(25-08-10 16:11) @lasted(1w2d3h39m29s)
+  ✔ Login system @done(25-08-10 16:11)
+    ✔ Login page @done(25-08-10 11:37)
+    ✔ Register page @done(25-08-10 11:37)
+    ✔ User data storage @done(25-08-10 16:11)
   ☐ Deploy backend to cloudflare workers and D1 database
+  ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)
 
 
 Future features:

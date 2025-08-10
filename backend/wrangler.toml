@@ -1,0 +1,32 @@
+# This is the configuration file for Cloudflare Workers.
+# It tells the Wrangler CLI how to build and deploy your Hono application.
+
+# The name of your Worker. This will be part of its URL.
+name = "typing-rpg-backend"
+
+# The entry point for your application.
+main = "src/index.ts"
+
+# This setting ensures your Worker uses a recent, stable version of the Workers runtime.
+compatibility_date = "2024-05-12"
+
+# This section defines variables that will be available in your application's environment.
+# It's how we securely pass secrets from our .env file to the code.
+[vars]
+CLERK_SECRET_KEY = "${CLERK_SECRET_KEY}"
+CLERK_PUBLISHABLE_KEY = "${CLERK_PUBLISHABLE_KEY}"
+
+# This section defines the binding to our D1 database.
+# This is how our code gets access to the database.
+[[d1_databases]]
+# `binding` is the name we will use in our code to refer to the database.
+# It's like a variable name for the database connection.
+binding = "DB"
+database_name = "typing-rpg-db"
+database_id = "d1c1d295-2035-4109-9c2b-f5693c835cd5"
+migrations_dir = "drizzle"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "0e8f22caff7a40f596a9bcded20f2f6f"
+

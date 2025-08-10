@@ -1,12 +1,22 @@
 {
   "name": "backend",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "wrangler d1 migrations apply typing-rpg-db --local && wrangler dev src/index.ts --local",
+    "db:gen": "drizzle-kit generate"
   },
   "dependencies": {
-    "hono": "^4.7.11"
+    "@clerk/backend": "^2.6.2",
+    "@hono/clerk-auth": "^3.0.3",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.7.11",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@cloudflare/workers-types": "^4.20250801.0",
+    "@types/bun": "latest",
+    "@types/node": "^24.1.0",
+    "drizzle-kit": "^0.31.4",
+    "wrangler": "^4.22.0"
   }
 }

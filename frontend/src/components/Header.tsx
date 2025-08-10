@@ -1,13 +1,12 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, User } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 // Contexts
 import { useThemeContext } from '../hooks/useThemeContext';
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useThemeContext();
-
-  // const { isMuted, toggleMute } = useContext(AudioProvider);
 
   return (
     <header
@@ -37,15 +36,21 @@ const Header: React.FC = () => {
       </div>
 
       <div className="flex space-x-4">
-        {/* <button
-          onClick={toggleMute}
-          className={`p-2 rounded-full transition-colors ${
-            theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
-          }`}
-          aria-label={isMuted ? "Unmute" : "Mute"}
-        >
-          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-        </button> */}
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button
+              className={`p-2 rounded-full transition-colors ${
+                theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+              aria-label="Sign in"
+            >
+              <User size={20} className={theme === 'dark' ? 'text-white' : ''} />
+            </button>
+          </SignInButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
 
         <button
           onClick={toggleTheme}

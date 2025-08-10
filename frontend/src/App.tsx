@@ -13,15 +13,34 @@ import { ThemeProvider } from './context/ThemeProvider';
 import { GameProvider } from './context/GameProvider';
 import { useGameContext } from './hooks/useGameContext';
 import { useThemeContext } from './hooks/useThemeContext';
+import { useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { useApi } from './hooks/useApi';
 
 // Main game content component that uses GameContext
 function GameContent() {
   const { level, currentXp, xpToNextLevel, addXp } = usePlayerStats();
   const { totalWords, remainingWords, currentMode } = useGameContext();
   const { theme } = useThemeContext();
-  
-  // Centralize daily progress state at App level
+
+  const { isSignedIn } = useAuth();
+  const { getMe, createMe } = useApi();
   const dailyProgress = useDailyProgress();
+
+  // bootstrap = initial setup work after sign-in
+  useEffect(() => {
+    if (!isSignedIn) return;
+    (async () => {
+      try {
+        const r1 = await getMe();
+        if (r1.status === 404) {
+          await createMe();
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, [isSignedIn, getMe, createMe]);
 
   // Calculate monster state based on health
   const healthPercentage = totalWords > 0 ? (remainingWords / totalWords) * 100 : 100;
@@ -49,8 +68,6 @@ function GameContent() {
         addXp={addXp}
         dailyProgress={dailyProgress}
       />
-      
-      {/* Fixed left sidebar for Daily Progress */}
       {currentMode === 'daily' && (
         <MilestoneProgress 
           completedQuotes={dailyProgress.completedQuotes} 
