@@ -29,10 +29,15 @@ export const kvRateLimit = (
 
     bucket.count += 1;
 
-    await kv.put(key, JSON.stringify(bucket), { expirationTtl: Math.ceil((bucket.reset - now) / 1000) });
+    // Use absolute expiration (seconds) and ensure at least 60s in the future to satisfy KV constraints.
+    const nowSec = Math.ceil(now / 1000);
+    let expirationSec = Math.ceil(bucket.reset / 1000);
+    if (expirationSec - nowSec < 60) expirationSec = nowSec + 60;
+    await kv.put(key, JSON.stringify(bucket), { expiration: expirationSec });
 
     if (bucket.count > limit) {
-      c.header('Retry-After', Math.ceil((bucket.reset - now) / 1000).toString());
+      const retryAfter = Math.max(0, Math.ceil((bucket.reset - now) / 1000));
+      c.header('Retry-After', retryAfter.toString());
       return c.json({ error: 'Too Many Requests' }, 429);
     }
 

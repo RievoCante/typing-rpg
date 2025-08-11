@@ -5,20 +5,18 @@ import { text, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
 
 /**
  * The `users` table stores permanent player data.
- * It is linked to a Clerk user account via the `id`.
+ * It is linked to a Clerk user account via the `user_id`.
  */
 export const users = sqliteTable('users', {
-  // The user's ID from Clerk. This is the primary key.
-  id: text('id').primaryKey(),
+  // Clerk user ID as primary key.
+  userId: text('user_id').primaryKey(),
   username: text('username').notNull(),
   level: integer('level').default(1).notNull(),
   xp: integer('xp').default(0).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(
-    () => new Date(),
-  ),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
 });
 
 /**
@@ -29,7 +27,7 @@ export const gameSessions = sqliteTable('game_sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: text('user_id')
     .notNull()
-    .references(() => users.id), // Foreign key to the users table
+    .references(() => users.userId), // Foreign key to the users table
   mode: text('mode', { enum: ['daily', 'endless'] }).notNull(),
   wpm: integer('wpm').notNull(),
   totalWords: integer('total_words').notNull(),

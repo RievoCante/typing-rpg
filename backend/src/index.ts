@@ -33,11 +33,11 @@ const limiter = kvRateLimit(keyFn, { windowMs: 60_000, limit: 120, prefix: 'api'
 app.get('/', (c) => c.text('Welcome to the Typing RPG API!'));
 
 // user routes
-app.get('/me', limiter, authMiddleware, getUser);
-app.post('/me', limiter, authMiddleware, createUser);
+app.get('/me', authMiddleware, limiter, getUser);
+app.post('/me', authMiddleware, limiter, createUser);
 
 // session routes
-app.post('/sessions', limiter, authMiddleware, createSession);
-app.get('/sessions', limiter, authMiddleware, getSessions);
+app.post('/sessions', authMiddleware, limiter,createSession);
+app.get('/sessions', authMiddleware, limiter, getSessions);
 
 export default app;

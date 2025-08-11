@@ -11,7 +11,8 @@ const meCreateSchema = z
   })
   .optional();
 
-// Creates a user in the database, or updates their username if they already exist.
+// Gets a user's profile from the database, or creates one if it doesn't exist.
+
 export const createUser = async (c: AppContext) => {
   const auth = getAuth(c);
   if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
@@ -43,24 +44,23 @@ export const createUser = async (c: AppContext) => {
 
   await db
     .insert(users)
-    .values({ id: auth.userId, username })
-    .onConflictDoNothing({ target: users.id });
+    .values({ userId: auth.userId, username })
+    .onConflictDoNothing({ target: users.userId });
 
   const user = await db.query.users.findFirst({
-    where: (u, { eq }) => eq(u.id, auth.userId),
+    where: (u, { eq }) => eq(u.userId, auth.userId),
   });
 
   return c.json({ success: true, user }, 200);
 };
 
-// Gets a user's profile from the database.
 export const getUser = async (c: AppContext) => {
   const auth = getAuth(c);
   if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
 
   const user = await c
     .get('db')
-    .query.users.findFirst({ where: (u, { eq }) => eq(u.id, auth.userId) });
+    .query.users.findFirst({ where: (u, { eq }) => eq(u.userId, auth.userId) });
   if (!user) return jsonError(c, 404, 'Not found');
 
   return c.json({ success: true, user });

@@ -10,12 +10,6 @@ main = "src/index.ts"
 # This setting ensures your Worker uses a recent, stable version of the Workers runtime.
 compatibility_date = "2024-05-12"
 
-# This section defines variables that will be available in your application's environment.
-# It's how we securely pass secrets from our .env file to the code.
-[vars]
-CLERK_SECRET_KEY = "${CLERK_SECRET_KEY}"
-CLERK_PUBLISHABLE_KEY = "${CLERK_PUBLISHABLE_KEY}"
-
 # This section defines the binding to our D1 database.
 # This is how our code gets access to the database.
 [[d1_databases]]
@@ -30,3 +24,6 @@ migrations_dir = "drizzle"
 binding = "RATE_LIMIT_KV"
 id = "0e8f22caff7a40f596a9bcded20f2f6f"
 
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
