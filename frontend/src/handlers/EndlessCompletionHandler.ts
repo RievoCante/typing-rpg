@@ -1,28 +1,39 @@
-import { calculateXP } from '../utils/calculateXP';
 import type { CompletionStats, CompletionResult } from '../types/completion';
 
 export class EndlessCompletionHandler {
-  constructor(private addXp: (amount: number) => void) {}
+  constructor(private createSession: (body: {
+    mode: 'daily' | 'endless';
+    wpm: number;
+    totalWords: number;
+    correctWords: number;
+    incorrectWords: number;
+  }) => Promise<Response>) {}
 
   /**
    * Handles completion of an endless mode session
-   * @param stats - Performance statistics from the completed session
-   * @returns CompletionResult indicating what action to take next
    */
-  handleCompletion(stats: CompletionStats): CompletionResult {
-    // Log completion stats
+  async handleCompletion(stats: CompletionStats): Promise<CompletionResult> {
     this.logCompletionStats(stats);
 
-    // Calculate and award XP
-    const rewardXp = calculateXP('endless', stats.incorrectWords);
-    this.addXp(rewardXp);
+    const totalWords = stats.correctWords + stats.incorrectWords;
+    const payload = {
+      mode: 'endless' as const,
+      wpm: Math.round(stats.finalWpm),
+      totalWords,
+      correctWords: stats.correctWords,
+      incorrectWords: stats.incorrectWords,
+    };
 
-    console.log(`Endless session completed! +${rewardXp} XP earned.`);
-    console.log('----------------------');
+    try {
+      await this.createSession(payload);
+      console.log('Endless session saved to backend.');
+    } catch (e) {
+      console.error('Failed to save endless session', e);
+    }
 
     return {
       action: 'loadNewText',
-      message: `Session completed! +${rewardXp} XP earned.`
+      message: 'Session completed! Saved to history.',
     };
   }
 

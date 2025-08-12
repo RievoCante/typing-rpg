@@ -19,5 +19,26 @@ export function useApi() {
   const getMe = useCallback(() => authFetch('/me'), [authFetch]);
   const createMe = useCallback(() => authFetch('/me', { method: 'POST' }), [authFetch]);
 
-  return { getMe, createMe };
+  const createSession = useCallback(
+    (body: {
+      mode: 'daily' | 'endless';
+      wpm: number;
+      totalWords: number;
+      correctWords: number;
+      incorrectWords: number;
+    }) =>
+      authFetch('/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    [authFetch],
+  );
+
+  const getRecentSessions = useCallback(
+    (limit = 20) => authFetch(`/sessions?limit=${encodeURIComponent(limit)}`),
+    [authFetch],
+  );
+
+  return { getMe, createMe, createSession, getRecentSessions };
 }

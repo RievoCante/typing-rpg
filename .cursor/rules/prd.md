@@ -76,8 +76,6 @@ After entering the website, user can start typing right away in daily mode witho
 │   │   ├── state
 │   │   │   └── v3
 │   │   └── tmp
-│   │       ├── bundle-7Tsnpd
-│   │       └── dev-lZE3b9
 │   ├── bun.lock
 │   ├── drizzle
 │   │   ├── 0000_initial-schema.sql
@@ -90,12 +88,16 @@ After entering the website, user can start typing right away in daily mode witho
 │   ├── src
 │   │   ├── core
 │   │   │   ├── auth.ts
-│   │   │   └── types.ts
+│   │   │   ├── errors.ts
+│   │   │   ├── rateLimit.ts
+│   │   │   ├── types.ts
+│   │   │   └── xp.ts
 │   │   ├── db
 │   │   │   ├── index.ts
 │   │   │   └── schema.ts
 │   │   ├── handlers
 │   │   │   ├── index.ts
+│   │   │   ├── sessions.ts
 │   │   │   └── user.ts
 │   │   └── index.ts
 │   ├── tsconfig.json
@@ -146,6 +148,7 @@ After entering the website, user can start typing right away in daily mode witho
 │   │   │   ├── DailyCompletionHandler.ts
 │   │   │   └── EndlessCompletionHandler.ts
 │   │   ├── hooks
+│   │   │   ├── useApi.ts
 │   │   │   ├── useCompletionDetection.ts
 │   │   │   ├── useCompletionHandler.ts
 │   │   │   ├── useDailyProgress.ts
@@ -174,7 +177,6 @@ After entering the website, user can start typing right away in daily mode witho
 │   ├── tsconfig.node.json
 │   └── vite.config.ts
 ├── full-prd.md
-├── package-lock.json
 ├── package.json
 ├── README.md
 ├── TODO

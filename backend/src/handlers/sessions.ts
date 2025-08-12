@@ -1,8 +1,10 @@
 // Handlers for creating and fetching game sessions
 import { AppContext } from '../core/types';
 import { getAuth } from '@hono/clerk-auth';
-import { gameSessions } from '../db/schema';
+import { gameSessions, users } from '../db/schema';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
   mode: z.enum(['daily', 'endless']),
@@ -33,12 +35,31 @@ export const createSession = async (c: AppContext) => {
 
   const db = c.get('db');
   try {
+    // Save session
     const inserted = await db
       .insert(gameSessions)
       .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
       .returning();
 
-    return c.json({ success: true, session: inserted[0] }, 201);
+    // Load or create user
+    let user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+    if (!user) {
+      await db.insert(users).values({ userId, username: 'NewPlayer' }).onConflictDoNothing({ target: users.userId });
+      user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+    }
+
+    // Compute XP and update user
+    if (user) {
+      const xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
+      if (xpDelta > 0) {
+        const updated = applyXp(user.level, user.xp, xpDelta);
+        await db.update(users).set({ level: updated.level, xp: updated.xp }).where(eq(users.userId, userId));
+        user.level = updated.level;
+        user.xp = updated.xp;
+      }
+    }
+
+    return c.json({ success: true, session: inserted[0], user }, 201);
   } catch (e) {
     console.error('createSession error', e);
     return c.json({ error: 'Failed to create session' }, 500);

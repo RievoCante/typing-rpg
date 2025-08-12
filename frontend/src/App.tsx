@@ -5,6 +5,7 @@ import HealthBar from './components/HealthBar';
 import Monster from './components/Monster';
 import TypingInterface from './components/TypingInterface';
 import PlayerLevel from './components/PlayerLevel';
+import RecentSessions from './components/RecentSessions';
 import { usePlayerStats } from './hooks/usePlayerStats';
 import { useDailyProgress } from './hooks/useDailyProgress';
 
@@ -19,7 +20,7 @@ import { useApi } from './hooks/useApi';
 
 // Main game content component that uses GameContext
 function GameContent() {
-  const { level, currentXp, xpToNextLevel, addXp } = usePlayerStats();
+  const { level, currentXp, xpToNextLevel } = usePlayerStats();
   const { totalWords, remainingWords, currentMode } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -65,7 +66,6 @@ function GameContent() {
         xpToNextLevel={xpToNextLevel}
       />
       <TypingInterface 
-        addXp={addXp}
         dailyProgress={dailyProgress}
       />
       {currentMode === 'daily' && (
@@ -74,6 +74,7 @@ function GameContent() {
           totalMilestones={3} 
         />
       )}
+      <RecentSessions />
     </div>
   );
 }

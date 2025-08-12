@@ -2,10 +2,10 @@ import { useMemo, useCallback } from 'react';
 import { DailyCompletionHandler } from '../handlers/DailyCompletionHandler';
 import { EndlessCompletionHandler } from '../handlers/EndlessCompletionHandler';
 import type { CompletionStats, CompletionResult, CompletionContext } from '../types/completion';
+import { useApi } from './useApi';
 
 interface UseCompletionHandlerProps {
   currentMode: 'daily' | 'endless';
-  addXp: (amount: number) => void;
   completeCurrentQuote: (wpm: number, attempts: number) => void;
   getAverageWPM: () => number;
   onShowModal: () => void;
@@ -13,44 +13,33 @@ interface UseCompletionHandlerProps {
 
 export const useCompletionHandler = ({
   currentMode,
-  addXp,
   completeCurrentQuote,
   getAverageWPM,
-  onShowModal
+  onShowModal,
 }: UseCompletionHandlerProps) => {
-  
-  // Create handlers with memoization to prevent unnecessary recreations
+  const { createSession } = useApi();
+
   const dailyHandler = useMemo(
-    () => new DailyCompletionHandler(completeCurrentQuote, getAverageWPM, onShowModal),
-    [completeCurrentQuote, getAverageWPM, onShowModal]
+    () => new DailyCompletionHandler(completeCurrentQuote, getAverageWPM, onShowModal, createSession),
+    [completeCurrentQuote, getAverageWPM, onShowModal, createSession],
   );
-  
+
   const endlessHandler = useMemo(
-    () => new EndlessCompletionHandler(addXp),
-    [addXp]
+    () => new EndlessCompletionHandler(createSession),
+    [createSession],
   );
 
-  /**
-   * Main completion handler that delegates to the appropriate mode handler
-   * @param stats - Performance statistics from the completed session
-   * @param context - Completion context (only needed for daily mode)
-   * @returns CompletionResult indicating what action to take next
-   */
-  const handleCompletion = useCallback((
-    stats: CompletionStats,
-    context?: CompletionContext
-  ): CompletionResult => {
-    if (currentMode === 'daily') {
-      if (!context) {
-        throw new Error('CompletionContext is required for daily mode');
+  const handleCompletion = useCallback(
+    (stats: CompletionStats, context?: CompletionContext): CompletionResult | Promise<CompletionResult> => {
+      if (currentMode === 'daily') {
+        if (!context) throw new Error('CompletionContext is required for daily mode');
+        return dailyHandler.handleCompletion(stats, context);
+      } else {
+        return endlessHandler.handleCompletion(stats);
       }
-      return dailyHandler.handleCompletion(stats, context);
-    } else {
-      return endlessHandler.handleCompletion(stats);
-    }
-  }, [currentMode, dailyHandler, endlessHandler]);
+    },
+    [currentMode, dailyHandler, endlessHandler],
+  );
 
-  return {
-    handleCompletion
-  };
+  return { handleCompletion };
 }; 

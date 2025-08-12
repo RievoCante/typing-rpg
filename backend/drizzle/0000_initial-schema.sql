@@ -7,11 +7,11 @@ CREATE TABLE IF NOT EXISTS `game_sessions` (
 	`correct_words` integer NOT NULL,
 	`incorrect_words` integer NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON UPDATE no action ON DELETE no action
 );
 
 CREATE TABLE IF NOT EXISTS `users` (
-	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`level` integer DEFAULT 1 NOT NULL,
 	`xp` integer DEFAULT 0 NOT NULL,

@@ -33,9 +33,10 @@ Todo:
     ✔ Login page @done(25-08-10 11:37)
     ✔ Register page @done(25-08-10 11:37)
     ✔ User data storage @done(25-08-10 16:11)
-  ☐ Deploy backend to cloudflare workers and D1 database
+  ✔ Deploy backend to cloudflare workers and D1 database @done(25-08-11 12:42)
   ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)
-
+  ☐ Save user session to D1 database
+  ☐ Save user data to D1 database
 
 Future features:
   ☐ Theme selection
