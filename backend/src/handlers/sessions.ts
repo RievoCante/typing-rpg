@@ -3,7 +3,7 @@ import { AppContext } from '../core/types';
 import { getAuth } from '@hono/clerk-auth';
 import { gameSessions, users } from '../db/schema';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
@@ -49,17 +49,24 @@ export const createSession = async (c: AppContext) => {
     }
 
     // Compute XP and update user
+    let xpDelta = 0;
     if (user) {
-      const xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
+      xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
       if (xpDelta > 0) {
         const updated = applyXp(user.level, user.xp, xpDelta);
-        await db.update(users).set({ level: updated.level, xp: updated.xp }).where(eq(users.userId, userId));
+        await db
+          .update(users)
+          .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
+          .where(eq(users.userId, userId));
         user.level = updated.level;
         user.xp = updated.xp;
       }
     }
 
-    return c.json({ success: true, session: inserted[0], user }, 201);
+    // Include xpDelta in session payload so UI can display earned XP
+    const sessionWithXp = { ...inserted[0], xpDelta } as any;
+
+    return c.json({ success: true, session: sessionWithXp, user }, 201);
   } catch (e) {
     console.error('createSession error', e);
     return c.json({ error: 'Failed to create session' }, 500);

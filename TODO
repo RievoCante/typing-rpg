@@ -35,8 +35,16 @@ Todo:
     ✔ User data storage @done(25-08-10 16:11)
   ✔ Deploy backend to cloudflare workers and D1 database @done(25-08-11 12:42)
   ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)
-  ☐ Save user session to D1 database
-  ☐ Save user data to D1 database
+  ✔ Save user session to D1 database @done(25-08-14 10:39)
+  ✔ Save user data to D1 database @done(25-08-14 10:39)
+  ☐ Recent sessions in profile icon
+  ☐ Gameplay bug at the start fo Daily mode when you type too fast
+  ☐ Clerk dark mode?
+  ☐ Lock daily mode after finished and show the countdown timer, and allow player to play daily mode once a day.
+  ☐ Damage sound effect
+  ☐ Damage visual effect
+  ☐ XP gained visual effect
+  ☐ Show when the typing area is focused and when it is not focused
 
 Future features:
   ☐ Theme selection

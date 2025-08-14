@@ -20,7 +20,7 @@ import { useApi } from './hooks/useApi';
 
 // Main game content component that uses GameContext
 function GameContent() {
-  const { level, currentXp, xpToNextLevel } = usePlayerStats();
+  const { level, currentXp, xpToNextLevel, reload: reloadPlayerStats } = usePlayerStats();
   const { totalWords, remainingWords, currentMode } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -67,6 +67,7 @@ function GameContent() {
       />
       <TypingInterface 
         dailyProgress={dailyProgress}
+        reloadPlayerStats={reloadPlayerStats}
       />
       {currentMode === 'daily' && (
         <MilestoneProgress 

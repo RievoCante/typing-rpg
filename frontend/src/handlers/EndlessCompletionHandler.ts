@@ -24,8 +24,13 @@ export class EndlessCompletionHandler {
       incorrectWords: stats.incorrectWords,
     };
 
+    let xpEarned = 0;
     try {
-      await this.createSession(payload);
+      const res = await this.createSession(payload);
+      if (res.ok) {
+        const data = await res.json();
+        xpEarned = Number(data?.session?.xpDelta ?? 0);
+      }
       console.log('Endless session saved to backend.');
     } catch (e) {
       console.error('Failed to save endless session', e);
@@ -33,7 +38,8 @@ export class EndlessCompletionHandler {
 
     return {
       action: 'loadNewText',
-      message: 'Session completed! Saved to history.',
+      message: `Session completed! +${xpEarned} XP`,
+      xpDelta: xpEarned,
     };
   }
 

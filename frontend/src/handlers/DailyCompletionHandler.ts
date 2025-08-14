@@ -15,7 +15,7 @@ export class DailyCompletionHandler {
     }) => Promise<Response>
   ) {}
 
-  handleCompletion(stats: CompletionStats, context: CompletionContext): CompletionResult {
+  async handleCompletion(stats: CompletionStats, context: CompletionContext): Promise<CompletionResult> {
     this.logCompletionStats(stats);
 
     const failed = checkDailyFailure(stats.incorrectWords);
@@ -23,7 +23,7 @@ export class DailyCompletionHandler {
       return this.handleFailure(stats, context);
     }
 
-    return this.handleSuccess(stats, context);
+    return await this.handleSuccess(stats, context);
   }
 
   private handleFailure(stats: CompletionStats, context: CompletionContext): CompletionResult {
@@ -37,7 +37,7 @@ export class DailyCompletionHandler {
     };
   }
 
-  private handleSuccess(stats: CompletionStats, context: CompletionContext): CompletionResult {
+  private async handleSuccess(stats: CompletionStats, context: CompletionContext): Promise<CompletionResult> {
     const successMessage = getDailySuccessMessage(stats.incorrectWords, context.currentDifficulty);
     console.log(successMessage);
 
@@ -51,7 +51,6 @@ export class DailyCompletionHandler {
       console.log(`Average WPM: ${avgWpm}`);
       console.log('-----------------------------------');
 
-      // Build and send a single daily session using average WPM and totals from the last run
       const totalWords = stats.correctWords + stats.incorrectWords;
       const payload = {
         mode: 'daily' as const,
@@ -60,10 +59,20 @@ export class DailyCompletionHandler {
         correctWords: stats.correctWords,
         incorrectWords: stats.incorrectWords,
       };
-      this.createSession(payload).catch((e) => console.error('Failed to save daily session', e));
+
+      let xpEarned = 0;
+      try {
+        const res = await this.createSession(payload);
+        if (res.ok) {
+          const data = await res.json();
+          xpEarned = Number(data?.session?.xpDelta ?? 0);
+        }
+      } catch (e) {
+        console.error('Failed to save daily session', e);
+      }
 
       this.onShowModal();
-      return { action: 'showModal', message: 'Daily challenge completed! Congratulations!' };
+      return { action: 'showModal', message: `Daily challenge completed! +${xpEarned} XP`, xpDelta: xpEarned };
     }
 
     return {

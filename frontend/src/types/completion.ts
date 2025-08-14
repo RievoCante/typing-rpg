@@ -10,6 +10,7 @@ export interface CompletionResult {
   action: 'retry' | 'nextQuote' | 'showModal' | 'loadNewText';
   message?: string;
   newAttempts?: number;
+  xpDelta?: number; // XP earned for this completion
 }
 
 export interface CompletionContext {

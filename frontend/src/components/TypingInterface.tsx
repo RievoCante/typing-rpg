@@ -25,9 +25,10 @@ import type { CompletionContext, CompletionResult } from '../types/completion';
 
 interface TypingInterfaceProps {
   dailyProgress: DailyProgressType;
+  reloadPlayerStats: () => Promise<void> | void; // injected from top-level hook
 }
 
-export default function TypingInterface({ dailyProgress }: TypingInterfaceProps) {
+export default function TypingInterface({ dailyProgress, reloadPlayerStats }: TypingInterfaceProps) {
   // Context
   const { currentMode, setCurrentMode, setTotalWords, setRemainingWords, decrementRemainingWords } = useGameContext();
   const { theme } = useThemeContext();
@@ -38,6 +39,7 @@ export default function TypingInterface({ dailyProgress }: TypingInterfaceProps)
   // Daily mode state
   const [currentAttempts, setCurrentAttempts] = useState<number>(1);
   const [showCongratsModal, setShowCongratsModal] = useState<boolean>(false);
+  const [earnedXp, setEarnedXp] = useState<number>(0);
   
   // Memoize specific values to avoid infinite re-renders
   const currentDifficulty = useMemo(() => dailyProgress.getCurrentDifficulty(), [dailyProgress]);
@@ -94,6 +96,7 @@ export default function TypingInterface({ dailyProgress }: TypingInterfaceProps)
     resetForNewSession();
     setHasStartedTyping(false);
     setIsProcessingCompletion(false);
+    setEarnedXp(0);
     if (containerRef.current) containerRef.current.focus();
   }, [currentMode, currentDifficulty, setTotalWords, setRemainingWords, resetTypingState, resetSession, resetForNewSession]);
 
@@ -153,6 +156,9 @@ export default function TypingInterface({ dailyProgress }: TypingInterfaceProps)
 
       (async () => {
         const result: CompletionResult = await completionHandler.handleCompletion(stats, context);
+        if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
+        // Refresh player stats from server after any completion
+        await reloadPlayerStats();
         switch (result.action) {
           case 'retry':
             if (result.newAttempts !== undefined) setCurrentAttempts(result.newAttempts);
@@ -189,6 +195,7 @@ export default function TypingInterface({ dailyProgress }: TypingInterfaceProps)
     calculateFinalStats,
     initializeNewText,
     completionHandler,
+    reloadPlayerStats,
   ]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -244,7 +251,7 @@ export default function TypingInterface({ dailyProgress }: TypingInterfaceProps)
       <CongratsModal
         isOpen={showCongratsModal}
         onClose={handleModalClose}
-        totalXP={0}
+        totalXP={earnedXp}
         averageWPM={getAverageWPM()}
         quoteStats={quoteStats}
         onContinue={handleModalContinue}
