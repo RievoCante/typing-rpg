@@ -1,8 +1,8 @@
 import { GameContext } from "./GameContext";
 import { useState, useCallback } from "react";
 
-export const GameProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentMode, setCurrentMode] = useState<'daily' | 'endless'>('daily');
+export const GameProvider = ({ children, initialMode = 'daily' }: { children: React.ReactNode; initialMode?: 'daily' | 'endless' }) => {
+  const [currentMode, setCurrentMode] = useState<'daily' | 'endless'>(initialMode);
   const [totalWords, setTotalWords] = useState<number>(0);
   const [remainingWords, setRemainingWords] = useState<number>(0);
 

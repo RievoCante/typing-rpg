@@ -14,9 +14,8 @@ import { ThemeProvider } from './context/ThemeProvider';
 import { GameProvider } from './context/GameProvider';
 import { useGameContext } from './hooks/useGameContext';
 import { useThemeContext } from './hooks/useThemeContext';
-import { useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { useApi } from './hooks/useApi';
+import { useBootstrap } from './hooks/useBootstrap';
+import LoadingScreen from './components/LoadingScreen';
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -24,28 +23,15 @@ function GameContent() {
   const { totalWords, remainingWords, currentMode } = useGameContext();
   const { theme } = useThemeContext();
 
-  const { isSignedIn } = useAuth();
-  const { getMe, createMe } = useApi();
   const dailyProgress = useDailyProgress();
-
-  // bootstrap = initial setup work after sign-in
-  useEffect(() => {
-    if (!isSignedIn) return;
-    (async () => {
-      try {
-        const r1 = await getMe();
-        if (r1.status === 404) {
-          await createMe();
-        }
-      } catch {
-        // ignore
-      }
-    })();
-  }, [isSignedIn, getMe, createMe]);
+  const { markCompletedToday } = dailyProgress;
+  const { bootstrapping } = useBootstrap(markCompletedToday);
 
   // Calculate monster state based on health
   const healthPercentage = totalWords > 0 ? (remainingWords / totalWords) * 100 : 100;
   const isDefeated = healthPercentage <= 0;
+
+  if (bootstrapping) return <LoadingScreen />;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -54,7 +40,10 @@ function GameContent() {
         : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
     }`}>
       <Header />
-      <ModeSelector/>
+      <ModeSelector
+        isCompletedToday={dailyProgress.isCompletedToday}
+        getTimeUntilReset={dailyProgress.getTimeUntilReset}
+      />
       <HealthBar />
       <Monster 
         monsterType="normal" 

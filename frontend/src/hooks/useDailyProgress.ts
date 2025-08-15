@@ -19,8 +19,10 @@ export type DailyProgressType = {
   currentQuote: 'easy' | 'medium' | 'hard';
   completedQuotes: number;
   isCompleted: boolean;
+  isCompletedToday: boolean;
   quoteStats: QuoteStats[];
   completeCurrentQuote: (wpm: number, attempts: number) => void;
+  markCompletedToday: () => void;
   getTimeUntilReset: () => { hours: number; minutes: number; seconds: number };
   getAverageWPM: () => number;
   getCurrentDifficulty: () => 'easy' | 'medium' | 'hard';
@@ -173,15 +175,27 @@ export const useDailyProgress = () => {
     return dailyState.currentQuote;
   }, [dailyState.currentQuote]);
 
+  const markCompletedToday = useCallback(() => {
+    setDailyState(prev => ({
+      ...prev,
+      currentQuote: 'hard',
+      completedQuotes: 3,
+      isCompleted: true,
+      lastCompletionDate: getUTCDateString(),
+    }));
+  }, []);
+
   return {
     // State
     currentQuote: dailyState.currentQuote, // Current difficulty level
     completedQuotes: dailyState.completedQuotes, // Number of quotes completed today (0-3)
     isCompleted: dailyState.isCompleted, // Whether all daily quotes are completed
+    isCompletedToday: dailyState.isCompleted && dailyState.lastCompletionDate === getUTCDateString(), // Completed today
     quoteStats: dailyState.quoteStats, // Stats for each completed quote (WPM, attempts)
     
     // Actions
     completeCurrentQuote, // Mark current quote as completed and advance to next
+    markCompletedToday, // Force mark completed for today (server bootstrap)
     
     // Computed values
     getTimeUntilReset, // Get time remaining until daily reset

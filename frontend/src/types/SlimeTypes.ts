@@ -37,6 +37,6 @@ export const SLIME_CONFIGS: Record<SlimeTypeEnum, SlimeType> = {
 export const SLIME_ANIMATIONS = {
   BOUNCE_SPEED: 1.5,        // Speed of idle bounce
   BOUNCE_HEIGHT: 0.15,      // Height of bounce
-  FLASH_DURATION: 200,      // Duration of red flash in ms
+  FLASH_DURATION: 120,      // Duration of red flash in ms (snappier)
   DISAPPEAR_DURATION: 500,  // Duration of disappear animation in ms
 }; 

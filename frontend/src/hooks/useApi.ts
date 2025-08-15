@@ -40,5 +40,7 @@ export function useApi() {
     [authFetch],
   );
 
-  return { getMe, createMe, createSession, getRecentSessions };
+  const getDailyStatus = useCallback(() => authFetch('/daily/status'), [authFetch]);
+
+  return { getMe, createMe, createSession, getRecentSessions, getDailyStatus };
 }

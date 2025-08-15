@@ -3,7 +3,7 @@ import { AppContext } from '../core/types';
 import { getAuth } from '@hono/clerk-auth';
 import { gameSessions, users } from '../db/schema';
 import { z } from 'zod';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
@@ -35,6 +35,26 @@ export const createSession = async (c: AppContext) => {
 
   const db = c.get('db');
   try {
+    // Hard server limit for daily mode: allow once per UTC day
+    if (mode === 'daily') {
+      const now = new Date();
+      const dayStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      const dayEndMs = dayStartMs + 86_400_000; // +24h
+
+      // Fetch the latest daily session and decide in JS to avoid driver timestamp quirks
+      const latestDaily = await db.query.gameSessions.findFirst({
+        where: (gs, { eq, and }) => and(eq(gs.userId, userId), eq(gs.mode, 'daily')),
+        orderBy: (gs, { desc }) => [desc(gs.id)],
+      });
+      if (latestDaily) {
+        const createdMs = latestDaily.createdAt instanceof Date ? latestDaily.createdAt.getTime() : Number(latestDaily.createdAt) * 1000;
+        if (createdMs >= dayStartMs && createdMs < dayEndMs) {
+          const timeUntilResetSeconds = Math.max(0, Math.floor((dayEndMs - Date.now()) / 1000));
+          return c.json({ error: 'already_completed', timeUntilResetSeconds }, 409);
+        }
+      }
+    }
+
     // Save session
     const inserted = await db
       .insert(gameSessions)
@@ -70,6 +90,36 @@ export const createSession = async (c: AppContext) => {
   } catch (e) {
     console.error('createSession error', e);
     return c.json({ error: 'Failed to create session' }, 500);
+  }
+};
+
+// GET /api/daily/status
+export const getDailyStatus = async (c: AppContext) => {
+  const auth = getAuth(c);
+  const userId = auth?.userId;
+  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+
+  const now = new Date();
+  const dayStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const dayEndMs = dayStartMs + 86_400_000;
+
+  const db = c.get('db');
+  try {
+    const latestDaily = await db.query.gameSessions.findFirst({
+      where: (gs, { eq, and }) => and(eq(gs.userId, userId), eq(gs.mode, 'daily')),
+      orderBy: (gs, { desc }) => [desc(gs.id)],
+    });
+
+    let completedToday = false;
+    if (latestDaily) {
+      const createdMs = latestDaily.createdAt instanceof Date ? latestDaily.createdAt.getTime() : Number(latestDaily.createdAt) * 1000;
+      completedToday = createdMs >= dayStartMs && createdMs < dayEndMs;
+    }
+    const timeUntilResetSeconds = Math.max(0, Math.floor((dayEndMs - Date.now()) / 1000));
+    return c.json({ completedToday, timeUntilResetSeconds });
+  } catch (e) {
+    console.error('getDailyStatus error', e);
+    return c.json({ error: 'Failed to load daily status' }, 500);
   }
 };
 

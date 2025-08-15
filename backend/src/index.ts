@@ -4,7 +4,7 @@ import { logger } from 'hono/logger';
 
 import { createDbClient } from './db';
 import { getUser, createUser } from './handlers/user';
-import { createSession, getSessions } from './handlers/sessions';
+import { createSession, getSessions, getDailyStatus } from './handlers/sessions';
 import { Bindings, Variables } from './core/types';
 import { authMiddleware } from './core/auth';
 import { kvRateLimit } from './core/rateLimit';
@@ -39,5 +39,6 @@ app.post('/me', authMiddleware, limiter, createUser);
 // session routes
 app.post('/sessions', authMiddleware, limiter,createSession);
 app.get('/sessions', authMiddleware, limiter, getSessions);
+app.get('/daily/status', authMiddleware, limiter, getDailyStatus);
 
 export default app;

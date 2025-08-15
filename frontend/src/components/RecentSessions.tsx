@@ -7,7 +7,7 @@ type Session = {
   mode: 'daily' | 'endless';
   wpm: number;
   incorrectWords: number;
-  createdAt: number;
+  createdAt: number | string | Date;
 };
 
 export default function RecentSessions() {
@@ -25,13 +25,26 @@ export default function RecentSessions() {
         }
         const data = await res.json();
         const list = (data.sessions ?? []) as Session[];
-        const mapped: Session[] = list.map((s) => ({
-          id: s.id,
-          mode: s.mode,
-          wpm: s.wpm,
-          incorrectWords: s.incorrectWords,
-          createdAt: s.createdAt,
-        }));
+        const mapped: Session[] = list.map((s) => {
+          let ms: number;
+          const v = s.createdAt;
+          if (typeof v === 'number') {
+            ms = v < 1_000_000_000_000 ? v * 1000 : v; // seconds or ms
+          } else if (typeof v === 'string') {
+            const parsed = Date.parse(v);
+            ms = Number.isFinite(parsed) ? parsed : Date.now();
+          } else {
+            const d = new Date(v);
+            ms = Number.isFinite(d.getTime()) ? d.getTime() : Date.now();
+          }
+          return {
+            id: s.id,
+            mode: s.mode,
+            wpm: s.wpm,
+            incorrectWords: s.incorrectWords,
+            createdAt: ms,
+          };
+        });
         setSessions(mapped);
       } catch {
         // ignore
@@ -50,9 +63,7 @@ export default function RecentSessions() {
       <ul className="space-y-1 text-sm">
         {sessions.map((s) => (
           <li key={s.id} className="flex justify-between">
-            <span>
-              {new Date(s.createdAt * 1000).toLocaleString()} · {s.mode}
-            </span>
+            <span>{new Date(s.createdAt).toLocaleString()} · {s.mode}</span>
             <span>
               {s.wpm} WPM · {s.incorrectWords} miss
             </span>

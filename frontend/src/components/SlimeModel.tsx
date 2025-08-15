@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Mesh, Color } from 'three';
+import { Mesh, Color, MeshPhongMaterial } from 'three';
 import type { SlimeTypeEnum } from '../types/SlimeTypes';
 import { SLIME_CONFIGS, SLIME_ANIMATIONS } from '../types/SlimeTypes';
 
@@ -12,6 +12,7 @@ interface SlimeModelProps {
 
 export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelProps) {
   const meshRef = useRef<Mesh>(null);
+  const bodyMatRef = useRef<MeshPhongMaterial | null>(null);
   const leftEyeRef = useRef<Mesh>(null);
   const rightEyeRef = useRef<Mesh>(null);
   const [hitFlashTime, setHitFlashTime] = useState(0);
@@ -28,6 +29,13 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       setHitFlashTime(Date.now());
     }
   }, [isHit]);
+
+  // Also flash on global 'word-hit' event so we don't rely on parent props
+  useEffect(() => {
+    const handler = () => setHitFlashTime(Date.now());
+    window.addEventListener('word-hit', handler as EventListener);
+    return () => window.removeEventListener('word-hit', handler as EventListener);
+  }, []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -50,13 +58,21 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       }
     }
 
-    if (isHit && hitFlashTime > 0) {
+    if (hitFlashTime > 0 && bodyMatRef.current) {
       const flashElapsed = Date.now() - hitFlashTime;
       if (flashElapsed < SLIME_ANIMATIONS.FLASH_DURATION) {
         const flashIntensity = 1 - (flashElapsed / SLIME_ANIMATIONS.FLASH_DURATION);
-        mesh.userData.flashIntensity = flashIntensity;
+        // Blend body color toward red; keep this cheap and allocation-free
+        const mat = bodyMatRef.current as MeshPhongMaterial;
+        mat.color.copy(finalColor).lerp(new Color('#ff4d4d'), flashIntensity);
+        mat.emissive.set('#ff4d4d');
+        mat.emissiveIntensity = 0.25 + 0.75 * flashIntensity;
       } else {
-        mesh.userData.flashIntensity = 0;
+        // Restore base color
+        const mat = bodyMatRef.current as MeshPhongMaterial;
+        mat.color.copy(finalColor);
+        mat.emissive.set('#7ecbff');
+        mat.emissiveIntensity = 0.25;
         setHitFlashTime(0);
       }
     }
@@ -80,6 +96,7 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       <mesh ref={meshRef} position={[0, 0, 0]}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshPhongMaterial
+          ref={bodyMatRef}
           color={finalColor}
           shininess={120}
           transparent={true}

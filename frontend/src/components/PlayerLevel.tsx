@@ -1,14 +1,31 @@
 // This component displays the player's current level and XP progress.
+import { useEffect, useState } from 'react';
 import { useThemeContext } from '../hooks/useThemeContext';
 
 interface PlayerLevelProps {
   level: number;
   currentXp: number;
   xpToNextLevel: number;
+  xpGain?: number; // transient xp gain indicator
 }
 
-export default function PlayerLevel({ level, currentXp, xpToNextLevel }: PlayerLevelProps) {
+export default function PlayerLevel({ level, currentXp, xpToNextLevel, xpGain = 0 }: PlayerLevelProps) {
   const { theme } = useThemeContext();
+  const [showGain, setShowGain] = useState(false);
+  const [displayAmount, setDisplayAmount] = useState(0);
+  
+  // Animate +XP when xpGain changes
+  useEffect(() => {
+    if (!xpGain || xpGain <= 0) return;
+    setDisplayAmount(xpGain);
+    setShowGain(true);
+    const hideTimer = setTimeout(() => setShowGain(false), 1500); // start fade out
+    const unmountTimer = setTimeout(() => setDisplayAmount(0), 1500 + 400); // remove after fade
+    return () => {
+      clearTimeout(hideTimer);
+      clearTimeout(unmountTimer);
+    };
+  }, [xpGain]);
   
   // Calculate the XP progress percentage for the bar's width.
   const xpPercentage = xpToNextLevel > 0 ? (currentXp / xpToNextLevel) * 100 : 0;
@@ -43,6 +60,16 @@ export default function PlayerLevel({ level, currentXp, xpToNextLevel }: PlayerL
         <span>{currentXp} XP</span>
         <span>{xpToNextLevel} XP</span>
       </div>
+
+      {displayAmount > 0 && (
+        <div
+          className={`mt-2 text-sm font-bold transition-all duration-400 ease-out ${
+            showGain ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
+          } ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`}
+        >
+          +{displayAmount} XP
+        </div>
+      )}
     </div>
   );
 }
