@@ -5,7 +5,6 @@ import HealthBar from './components/HealthBar';
 import Monster from './components/Monster';
 import TypingInterface from './components/TypingInterface';
 import PlayerLevel from './components/PlayerLevel';
-import RecentSessions from './components/RecentSessions';
 import { usePlayerStats } from './hooks/usePlayerStats';
 import { useDailyProgress } from './hooks/useDailyProgress';
 
@@ -36,14 +35,11 @@ function GameContent() {
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        ? 'bg-[#303446]'
         : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
     }`}>
       <Header />
-      <ModeSelector
-        isCompletedToday={dailyProgress.isCompletedToday}
-        getTimeUntilReset={dailyProgress.getTimeUntilReset}
-      />
+      <ModeSelector />
       <HealthBar />
       <Monster 
         monsterType="normal" 
@@ -64,7 +60,6 @@ function GameContent() {
           totalMilestones={3} 
         />
       )}
-      <RecentSessions />
     </div>
   );
 }

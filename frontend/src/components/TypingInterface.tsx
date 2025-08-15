@@ -10,6 +10,7 @@ import TypingText from './TypingText';
 import { generateText } from '../utils/textGenerator';
 import CongratsModal from './CongratsModal';
 import OverlayBanner from './OverlayBanner';
+import { Share2 } from 'lucide-react';
 import { getWpmTitle } from '../utils/wpmTitle';
 import WPMDisplay from './WPMDisplay';
 
@@ -32,7 +33,7 @@ interface TypingInterfaceProps {
 
 export default function TypingInterface({ dailyProgress, reloadPlayerStats }: TypingInterfaceProps) {
   // Context
-  const { currentMode, setCurrentMode, setTotalWords, setRemainingWords, decrementRemainingWords } = useGameContext();
+  const { currentMode, setTotalWords, setRemainingWords, decrementRemainingWords } = useGameContext();
   const { theme } = useThemeContext();
 
   // Core state - text
@@ -53,6 +54,7 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
   const [isFocused, setIsFocused] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [celebrateText, setCelebrateText] = useState('');
+  const [resetTimeLeft, setResetTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   
   // Memoize specific values to avoid infinite re-renders
   const currentDifficulty = useMemo(() => dailyProgress.getCurrentDifficulty(), [dailyProgress]);
@@ -61,6 +63,7 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
   
   const completeCurrentQuote = dailyProgress.completeCurrentQuote;
   const getAverageWPM = dailyProgress.getAverageWPM;
+  const getTimeUntilReset = dailyProgress.getTimeUntilReset;
 
   const [hasShownDailyCompletion, setHasShownDailyCompletion] = useState(false);
   const [isProcessingCompletion, setIsProcessingCompletion] = useState(false);
@@ -147,6 +150,16 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
     onShowModal,
   });
 
+  // Live countdown for daily reset when completed
+  useEffect(() => {
+    if (currentMode === 'daily' && dailyProgress.isCompletedToday) {
+      setResetTimeLeft(getTimeUntilReset());
+      const id = setInterval(() => setResetTimeLeft(getTimeUntilReset()), 1000);
+      return () => clearInterval(id);
+    }
+    setResetTimeLeft(null);
+  }, [currentMode, dailyProgress.isCompletedToday, getTimeUntilReset]);
+
   useEffect(() => {
     if (isCompleted && !isProcessingCompletion) {
       setIsProcessingCompletion(true);
@@ -190,7 +203,11 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
             break;
           case 'nextQuote':
             if (result.newAttempts !== undefined) setCurrentAttempts(result.newAttempts);
-            setTimeout(() => { setIsProcessingCompletion(false); initializeNewText(); }, 1000);
+            setIsProcessingCompletion(false);
+            // Show a brief overlay like Endless for consistency
+            setCelebrateText('Next challenge!');
+            setCelebrating(true);
+            setTimeout(() => setCelebrating(false), 1000);
             break;
           case 'showModal':
             setIsProcessingCompletion(false);
@@ -261,7 +278,6 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
   };
 
   const handleModalContinue = () => {
-    setCurrentMode('endless');
     setShowCongratsModal(false);
   };
 
@@ -280,9 +296,9 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
         tabIndex={0}
         className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-colors duration-300 ${
           theme === 'dark' 
-            ? 'bg-slate-800 text-white border border-gray-700' 
+            ? 'bg-[#2A2C3C] text-white border border-gray-700' 
             : 'bg-white text-gray-900 border border-gray-200'
-        } ${(!isFocused || celebrating) ? 'filter blur-sm brightness-95' : ''}`}
+        } ${(!isFocused || celebrating || (currentMode === 'daily' && dailyProgress.isCompletedToday)) ? 'filter blur-sm brightness-95' : ''}`}
       >
         <TypingText
           text={text}
@@ -300,7 +316,7 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
       {/* Focus prompt over the panel only */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
         <OverlayBanner
-          visible={!isFocused}
+          visible={!isFocused && !(currentMode === 'daily' && dailyProgress.isCompletedToday)}
           message="Click to start fighting!"
           tone="info"
           onClick={() => containerRef.current?.focus()}
@@ -315,6 +331,29 @@ export default function TypingInterface({ dailyProgress, reloadPlayerStats }: Ty
           tone="celebrate"
         />
       </div>
+
+      {/* Daily completed overlay over the panel only */}
+      {currentMode === 'daily' && dailyProgress.isCompletedToday && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
+          <div className="flex flex-col items-center gap-3 pointer-events-auto">
+            <div className="px-6 py-2 rounded-lg text-white font-extrabold text-2xl bg-emerald-600/90 shadow">
+              COMPLETED!
+            </div>
+            {resetTimeLeft && (
+              <div className="text-xs sm:text-sm -mt-1 text-black dark:text-white" style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}>
+                Resets in {String(resetTimeLeft.hours).padStart(2,'0')}:{String(resetTimeLeft.minutes).padStart(2,'0')}:{String(resetTimeLeft.seconds).padStart(2,'0')} UTC
+              </div>
+            )}
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/90 text-black hover:bg-white transition-colors shadow dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            >
+              <Share2 size={16} className="text-black dark:text-white" style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }} />
+              <span className="text-black dark:text-white" style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}>Share</span>
+            </button>
+          </div>
+        </div>
+      )}
       </div>
 
       <CongratsModal

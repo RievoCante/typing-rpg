@@ -38,10 +38,9 @@ Todo:
   ✔ Save user session to D1 database @done(25-08-14 10:39)
   ✔ Save user data to D1 database @done(25-08-14 10:39)
   ☐ Recent sessions in profile icon
-  ☐ Gameplay bug at the start fo Daily mode when you type too fast
+  ✔ Gameplay bug at the start fo Daily mode when you type too fast @done(25-08-15 11:12)
   ☐ Clerk dark mode?
   ✔ Lock daily mode after finished and show the countdown timer, and allow player to play daily mode once a day. @done(25-08-14 16:16)
-  ☐ Damage sound effect
   ✔ Damage visual effect @done(25-08-14 20:33)
   ✔ XP gained visual effect @done(25-08-14 16:33)
   ✔ Show when the typing area is focused and when it is not focused @done(25-08-14 20:33)
@@ -51,6 +50,6 @@ Future features:
   ☐ Theme selection
   ☐ Consistent quotes for every user for Daily mode
   ☐ Music and sound effects
-  ☐ User History
+  ✔ User History @done(25-08-15 11:12)
   ☐ Guide
   ☐ Leaderboard

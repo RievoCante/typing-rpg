@@ -16,7 +16,7 @@ export default function MilestoneProgress({ completedQuotes, totalMilestones }: 
   return (
     <div className={`fixed left-4 top-1/2 transform -translate-y-1/2 p-4 rounded-lg shadow-lg border z-40 ${
       theme === 'dark' 
-        ? 'bg-gray-800 border-gray-700' 
+        ? 'bg-[#2A2C3C] border-gray-700' 
         : 'bg-white border-gray-200'
     }`}>
       {/* Header */}

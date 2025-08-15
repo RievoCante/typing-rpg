@@ -1,18 +1,23 @@
 import React from 'react';
-import { Sun, Moon, User } from 'lucide-react';
+import { Sun, Moon, User, Clock } from 'lucide-react';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
 // Contexts
 import { useThemeContext } from '../hooks/useThemeContext';
 
+import { useState } from 'react';
+import RecentSessionsModal from './RecentSessionsModal';
+
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useThemeContext();
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
+    <>
     <header
       className={`p-4 flex justify-between items-center border-b ${
         theme === 'dark'
-          ? 'bg-gray-800 border-gray-700'
+          ? 'bg-[#303446] border-[#303446]'
           : 'bg-white border-gray-200'
       } transition-colors duration-300`}
     >
@@ -33,9 +38,19 @@ const Header: React.FC = () => {
         >
           Beta
         </span>
+        {/* History button next to logo */}
+        <button
+          onClick={() => setShowHistory(true)}
+          className={`ml-3 p-2 rounded-full transition-colors ${
+            theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+          }`}
+          aria-label="Recent sessions"
+        >
+          <Clock size={20} className={theme === 'dark' ? 'text-white' : ''} />
+        </button>
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex space-x-2 sm:space-x-4">
         <SignedOut>
           <SignInButton mode="modal">
             <button
@@ -69,6 +84,8 @@ const Header: React.FC = () => {
         </button>
       </div>
     </header>
+    <RecentSessionsModal open={showHistory} onClose={() => setShowHistory(false)} />
+    </>
   );
 };
 

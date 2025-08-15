@@ -33,7 +33,7 @@ export default function PlayerLevel({ level, currentXp, xpToNextLevel, xpGain = 
   return (
     <div className={`fixed top-20 right-4 p-3 rounded-lg shadow-lg z-50 w-64 transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gray-800 border border-gray-700' 
+        ? 'bg-[#2A2C3C] border border-gray-700' 
         : 'bg-white border border-gray-200'
     }`}>
       <div className="flex items-center justify-between mb-1">
