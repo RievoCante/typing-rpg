@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sun, Moon, User, Clock } from 'lucide-react';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 
-// Contexts
 import { useThemeContext } from '../hooks/useThemeContext';
-
-import { useState } from 'react';
 import RecentSessionsModal from './RecentSessionsModal';
+
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useThemeContext();
@@ -48,6 +46,7 @@ const Header: React.FC = () => {
         >
           <Clock size={20} className={theme === 'dark' ? 'text-white' : ''} />
         </button>
+        
       </div>
 
       <div className="flex space-x-2 sm:space-x-4">
@@ -82,6 +81,7 @@ const Header: React.FC = () => {
             <Moon size={20} />
           )}
         </button>
+
       </div>
     </header>
     <RecentSessionsModal open={showHistory} onClose={() => setShowHistory(false)} />

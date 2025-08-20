@@ -45,11 +45,17 @@ Todo:
   ✔ XP gained visual effect @done(25-08-14 16:33)
   ✔ Show when the typing area is focused and when it is not focused @done(25-08-14 20:33)
   ☐ Share the specific quote that user typed in Daily mode after completion.
+  ☐ Logo
 
 Future features:
   ☐ Theme selection
   ☐ Consistent quotes for every user for Daily mode
-  ☐ Music and sound effects
+  ☐ Music and sound effects @started(25-08-15 11:25)
   ✔ User History @done(25-08-15 11:12)
   ☐ Guide
   ☐ Leaderboard
+
+Thoughts:
+  ☐ May be add countdown timer. Different types of monster have different timer depend difficulty.
+    - easy -> one set of monster, normal -> another set of monster.
+  ☐ use gold that drop from monster to buy new theme or weapon skin.

@@ -15,6 +15,7 @@ import { useGameContext } from './hooks/useGameContext';
 import { useThemeContext } from './hooks/useThemeContext';
 import { useBootstrap } from './hooks/useBootstrap';
 import LoadingScreen from './components/LoadingScreen';
+import VolumeControl from './components/VolumeControl';
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -60,6 +61,7 @@ function GameContent() {
           totalMilestones={3} 
         />
       )}
+      <VolumeControl />
     </div>
   );
 }
