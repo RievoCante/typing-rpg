@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useBgm(src = '/audio/typing-giggles.mp3') {
   const [volume, setVolume] = useState<number>(() => {
+    const DEFAULT_VOLUME = 0.2;
     try {
       const saved = localStorage.getItem('bgm:volume');
-      const v = saved ? parseFloat(saved) : 0.4;
-      return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.4;
+      const v = saved ? parseFloat(saved) : DEFAULT_VOLUME;
+      return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : DEFAULT_VOLUME;
     } catch {
-      return 0.4;
+      return DEFAULT_VOLUME;
     }
   });
   const [muted, setMuted] = useState<boolean>(() => {

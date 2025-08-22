@@ -6,16 +6,16 @@ import { useThemeContext } from '../hooks/useThemeContext';
 export default function VolumeControl() {
   const { volume, setVolume, muted, toggleMute, ensurePlay } = useBgm();
   const { theme } = useThemeContext();
-
-  const iconColor = theme === 'dark' ? '#ffffff' : '#000000';
+  const isDark = theme === 'dark';
+  const iconColor = isDark ? '#ffffff' : '#000000';
 
   return (
     <div className="fixed bottom-4 left-4 z-50 select-none">
       {/* Connected pill that expands to the right on hover/focus */}
       <div
-        className="group relative h-12 w-12 bg-[#1D1F2A] text-white rounded-full shadow overflow-hidden
-                   transition-all duration-300 ease-out
-                   hover:w-80 focus-within:w-80"
+        className={`group relative h-12 w-12 rounded-full shadow overflow-hidden transition-all duration-300 ease-out hover:w-80 focus-within:w-80 ${
+          isDark ? 'bg-[#1D1F2A] text-white' : 'bg-white text-black'
+        }`}
       >
         {/* Icon is absolutely positioned at the left so it never shifts */}
         <div className="absolute left-0 top-0 h-full w-12 flex items-center justify-center z-10">
