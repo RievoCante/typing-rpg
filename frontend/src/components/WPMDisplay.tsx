@@ -1,4 +1,4 @@
-// This component displays the words per minute (WPM) or a calculating status.
+// This component displays WPM; blinks white while calculating, turns yellow when done.
 import React from 'react';
 
 interface WPMDisplayProps {
@@ -7,13 +7,12 @@ interface WPMDisplayProps {
 }
 
 const WPMDisplay: React.FC<WPMDisplayProps> = ({ wpm, isCalculating }) => {
+  const colorClasses = isCalculating
+    ? 'text-white animate-pulse'
+    : 'text-yellow-400';
   return (
-    <div className="text-lg font-semibold">
-      {isCalculating ? (
-        <span className="text-slate-400 animate-pulse">Calculating...</span>
-      ) : (
-        <span>WPM: {wpm}</span>
-      )}
+    <div className={`text-lg font-extrabold ${colorClasses}`}>
+      <span>WPM: {wpm}</span>
     </div>
   );
 };
