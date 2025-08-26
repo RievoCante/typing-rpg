@@ -9,7 +9,7 @@ export default function ModeSelector() {
 
   // Live ticking countdown without heavy re-renders
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => (n + 1) % 60), 1000);
+    const id = setInterval(() => setTick(n => (n + 1) % 60), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -17,10 +17,10 @@ export default function ModeSelector() {
 
   return (
     <div className="flex justify-center w-full py-6">
-      <div 
+      <div
         className={`relative flex rounded-lg p-1 transition-colors duration-300 ${
-          theme === 'dark' 
-            ? 'bg-[#2A2C3C] border border-gray-700' 
+          theme === 'dark'
+            ? 'bg-[#2A2C3C] border border-gray-700'
             : 'bg-gray-100 border border-gray-200'
         }`}
       >
@@ -32,7 +32,7 @@ export default function ModeSelector() {
             currentMode === 'endless' ? 'translate-x-full' : 'translate-x-0'
           }`}
         />
-        
+
         {/* Daily Mode Button */}
         <div className="relative group">
           <button
@@ -49,23 +49,45 @@ export default function ModeSelector() {
           >
             Daily
           </button>
+          {/* Tooltip */}
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
+              theme === 'dark'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-800 text-white'
+            }`}
+          >
+            daily challenge that reset everyday
+          </div>
         </div>
-        
+
         {/* Endless Mode Button */}
-        <button
-          onClick={() => setCurrentMode('endless')}
-          className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
-            currentMode === 'endless'
-              ? theme === 'dark'
-                ? 'text-white'
-                : 'text-gray-900'
-              : theme === 'dark'
-                ? 'text-gray-400 hover:text-gray-300'
-                : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Endless
-        </button>
+        <div className="relative group">
+          <button
+            onClick={() => setCurrentMode('endless')}
+            className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
+              currentMode === 'endless'
+                ? theme === 'dark'
+                  ? 'text-white'
+                  : 'text-gray-900'
+                : theme === 'dark'
+                  ? 'text-gray-400 hover:text-gray-300'
+                  : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Endless
+          </button>
+          {/* Tooltip */}
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
+              theme === 'dark'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-800 text-white'
+            }`}
+          >
+            practice typing and kill monsters endlessly!
+          </div>
+        </div>
       </div>
     </div>
   );
