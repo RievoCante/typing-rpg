@@ -1,9 +1,10 @@
 // Fixed left sidebar with hamburger trigger and expandable menu
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Menu, Clock } from 'lucide-react';
+import { Menu, Clock, Trophy } from 'lucide-react';
 import { FaDiscord } from 'react-icons/fa';
 import { useThemeContext } from '../hooks/useThemeContext';
 import RecentSessionsModal from './RecentSessionsModal';
+import { useNavigate } from 'react-router-dom';
 
 type MenuItem = {
   id: string;
@@ -17,6 +18,7 @@ export default function LeftSidebar() {
   const [open, setOpen] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   const bg = theme === 'dark' ? '#1D1F2A' : '#f3f4f6';
   const textClass = theme === 'dark' ? 'text-white' : 'text-black';
@@ -30,6 +32,12 @@ export default function LeftSidebar() {
         onClick: () => setShowRecent(true),
       },
       {
+        id: 'leaderboard',
+        label: 'Leaderboard',
+        icon: <Trophy size={16} />,
+        onClick: () => navigate('/leaderboard'),
+      },
+      {
         id: 'discord',
         label: 'Discord',
         icon: <FaDiscord size={16} className={textClass} />,
@@ -41,7 +49,7 @@ export default function LeftSidebar() {
           ),
       },
     ],
-    [textClass]
+    [textClass, navigate]
   );
 
   // click outside to close (simple, robust)

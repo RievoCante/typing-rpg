@@ -1,20 +1,33 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import { ClerkProvider } from "@clerk/clerk-react";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import LeaderboardPage from './pages/LeaderboardPage';
+import './index.css';
+import { ClerkProvider } from '@clerk/clerk-react';
+import { ThemeProvider } from './context/ThemeProvider';
+import { GameProvider } from './context/GameProvider';
 
 // Import your Publishable Key for Clerk
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Publishable Key')
+  throw new Error('Missing Publishable Key');
 }
 
-createRoot(document.getElementById("root")!).render(
+const router = createBrowserRouter([
+  { path: '/', element: <App /> },
+  { path: '/leaderboard', element: <LeaderboardPage /> },
+]);
+
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl='/'>
-      <App />
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+      <ThemeProvider>
+        <GameProvider>
+          <RouterProvider router={router} />
+        </GameProvider>
+      </ThemeProvider>
     </ClerkProvider>
   </StrictMode>
 );
