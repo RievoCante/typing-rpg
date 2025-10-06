@@ -24,7 +24,9 @@ export default function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#303446] text-gray-200">
       <div className="w-80 max-w-[80%]">
-        <div className="text-sm mb-3 tracking-wide text-gray-300">Preparing your adventure…</div>
+        <div className="text-sm mb-3 tracking-wide text-gray-300">
+          Preparing your adventure…
+        </div>
         <div className="w-full h-2 rounded-full bg-gray-700 overflow-hidden">
           <div
             className="h-full rounded-full bg-yellow-400 transition-[width] duration-100 ease-linear"
@@ -35,5 +37,3 @@ export default function LoadingScreen() {
     </div>
   );
 }
-
-

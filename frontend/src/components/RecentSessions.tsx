@@ -25,7 +25,7 @@ export default function RecentSessions() {
         }
         const data = await res.json();
         const list = (data.sessions ?? []) as Session[];
-        const mapped: Session[] = list.map((s) => {
+        const mapped: Session[] = list.map(s => {
           let ms: number;
           const v = s.createdAt;
           if (typeof v === 'number') {
@@ -61,9 +61,11 @@ export default function RecentSessions() {
     <div className="max-w-3xl mx-auto mt-4 p-4 rounded border border-gray-200 dark:border-gray-700">
       <h3 className="text-sm font-semibold mb-2">Recent Sessions</h3>
       <ul className="space-y-1 text-sm">
-        {sessions.map((s) => (
+        {sessions.map(s => (
           <li key={s.id} className="flex justify-between">
-            <span>{new Date(s.createdAt).toLocaleString()} · {s.mode}</span>
+            <span>
+              {new Date(s.createdAt).toLocaleString()} · {s.mode}
+            </span>
             <span>
               {s.wpm} WPM · {s.incorrectWords} miss
             </span>

@@ -1,5 +1,5 @@
 // Handles initial bootstrap: ensure user exists, fetch daily status, set mode, and enforce splash duration
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useApi } from './useApi';
 import { useGameContext } from './useGameContext';
@@ -8,16 +8,32 @@ export function useBootstrap(markCompletedToday: () => void) {
   const { isSignedIn } = useAuth();
   const { getMe, createMe, getDailyStatus } = useApi();
   const { setCurrentMode } = useGameContext();
-  const [bootstrapping, setBootstrapping] = useState(true);
+  const alreadyBootstrapped =
+    typeof window !== 'undefined' &&
+    sessionStorage.getItem('bootstrap_done') === '1';
+  const [bootstrapping, setBootstrapping] = useState(!alreadyBootstrapped);
+  const didRunRef = useRef(alreadyBootstrapped);
 
   useEffect(() => {
+    // Only run once per browser session; skip when navigating between routes
+    if (didRunRef.current) return;
     const start = Date.now();
     let cancelled = false;
     const finish = () => {
       const elapsed = Date.now() - start;
       const minMs = 2000; // at least 2s splash
       const delay = Math.max(0, minMs - elapsed);
-      const id = setTimeout(() => { if (!cancelled) setBootstrapping(false); }, delay);
+      const id = setTimeout(() => {
+        if (!cancelled) {
+          setBootstrapping(false);
+          try {
+            sessionStorage.setItem('bootstrap_done', '1');
+          } catch {
+            // ignore storage errors
+          }
+          didRunRef.current = true;
+        }
+      }, delay);
       return () => clearTimeout(id);
     };
 
@@ -47,10 +63,17 @@ export function useBootstrap(markCompletedToday: () => void) {
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [isSignedIn, getMe, createMe, getDailyStatus, setCurrentMode, markCompletedToday]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isSignedIn,
+    getMe,
+    createMe,
+    getDailyStatus,
+    setCurrentMode,
+    markCompletedToday,
+  ]);
 
   return { bootstrapping };
 }
-
-

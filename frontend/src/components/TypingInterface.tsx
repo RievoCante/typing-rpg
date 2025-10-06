@@ -365,7 +365,7 @@ export default function TypingInterface({
             theme === 'dark'
               ? 'bg-[#2A2C3C] text-white border border-gray-700'
               : 'bg-white text-gray-900 border border-gray-200'
-          } ${!isFocused || celebrating || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''}`}
+          } ${!isFocused || celebrating || isProcessingCompletion || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''}`}
         >
           <TypingText
             text={text}

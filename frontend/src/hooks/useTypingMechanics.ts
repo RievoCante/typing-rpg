@@ -7,7 +7,11 @@ interface UseTypingMechanicsProps {
   onWordCompleted?: () => void;
 }
 
-export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: UseTypingMechanicsProps) => {
+export const useTypingMechanics = ({
+  text,
+  onCharacterInput,
+  onWordCompleted,
+}: UseTypingMechanicsProps) => {
   const [charStatus, setCharStatus] = useState<CharStatus[]>([]);
   const [typedChars, setTypedChars] = useState<(string | null)[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -20,35 +24,38 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
   }, [text.length]);
 
   // Handle character input
-  const handleCharacterInput = useCallback((key: string) => {
-    // Call optional callback
-    onCharacterInput?.(key);
+  const handleCharacterInput = useCallback(
+    (key: string) => {
+      // Call optional callback
+      onCharacterInput?.(key);
 
-    // Prevent typing beyond the text length
-    if (cursorPosition >= text.length) return;
+      // Prevent typing beyond the text length
+      if (cursorPosition >= text.length) return;
 
-    const isCorrect = key === text[cursorPosition];
-    const newCharStatus = [...charStatus];
-    const newTypedChars = [...typedChars];
+      const isCorrect = key === text[cursorPosition];
+      const newCharStatus = [...charStatus];
+      const newTypedChars = [...typedChars];
 
-    if (isCorrect) {
-      newCharStatus[cursorPosition] = 'correct';
-    } else {
-      newCharStatus[cursorPosition] = 'incorrect';
-    }
+      if (isCorrect) {
+        newCharStatus[cursorPosition] = 'correct';
+      } else {
+        newCharStatus[cursorPosition] = 'incorrect';
+      }
 
-    newTypedChars[cursorPosition] = key;
-    setCharStatus(newCharStatus);
-    setTypedChars(newTypedChars);
-    setCursorPosition(prev => prev + 1);
-  }, [cursorPosition, text, charStatus, typedChars, onCharacterInput]);
+      newTypedChars[cursorPosition] = key;
+      setCharStatus(newCharStatus);
+      setTypedChars(newTypedChars);
+      setCursorPosition(prev => prev + 1);
+    },
+    [cursorPosition, text, charStatus, typedChars, onCharacterInput]
+  );
 
   // Handle backspace
   const handleBackspace = useCallback(() => {
     if (cursorPosition <= 0) return;
 
     const previousCharStatus = charStatus[cursorPosition - 1];
-    
+
     // Don't allow backspace if the previous character is locked
     if (previousCharStatus === 'locked') return;
 
@@ -113,7 +120,7 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
     // For now, we'll prevent this to keep logic simple. A more advanced
     // implementation could handle skipping to the next word.
     if (cursorPosition >= text.length || text[cursorPosition] !== ' ') {
-      return; 
+      return;
     }
 
     // Find the start of the word right before the cursor.
@@ -145,7 +152,7 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
       // IMPORTANT: Lock the space character itself.
       newCharStatus[cursorPosition] = 'locked';
       setCharStatus(newCharStatus);
-      
+
       // Mark the space as typed correctly.
       const newTypedChars = [...typedChars];
       newTypedChars[cursorPosition] = ' ';
@@ -153,7 +160,7 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
 
       // Notify that a word was completed.
       onWordCompleted?.();
-      
+
       // Move cursor forward.
       setCursorPosition(prev => prev + 1);
     } else {
@@ -161,14 +168,21 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
       // This provides feedback without locking.
       handleCharacterInput(' ');
     }
-  }, [cursorPosition, text, charStatus, typedChars, onWordCompleted, handleCharacterInput]);
+  }, [
+    cursorPosition,
+    text,
+    charStatus,
+    typedChars,
+    onWordCompleted,
+    handleCharacterInput,
+  ]);
 
   return {
     // State
     charStatus,
     typedChars,
     cursorPosition,
-    
+
     // Actions
     handleCharacterInput,
     handleBackspace,
@@ -176,4 +190,4 @@ export const useTypingMechanics = ({ text, onCharacterInput, onWordCompleted }: 
     handleSpaceBar,
     resetTypingState,
   };
-}; 
+};

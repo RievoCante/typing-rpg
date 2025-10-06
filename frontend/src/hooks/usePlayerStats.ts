@@ -14,7 +14,11 @@ export const usePlayerStats = () => {
       if (!res.ok) return; // 404 before create is fine
       const data = await res.json();
       const user = data.user ?? data.data?.user ?? data;
-      if (user && typeof user.level === 'number' && typeof user.xp === 'number') {
+      if (
+        user &&
+        typeof user.level === 'number' &&
+        typeof user.xp === 'number'
+      ) {
         setLevel(user.level);
         setCurrentXp(user.xp);
         // naive recompute: next level requirement mirrors backend curve

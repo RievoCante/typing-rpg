@@ -1,44 +1,63 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 
-import { createDbClient } from './db';
-import { getUser, createUser } from './handlers/user';
-import { createSession, getSessions, getDailyStatus } from './handlers/sessions';
-import { Bindings, Variables } from './core/types';
-import { authMiddleware } from './core/auth';
-import { kvRateLimit } from './core/rateLimit';
-import { getAuth } from '@hono/clerk-auth';
+import { createDbClient } from "./db";
+import { getUser, createUser } from "./handlers/user";
+import {
+  createSession,
+  getSessions,
+  getDailyStatus,
+} from "./handlers/sessions";
+import {
+  getLevelLeaderboard,
+  getTodayDailyWpmLeaderboard,
+} from "./handlers/leaderboard";
+import { Bindings, Variables } from "./core/types";
+import { authMiddleware } from "./core/auth";
+import { kvRateLimit } from "./core/rateLimit";
+import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
-  '/api',
+  "/api"
 );
 
 // MIDDLEWARE
-app.use('*', cors());
-app.use('*', logger());
+app.use("*", cors());
+app.use("*", logger());
+// Populate auth context for all requests (even public) so getAuth works
+app.use("*", clerkMiddleware());
 
 // DB client middleware.
-app.use('*', async (c, next) => {
+app.use("*", async (c, next) => {
   const db = createDbClient(c.env.DB);
-  c.set('db', db);
+  c.set("db", db);
   await next();
 });
 
 // Rate limit: per-user if signed in, else per-IP. No-op if KV not bound.
-const keyFn = (c: any) => getAuth(c)?.userId ?? c.req.header('cf-connecting-ip') ?? 'anon';
-const limiter = kvRateLimit(keyFn, { windowMs: 60_000, limit: 120, prefix: 'api' });
+const keyFn = (c: any) =>
+  getAuth(c)?.userId ?? c.req.header("cf-connecting-ip") ?? "anon";
+const limiter = kvRateLimit(keyFn, {
+  windowMs: 60_000,
+  limit: 120,
+  prefix: "api",
+});
 
 // ROUTES
-app.get('/', (c) => c.text('Welcome to the Typing RPG API!'));
+app.get("/", (c) => c.text("Welcome to the Typing RPG API!"));
 
 // user routes
-app.get('/me', authMiddleware, limiter, getUser);
-app.post('/me', authMiddleware, limiter, createUser);
+app.get("/me", authMiddleware, limiter, getUser);
+app.post("/me", authMiddleware, limiter, createUser);
 
 // session routes
-app.post('/sessions', authMiddleware, limiter,createSession);
-app.get('/sessions', authMiddleware, limiter, getSessions);
-app.get('/daily/status', authMiddleware, limiter, getDailyStatus);
+app.post("/sessions", authMiddleware, limiter, createSession);
+app.get("/sessions", authMiddleware, limiter, getSessions);
+app.get("/daily/status", authMiddleware, limiter, getDailyStatus);
+
+// leaderboard routes (public)
+app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
+app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
 
 export default app;

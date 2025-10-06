@@ -11,13 +11,15 @@ export const useCompletionDetection = ({
   cursorPosition,
   textLength,
   hasStartedTyping,
-  onTextChange
+  onTextChange,
 }: UseCompletionDetectionProps) => {
   const [hasProcessedCompletion, setHasProcessedCompletion] = useState(false);
-  const [hasCompletedCurrentSession, setHasCompletedCurrentSession] = useState(false);
+  const [hasCompletedCurrentSession, setHasCompletedCurrentSession] =
+    useState(false);
 
   // Check if typing is completed
-  const isCompleted = hasStartedTyping && cursorPosition >= textLength && !hasProcessedCompletion;
+  const isCompleted =
+    hasStartedTyping && cursorPosition >= textLength && !hasProcessedCompletion;
 
   // Mark completion as processed
   const markAsProcessed = useCallback(() => {
@@ -49,10 +51,10 @@ export const useCompletionDetection = ({
     isCompleted,
     isSessionAlreadyCompleted,
     hasProcessedCompletion,
-    
+
     // Actions
     markAsProcessed,
     markSessionCompleted,
     resetForNewSession,
   };
-}; 
+};

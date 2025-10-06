@@ -13,11 +13,14 @@ export function useApi() {
       if (token) headers.set('Authorization', `Bearer ${token}`);
       return fetch(`${baseUrl}/api${path}`, { ...init, headers });
     },
-    [baseUrl, getToken],
+    [baseUrl, getToken]
   );
 
   const getMe = useCallback(() => authFetch('/me'), [authFetch]);
-  const createMe = useCallback(() => authFetch('/me', { method: 'POST' }), [authFetch]);
+  const createMe = useCallback(
+    () => authFetch('/me', { method: 'POST' }),
+    [authFetch]
+  );
 
   const createSession = useCallback(
     (body: {
@@ -32,15 +35,42 @@ export function useApi() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }),
-    [authFetch],
+    [authFetch]
   );
 
   const getRecentSessions = useCallback(
     (limit = 20) => authFetch(`/sessions?limit=${encodeURIComponent(limit)}`),
-    [authFetch],
+    [authFetch]
   );
 
-  const getDailyStatus = useCallback(() => authFetch('/daily/status'), [authFetch]);
+  const getDailyStatus = useCallback(
+    () => authFetch('/daily/status'),
+    [authFetch]
+  );
 
-  return { getMe, createMe, createSession, getRecentSessions, getDailyStatus };
+  // leaderboard (public)
+  const getLeaderboardLevels = useCallback(
+    (limit = 50, offset = 0) =>
+      authFetch(
+        `/leaderboard/levels?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`
+      ),
+    [authFetch]
+  );
+  const getLeaderboardTodayWpm = useCallback(
+    (limit = 50, offset = 0) =>
+      authFetch(
+        `/leaderboard/today-wpm?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`
+      ),
+    [authFetch]
+  );
+
+  return {
+    getMe,
+    createMe,
+    createSession,
+    getRecentSessions,
+    getDailyStatus,
+    getLeaderboardLevels,
+    getLeaderboardTodayWpm,
+  };
 }

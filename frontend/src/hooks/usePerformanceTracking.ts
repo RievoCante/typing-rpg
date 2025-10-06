@@ -17,11 +17,11 @@ interface UsePerformanceTrackingProps {
   cursorPosition: number;
 }
 
-export const usePerformanceTracking = ({ 
-  text, 
-  charStatus, 
+export const usePerformanceTracking = ({
+  text,
+  charStatus,
   hasStartedTyping,
-  cursorPosition 
+  cursorPosition,
 }: UsePerformanceTrackingProps) => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [wpm, setWpm] = useState<number>(0);
@@ -44,8 +44,10 @@ export const usePerformanceTracking = ({
     }
 
     const elapsedMinutes = (Date.now() - startTime) / 60000;
-    const { correctWords, incorrectWords, totalCharsIncludingSpaces } = analyzeWords(text, charStatus);
-    const calculatedWpm = elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
+    const { correctWords, incorrectWords, totalCharsIncludingSpaces } =
+      analyzeWords(text, charStatus);
+    const calculatedWpm =
+      elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
     const finalWpm = Math.round(calculatedWpm);
 
     // Update WPM state for display
@@ -56,7 +58,7 @@ export const usePerformanceTracking = ({
       incorrectWords,
       totalCharsIncludingSpaces,
       finalWpm,
-      elapsedMinutes
+      elapsedMinutes,
     };
   }, [text, charStatus, hasStartedTyping, startTime]);
 
@@ -75,9 +77,9 @@ export const usePerformanceTracking = ({
       const word = match[0];
       const wordStartIndex = match.index!;
       const wordEndIndex = wordStartIndex + word.length;
-      
+
       let isWordCompleted = true;
-      
+
       // Check if all characters in this word are locked
       for (let i = wordStartIndex; i < wordEndIndex; i++) {
         if (charStatus[i] !== 'locked') {
@@ -89,7 +91,7 @@ export const usePerformanceTracking = ({
       if (isWordCompleted) {
         // Add word length + 1 space (except for last word)
         totalCharsIncludingSpaces += word.length;
-        
+
         // Add space after word if there's a space character following it
         if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
           totalCharsIncludingSpaces += 1;
@@ -106,17 +108,23 @@ export const usePerformanceTracking = ({
       const currentWpm = calculateCurrentWpm();
       setWpm(currentWpm);
     }
-  }, [charStatus, hasStartedTyping, calculateCurrentWpm, cursorPosition, text.length]);
+  }, [
+    charStatus,
+    hasStartedTyping,
+    calculateCurrentWpm,
+    cursorPosition,
+    text.length,
+  ]);
 
   return {
     // State
     startTime,
     wpm,
-    
+
     // Actions
     startSession,
     resetSession,
     calculateFinalStats,
     calculateCurrentWpm,
   };
-}; 
+};

@@ -26,20 +26,25 @@ const getDayOfWeekIndex = (): number => {
 };
 
 // Get daily quote based on difficulty and current day
-export const getDailyQuote = (difficulty: 'easy' | 'medium' | 'hard'): string => {
+export const getDailyQuote = (
+  difficulty: 'easy' | 'medium' | 'hard'
+): string => {
   const dayIndex = getDayOfWeekIndex();
   const quotes = typedDailyQuotesData[difficulty];
-  
+
   if (!quotes || quotes.length === 0) {
     return 'Failed to load daily quote.';
   }
-  
+
   // Use day index to get consistent quote for the day
   const quoteIndex = dayIndex % quotes.length;
   return quotes[quoteIndex] || 'Failed to load quote.';
 };
 
-export const generateText = (mode: 'daily' | 'endless', difficulty?: 'easy' | 'medium' | 'hard'): string => {
+export const generateText = (
+  mode: 'daily' | 'endless',
+  difficulty?: 'easy' | 'medium' | 'hard'
+): string => {
   // Daily mode
   if (mode === 'daily') {
     if (!difficulty) {

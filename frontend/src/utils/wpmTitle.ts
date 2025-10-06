@@ -7,5 +7,3 @@ export function getWpmTitle(wpm: number): string {
   if (wpm < 120) return 'INSANELY FAST';
   return 'GODLIKE';
 }
-
-
