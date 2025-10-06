@@ -18,4 +18,4 @@ export interface CompletionContext {
   completedQuotes: number;
   hasShownDailyCompletion: boolean;
   currentDifficulty: 'easy' | 'medium' | 'hard';
-} 
+}

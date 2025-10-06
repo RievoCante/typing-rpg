@@ -1,5 +1,13 @@
-import { checkDailyFailure, getDailyFailureMessage, getDailySuccessMessage } from '../utils/dailyFailureDetection';
-import type { CompletionStats, CompletionResult, CompletionContext } from '../types/completion';
+import {
+  checkDailyFailure,
+  getDailyFailureMessage,
+  getDailySuccessMessage,
+} from '../utils/dailyFailureDetection';
+import type {
+  CompletionStats,
+  CompletionResult,
+  CompletionContext,
+} from '../types/completion';
 
 export class DailyCompletionHandler {
   constructor(
@@ -15,7 +23,10 @@ export class DailyCompletionHandler {
     }) => Promise<Response>
   ) {}
 
-  async handleCompletion(stats: CompletionStats, context: CompletionContext): Promise<CompletionResult> {
+  async handleCompletion(
+    stats: CompletionStats,
+    context: CompletionContext
+  ): Promise<CompletionResult> {
     this.logCompletionStats(stats);
 
     const failed = checkDailyFailure(stats.incorrectWords);
@@ -26,8 +37,14 @@ export class DailyCompletionHandler {
     return await this.handleSuccess(stats, context);
   }
 
-  private handleFailure(stats: CompletionStats, context: CompletionContext): CompletionResult {
-    const failureMessage = getDailyFailureMessage(stats.incorrectWords, context.currentDifficulty);
+  private handleFailure(
+    stats: CompletionStats,
+    context: CompletionContext
+  ): CompletionResult {
+    const failureMessage = getDailyFailureMessage(
+      stats.incorrectWords,
+      context.currentDifficulty
+    );
     console.log(failureMessage);
 
     return {
@@ -37,13 +54,20 @@ export class DailyCompletionHandler {
     };
   }
 
-  private async handleSuccess(stats: CompletionStats, context: CompletionContext): Promise<CompletionResult> {
-    const successMessage = getDailySuccessMessage(stats.incorrectWords, context.currentDifficulty);
+  private async handleSuccess(
+    stats: CompletionStats,
+    context: CompletionContext
+  ): Promise<CompletionResult> {
+    const successMessage = getDailySuccessMessage(
+      stats.incorrectWords,
+      context.currentDifficulty
+    );
     console.log(successMessage);
 
     this.completeCurrentQuote(stats.finalWpm, context.currentAttempts);
 
-    const willCompleteDaily = context.completedQuotes >= 2 && !context.hasShownDailyCompletion;
+    const willCompleteDaily =
+      context.completedQuotes >= 2 && !context.hasShownDailyCompletion;
 
     if (willCompleteDaily) {
       console.log('--- DAILY CHALLENGE COMPLETED! ---');
@@ -72,7 +96,11 @@ export class DailyCompletionHandler {
       }
 
       this.onShowModal();
-      return { action: 'showModal', message: `Daily challenge completed! +${xpEarned} XP`, xpDelta: xpEarned };
+      return {
+        action: 'showModal',
+        message: `Daily challenge completed! +${xpEarned} XP`,
+        xpDelta: xpEarned,
+      };
     }
 
     return {
@@ -84,9 +112,13 @@ export class DailyCompletionHandler {
 
   private logCompletionStats(stats: CompletionStats): void {
     console.log('--- Completion Stats ---');
-    console.log(`Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`);
-    console.log(`Total chars including spaces: ${stats.totalCharsIncludingSpaces}`);
+    console.log(
+      `Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`
+    );
+    console.log(
+      `Total chars including spaces: ${stats.totalCharsIncludingSpaces}`
+    );
     console.log(`Elapsed minutes: ${stats.elapsedMinutes.toFixed(2)}`);
     console.log(`WPM: ${stats.finalWpm}`);
   }
-} 
+}

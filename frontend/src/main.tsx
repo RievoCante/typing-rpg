@@ -8,7 +8,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { ThemeProvider } from './context/ThemeProvider';
 import { GameProvider } from './context/GameProvider';
 
-// Import your Publishable Key for Clerk
+// Publishable Key for Clerk
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {

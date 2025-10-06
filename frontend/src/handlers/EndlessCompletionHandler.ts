@@ -1,13 +1,15 @@
 import type { CompletionStats, CompletionResult } from '../types/completion';
 
 export class EndlessCompletionHandler {
-  constructor(private createSession: (body: {
-    mode: 'daily' | 'endless';
-    wpm: number;
-    totalWords: number;
-    correctWords: number;
-    incorrectWords: number;
-  }) => Promise<Response>) {}
+  constructor(
+    private createSession: (body: {
+      mode: 'daily' | 'endless';
+      wpm: number;
+      totalWords: number;
+      correctWords: number;
+      incorrectWords: number;
+    }) => Promise<Response>
+  ) {}
 
   /**
    * Handles completion of an endless mode session
@@ -45,9 +47,13 @@ export class EndlessCompletionHandler {
 
   private logCompletionStats(stats: CompletionStats): void {
     console.log('--- Endless Mode Completion ---');
-    console.log(`Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`);
-    console.log(`Total chars including spaces: ${stats.totalCharsIncludingSpaces}`);
+    console.log(
+      `Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`
+    );
+    console.log(
+      `Total chars including spaces: ${stats.totalCharsIncludingSpaces}`
+    );
     console.log(`Elapsed minutes: ${stats.elapsedMinutes.toFixed(2)}`);
     console.log(`WPM: ${stats.finalWpm}`);
   }
-} 
+}

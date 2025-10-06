@@ -10,13 +10,17 @@ interface SlimeModelProps {
   isDefeated: boolean;
 }
 
-export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelProps) {
+export default function SlimeModel({
+  slimeType,
+  isHit,
+  isDefeated,
+}: SlimeModelProps) {
   const meshRef = useRef<Mesh>(null);
   const bodyMatRef = useRef<MeshPhongMaterial | null>(null);
   const leftEyeRef = useRef<Mesh>(null);
   const rightEyeRef = useRef<Mesh>(null);
   const [hitFlashTime, setHitFlashTime] = useState(0);
-  
+
   const config = SLIME_CONFIGS[slimeType];
 
   // derive a brighter light-blue color
@@ -34,21 +38,27 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
   useEffect(() => {
     const handler = () => setHitFlashTime(Date.now());
     window.addEventListener('word-hit', handler as EventListener);
-    return () => window.removeEventListener('word-hit', handler as EventListener);
+    return () =>
+      window.removeEventListener('word-hit', handler as EventListener);
   }, []);
 
-  useFrame((state) => {
+  useFrame(state => {
     if (!meshRef.current) return;
 
     const mesh = meshRef.current;
     const time = state.clock.elapsedTime;
 
     if (!isDefeated) {
-      mesh.position.y = Math.sin(time * SLIME_ANIMATIONS.BOUNCE_SPEED) * SLIME_ANIMATIONS.BOUNCE_HEIGHT;
-      const squishFactor = 1 + Math.sin(time * SLIME_ANIMATIONS.BOUNCE_SPEED * 2) * 0.05;
+      mesh.position.y =
+        Math.sin(time * SLIME_ANIMATIONS.BOUNCE_SPEED) *
+        SLIME_ANIMATIONS.BOUNCE_HEIGHT;
+      const squishFactor =
+        1 + Math.sin(time * SLIME_ANIMATIONS.BOUNCE_SPEED * 2) * 0.05;
       mesh.scale.y = config.scale * squishFactor;
-      mesh.scale.x = config.scale * (2 - squishFactor) * 0.5 + config.scale * 0.5;
-      mesh.scale.z = config.scale * (2 - squishFactor) * 0.5 + config.scale * 0.5;
+      mesh.scale.x =
+        config.scale * (2 - squishFactor) * 0.5 + config.scale * 0.5;
+      mesh.scale.z =
+        config.scale * (2 - squishFactor) * 0.5 + config.scale * 0.5;
 
       if (leftEyeRef.current && rightEyeRef.current) {
         leftEyeRef.current.position.y = mesh.position.y;
@@ -61,7 +71,8 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
     if (hitFlashTime > 0 && bodyMatRef.current) {
       const flashElapsed = Date.now() - hitFlashTime;
       if (flashElapsed < SLIME_ANIMATIONS.FLASH_DURATION) {
-        const flashIntensity = 1 - (flashElapsed / SLIME_ANIMATIONS.FLASH_DURATION);
+        const flashIntensity =
+          1 - flashElapsed / SLIME_ANIMATIONS.FLASH_DURATION;
         // Blend body color toward red; keep this cheap and allocation-free
         const mat = bodyMatRef.current as MeshPhongMaterial;
         mat.color.copy(finalColor).lerp(new Color('#ff4d4d'), flashIntensity);
@@ -84,7 +95,9 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       }
       if (leftEyeRef.current && rightEyeRef.current) {
         const leftMaterial = leftEyeRef.current.material as { opacity: number };
-        const rightMaterial = rightEyeRef.current.material as { opacity: number };
+        const rightMaterial = rightEyeRef.current.material as {
+          opacity: number;
+        };
         if (leftMaterial.opacity > 0) leftMaterial.opacity -= 0.05;
         if (rightMaterial.opacity > 0) rightMaterial.opacity -= 0.05;
       }
@@ -119,4 +132,4 @@ export default function SlimeModel({ slimeType, isHit, isDefeated }: SlimeModelP
       </mesh>
     </group>
   );
-} 
+}

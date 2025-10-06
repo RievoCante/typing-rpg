@@ -8,15 +8,15 @@ export const checkDailyFailure = (incorrectWords: number): boolean => {
 
 // Gets a failure message for the user when they fail a daily quote.
 export const getDailyFailureMessage = (
-  incorrectWords: number, 
+  incorrectWords: number,
   difficulty: 'easy' | 'medium' | 'hard'
 ): string => {
   const difficultyNames = {
     easy: 'Monster',
     medium: 'Mini Boss',
-    hard: 'Boss'
+    hard: 'Boss',
   };
-  
+
   return `${difficultyNames[difficulty]} defeated you! ${incorrectWords} incorrect words (max: ${DAILY_FAILURE_THRESHOLD - 1}). Try again!`;
 };
 
@@ -27,13 +27,13 @@ export const getDailySuccessMessage = (
 ): string => {
   const difficultyNames = {
     easy: 'Monster',
-    medium: 'Mini Boss', 
-    hard: 'Boss'
+    medium: 'Mini Boss',
+    hard: 'Boss',
   };
-  
+
   if (incorrectWords === 0) {
     return `Perfect! ${difficultyNames[difficulty]} defeated with no errors!`;
   }
-  
+
   return `${difficultyNames[difficulty]} defeated! ${incorrectWords} incorrect words.`;
-}; 
+};

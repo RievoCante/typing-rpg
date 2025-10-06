@@ -55,7 +55,7 @@ export default function LeaderboardPage() {
           const data = await res.json();
           if (!cancelled) setWpm(Array.isArray(data.items) ? data.items : []);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('Failed to load leaderboard');
       } finally {
         if (!cancelled) setLoading(false);
