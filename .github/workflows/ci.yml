@@ -1,0 +1,56 @@
+name: CI/CD Pipline
+
+# When to run this workflow
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# Jobs/Tasks to run
+jobs:
+  # Job 1: check frontend code
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: bun install
+
+      # Step 4: Run linting
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: bun run lint
+
+      # Step 5: Check formatting
+      - name: Check Prettier formatting
+        working-directory: ./frontend
+        run: bun run format:check
+
+      # Step 6: Type-check TypeScript
+      - name: Type check
+        working-directory: ./frontend
+        run: bunx tsc --noEmit
+
+      # Step 7: build project (ensures it complies)
+      - name: Build
+        working-directory: ./frontend
+        run: bun run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+
+  # Job 2: check backend code
