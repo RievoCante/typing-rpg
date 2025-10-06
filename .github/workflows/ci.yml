@@ -54,3 +54,24 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
 
   # Job 2: check backend code
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: bun install
+
+      # Type-check backend (no build step for Workers)
+      - name: Type check
+        working-directory: ./backend
+        run: bunx tsc --noEmit
