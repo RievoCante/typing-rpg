@@ -78,7 +78,7 @@ jobs:
 
   # Job 3: Deploy backend to Cloudflare Workers (only on main branch)
   deploy-backend:
-    name: Deploy Backend
+    name: Backend CD
     runs-on: ubuntu-latest
     needs: [frontend-ci, backend-ci] # Wait for CI to pass first
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Only deploy on push to main
