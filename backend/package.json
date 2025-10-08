@@ -2,7 +2,10 @@
   "name": "backend",
   "scripts": {
     "dev": "wrangler d1 migrations apply typing-rpg-db --local && wrangler dev src/index.ts --local",
-    "db:gen": "drizzle-kit generate"
+    "db:gen": "drizzle-kit generate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@clerk/backend": "^2.6.2",
@@ -16,7 +19,9 @@
     "@cloudflare/workers-types": "^4.20250801.0",
     "@types/bun": "latest",
     "@types/node": "^24.1.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "drizzle-kit": "^0.31.4",
+    "vitest": "^3.2.4",
     "wrangler": "^4.42.0"
   }
 }
