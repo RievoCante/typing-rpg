@@ -76,6 +76,11 @@ jobs:
         working-directory: ./backend
         run: bunx tsc --noEmit
 
+      # Run unit tests
+      - name: Run tests
+        working-directory: ./backend
+        run: bun test
+
   # Job 3: Deploy backend to Cloudflare Workers (only on main branch)
   deploy-backend:
     name: Backend CD
