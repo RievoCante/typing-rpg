@@ -1,0 +1,19 @@
+services:
+  # Frontend Web Service
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN}
+    ports:
+      - "3000:80"
+    container_name: typing-rpg-frontend
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
