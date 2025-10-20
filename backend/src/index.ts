@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import * as Sentry from "@sentry/node";
+import { sentry } from "@hono/sentry";
 
 import { createDbClient } from "./db";
 import { getUser, createUser } from "./handlers/user";
@@ -23,6 +25,14 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
 );
 
 // MIDDLEWARE
+app.use(
+  "*",
+  sentry({
+    dsn: "https://fc88096eb65c14e942c6098e5271b73a@o4510185802629120.ingest.us.sentry.io/4510220039028736",
+    environment: "production",
+    tracesSampleRate: 0.1,
+  })
+);
 app.use("*", cors());
 app.use("*", logger());
 // Populate auth context for all requests (even public) so getAuth works
