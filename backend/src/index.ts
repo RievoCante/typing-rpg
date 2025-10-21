@@ -25,6 +25,10 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
 );
 
 // MIDDLEWARE
+// Note: Sentry DSN is hardcoded for Cloudflare Workers deployment
+// This is acceptable since: 1) DSN is server-side only, 2) Cloudflare Workers
+// don't easily support build-time env vars, 3) DSN is safe to expose (it's for sending, not reading data)
+// For production best practice, consider using Cloudflare Workers secrets
 app.use(
   "*",
   sentry({
