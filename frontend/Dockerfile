@@ -18,10 +18,12 @@ COPY . .
 # Accept build arguments for environment variables
 ARG VITE_CLERK_PUBLISHABLE_KEY
 ARG VITE_API_URL
+ARG VITE_SENTRY_DSN
 
 # Make them available during build
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
 RUN bun run build
 # ↑ Build the production app
