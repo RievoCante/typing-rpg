@@ -41,6 +41,7 @@ export default function TypingInterface({
     setTotalWords,
     setRemainingWords,
     decrementRemainingWords,
+    incrementMonstersDefeated,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -94,6 +95,10 @@ export default function TypingInterface({
 
   const [hasShownDailyCompletion, setHasShownDailyCompletion] = useState(false);
   const [isProcessingCompletion, setIsProcessingCompletion] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingRetrySave, setPendingRetrySave] = useState<
+    (() => Promise<CompletionResult>) | null
+  >(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +165,8 @@ export default function TypingInterface({
     setHasStartedTyping(false);
     setIsProcessingCompletion(false);
     setEarnedXp(0);
+    // New text means new monster
+    incrementMonstersDefeated();
     if (containerRef.current) containerRef.current.focus();
   }, [
     currentMode,
@@ -246,9 +253,19 @@ export default function TypingInterface({
       (async () => {
         const result: CompletionResult =
           await completionHandler.handleCompletion(stats, context);
+
+        if (result.action === 'saveError') {
+          setSaveError(result.message ?? 'Failed to save. Please retry.');
+          setPendingRetrySave(() => result.retrySave ?? null);
+          setIsProcessingCompletion(false);
+          return;
+        }
+
         if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
-        // Refresh player stats from server after any completion
-        await reloadPlayerStats();
+
+        // Background refresh - don't block UI
+        reloadPlayerStats();
+
         switch (result.action) {
           case 'retry':
             if (result.newAttempts !== undefined)
@@ -262,7 +279,6 @@ export default function TypingInterface({
             if (result.newAttempts !== undefined)
               setCurrentAttempts(result.newAttempts);
             setIsProcessingCompletion(false);
-            // Show a brief overlay like Endless for consistency
             setCelebrateText('Next challenge!');
             setCelebrating(true);
             setTimeout(() => setCelebrating(false), 1000);
@@ -351,6 +367,20 @@ export default function TypingInterface({
   const handleModalClose = () => {
     setShowCongratsModal(false);
   };
+
+  const handleRetrySave = useCallback(async () => {
+    if (!pendingRetrySave) return;
+    setSaveError(null);
+    const result = await pendingRetrySave();
+    if (result.action === 'saveError') {
+      setSaveError(result.message ?? 'Failed to save. Please retry.');
+      setPendingRetrySave(() => result.retrySave ?? null);
+      return;
+    }
+    if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
+    setPendingRetrySave(null);
+    reloadPlayerStats();
+  }, [pendingRetrySave, reloadPlayerStats]);
 
   return (
     <>
@@ -511,6 +541,19 @@ export default function TypingInterface({
               +{earnedXp} XP
             </span>
           </div>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-lg bg-red-700 text-white shadow-xl">
+          <span className="text-sm">{saveError}</span>
+          <button
+            type="button"
+            onClick={handleRetrySave}
+            className="px-3 py-1 rounded bg-white text-red-700 text-sm font-semibold hover:bg-red-100 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       )}
 
