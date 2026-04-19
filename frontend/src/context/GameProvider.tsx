@@ -13,10 +13,15 @@ export const GameProvider = ({
   );
   const [totalWords, setTotalWords] = useState<number>(0);
   const [remainingWords, setRemainingWords] = useState<number>(0);
+  const [monstersDefeated, setMonstersDefeated] = useState<number>(0);
 
   // Helper function to decrement remaining words (for word completion)
   const decrementRemainingWords = useCallback(() => {
     setRemainingWords(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const incrementMonstersDefeated = useCallback(() => {
+    setMonstersDefeated(prev => prev + 1);
   }, []);
 
   const contextValue = {
@@ -27,6 +32,8 @@ export const GameProvider = ({
     setTotalWords,
     setRemainingWords,
     decrementRemainingWords,
+    monstersDefeated,
+    incrementMonstersDefeated,
   };
 
   return (

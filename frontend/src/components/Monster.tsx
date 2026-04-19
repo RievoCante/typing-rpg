@@ -8,12 +8,16 @@ interface MonsterProps {
   monsterType: SlimeTypeEnum;
   isHit?: boolean;
   isDefeated?: boolean;
+  color?: string;
+  scale?: number;
 }
 
 export default function Monster({
   monsterType,
   isHit = false,
   isDefeated = false,
+  color,
+  scale,
 }: MonsterProps) {
   return (
     <div className="w-full max-w-md mx-auto py-8">
@@ -33,6 +37,8 @@ export default function Monster({
             slimeType={monsterType}
             isHit={isHit}
             isDefeated={isDefeated}
+            customColor={color}
+            customScale={scale}
           />
         </Canvas>
       </div>

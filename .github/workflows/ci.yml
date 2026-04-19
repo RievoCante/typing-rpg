@@ -1,4 +1,4 @@
-name: CI/CD Pipline
+name: CI/CD Pipeline
 
 # When to run this workflow
 on:

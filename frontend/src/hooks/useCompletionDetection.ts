@@ -42,9 +42,11 @@ export const useCompletionDetection = ({
 
   // Reset completion processing flag when text changes
   useEffect(() => {
-    setHasProcessedCompletion(false);
+    if (hasProcessedCompletion) {
+      setHasProcessedCompletion(false);
+    }
     onTextChange?.();
-  }, [textLength, onTextChange]);
+  }, [textLength, onTextChange, hasProcessedCompletion]);
 
   return {
     // State
