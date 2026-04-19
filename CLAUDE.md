@@ -11,6 +11,7 @@ bun run build        # Production build
 bun run lint         # ESLint
 bun run format       # Prettier write
 bun run format:check # Prettier check (used in CI)
+bun run test         # Run vitest tests
 bunx tsc --noEmit    # Type check
 ```
 
