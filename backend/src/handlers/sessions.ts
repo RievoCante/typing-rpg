@@ -55,36 +55,32 @@ export const createSession = async (c: AppContext) => {
       }
     }
 
-    // Save session and apply XP atomically to prevent concurrent-request races
-    const { inserted, user, xpDelta } = await db.transaction(async (tx) => {
-      const [sessionRow] = await tx
-        .insert(gameSessions)
-        .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
-        .returning();
+    // Insert session
+    const [inserted] = await db
+      .insert(gameSessions)
+      .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
+      .returning();
 
-      // Load or create user inside the transaction
-      let txUser = await tx.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
-      if (!txUser) {
-        await tx.insert(users).values({ userId, username: 'NewPlayer' }).onConflictDoNothing({ target: users.userId });
-        txUser = await tx.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+    // Load or create user
+    let user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+    if (!user) {
+      await db.insert(users).values({ userId, username: 'NewPlayer' }).onConflictDoNothing({ target: users.userId });
+      user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+    }
+
+    // Compute and apply XP
+    let xpDelta = 0;
+    if (user) {
+      xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
+      if (xpDelta > 0) {
+        const updated = applyXp(user.level, user.xp, xpDelta);
+        await db
+          .update(users)
+          .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
+          .where(eq(users.userId, userId));
+        user = { ...user, level: updated.level, xp: updated.xp };
       }
-
-      // Compute XP and update user within the same transaction
-      let delta = 0;
-      if (txUser) {
-        delta = calculateXpDelta(mode, incorrectWords, wpm);
-        if (delta > 0) {
-          const updated = applyXp(txUser.level, txUser.xp, delta);
-          await tx
-            .update(users)
-            .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
-            .where(eq(users.userId, userId));
-          txUser = { ...txUser, level: updated.level, xp: updated.xp };
-        }
-      }
-
-      return { inserted: sessionRow, user: txUser, xpDelta: delta };
-    });
+    }
 
     // Include xpDelta in session payload so UI can display earned XP
     const sessionWithXp = { ...inserted, xpDelta } as any;
