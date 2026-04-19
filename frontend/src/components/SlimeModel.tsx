@@ -28,7 +28,7 @@ export default function SlimeModel({
   const [hitFlashTime, setHitFlashTime] = useState(0);
 
   const config = SLIME_CONFIGS[slimeType];
-  const activeColor = customColor || config.color;
+  const activeColor = customColor !== undefined ? customColor : config.color;
   const activeScale = customScale || config.scale;
 
   const { finalColor, emissiveColor } = useMemo(() => {

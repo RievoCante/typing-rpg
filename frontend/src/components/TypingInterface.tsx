@@ -176,6 +176,7 @@ export default function TypingInterface({
     resetTypingState,
     resetSession,
     resetForNewSession,
+    incrementMonstersDefeated,
   ]);
 
   useEffect(() => {
