@@ -1,4 +1,4 @@
-name: CI/CD Pipline
+name: CI/CD Pipeline
 
 # When to run this workflow
 on:
@@ -44,6 +44,11 @@ jobs:
       - name: Type check
         working-directory: ./frontend
         run: bunx tsc --noEmit
+
+      # Step 6.5: Run frontend tests
+      - name: Run tests
+        working-directory: ./frontend
+        run: bun run test
 
       # Step 7: build project (ensures it complies)
       - name: Build

@@ -1,59 +1,51 @@
-import type { CompletionStats, CompletionResult } from '../types/completion';
+import type {
+  CompletionStats,
+  CompletionResult,
+  SessionPayload,
+} from '../types/completion';
+
+const RETRY_DELAYS_MS = [500, 1500, 3000];
 
 export class EndlessCompletionHandler {
   constructor(
-    private createSession: (body: {
-      mode: 'daily' | 'endless';
-      wpm: number;
-      totalWords: number;
-      correctWords: number;
-      incorrectWords: number;
-    }) => Promise<Response>
+    private createSession: (body: SessionPayload) => Promise<Response>
   ) {}
 
-  /**
-   * Handles completion of an endless mode session
-   */
   async handleCompletion(stats: CompletionStats): Promise<CompletionResult> {
-    this.logCompletionStats(stats);
-
     const totalWords = stats.correctWords + stats.incorrectWords;
-    const payload = {
-      mode: 'endless' as const,
+    const payload: SessionPayload = {
+      mode: 'endless',
       wpm: Math.round(stats.finalWpm),
       totalWords,
       correctWords: stats.correctWords,
       incorrectWords: stats.incorrectWords,
     };
 
-    let xpEarned = 0;
-    try {
-      const res = await this.createSession(payload);
-      if (res.ok) {
-        const data = await res.json();
-        xpEarned = Number(data?.session?.xpDelta ?? 0);
-      }
-      console.log('Endless session saved to backend.');
-    } catch (e) {
-      console.error('Failed to save endless session', e);
-    }
+    // Fire save in background with retries — don't block UI.
+    // xpDelta not shown for endless; stats update via reloadPlayerStats.
+    void this.saveWithRetry(payload);
 
     return {
       action: 'loadNewText',
-      message: `Session completed! +${xpEarned} XP`,
-      xpDelta: xpEarned,
+      message: 'Session completed!',
+      xpDelta: 0,
     };
   }
 
-  private logCompletionStats(stats: CompletionStats): void {
-    console.log('--- Endless Mode Completion ---');
-    console.log(
-      `Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`
-    );
-    console.log(
-      `Total chars including spaces: ${stats.totalCharsIncludingSpaces}`
-    );
-    console.log(`Elapsed minutes: ${stats.elapsedMinutes.toFixed(2)}`);
-    console.log(`WPM: ${stats.finalWpm}`);
+  /** Attempts the save up to 4 times (1 initial + 3 retries with delays). */
+  private async saveWithRetry(payload: SessionPayload): Promise<void> {
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt > 0) {
+        await new Promise(res => setTimeout(res, RETRY_DELAYS_MS[attempt - 1]));
+      }
+      try {
+        const response = await this.createSession(payload);
+        if (!response.ok) continue;
+        return;
+      } catch {
+        // network error — retry
+      }
+    }
+    console.error('Failed to save endless session after retries');
   }
 }

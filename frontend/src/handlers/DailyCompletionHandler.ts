@@ -1,12 +1,13 @@
 import {
   checkDailyFailure,
   getDailyFailureMessage,
-  getDailySuccessMessage,
 } from '../utils/dailyFailureDetection';
 import type {
   CompletionStats,
   CompletionResult,
   CompletionContext,
+  SessionPayload,
+  SessionResponse,
 } from '../types/completion';
 
 export class DailyCompletionHandler {
@@ -14,27 +15,18 @@ export class DailyCompletionHandler {
     private completeCurrentQuote: (wpm: number, attempts: number) => void,
     private getAverageWPM: () => number,
     private onShowModal: () => void,
-    private createSession: (body: {
-      mode: 'daily' | 'endless';
-      wpm: number;
-      totalWords: number;
-      correctWords: number;
-      incorrectWords: number;
-    }) => Promise<Response>
+    private createSession: (body: SessionPayload) => Promise<Response>
   ) {}
 
   async handleCompletion(
     stats: CompletionStats,
     context: CompletionContext
   ): Promise<CompletionResult> {
-    this.logCompletionStats(stats);
-
     const failed = checkDailyFailure(stats.incorrectWords);
     if (failed) {
       return this.handleFailure(stats, context);
     }
-
-    return await this.handleSuccess(stats, context);
+    return this.handleSuccess(stats, context);
   }
 
   private handleFailure(
@@ -45,8 +37,6 @@ export class DailyCompletionHandler {
       stats.incorrectWords,
       context.currentDifficulty
     );
-    console.log(failureMessage);
-
     return {
       action: 'retry',
       message: `Attempt ${context.currentAttempts + 1} - ${failureMessage}`,
@@ -58,67 +48,59 @@ export class DailyCompletionHandler {
     stats: CompletionStats,
     context: CompletionContext
   ): Promise<CompletionResult> {
-    const successMessage = getDailySuccessMessage(
-      stats.incorrectWords,
-      context.currentDifficulty
-    );
-    console.log(successMessage);
-
-    this.completeCurrentQuote(stats.finalWpm, context.currentAttempts);
-
     const willCompleteDaily =
       context.completedQuotes >= 2 && !context.hasShownDailyCompletion;
 
-    if (willCompleteDaily) {
-      console.log('--- DAILY CHALLENGE COMPLETED! ---');
-      const avgWpm = Math.round(this.getAverageWPM());
-      console.log(`Average WPM: ${avgWpm}`);
-      console.log('-----------------------------------');
-
-      const totalWords = stats.correctWords + stats.incorrectWords;
-      const payload = {
-        mode: 'daily' as const,
-        wpm: avgWpm,
-        totalWords,
-        correctWords: stats.correctWords,
-        incorrectWords: stats.incorrectWords,
-      };
-
-      let xpEarned = 0;
-      try {
-        const res = await this.createSession(payload);
-        if (res.ok) {
-          const data = await res.json();
-          xpEarned = Number(data?.session?.xpDelta ?? 0);
-        }
-      } catch (e) {
-        console.error('Failed to save daily session', e);
-      }
-
-      this.onShowModal();
+    if (!willCompleteDaily) {
+      // Not the final quote — safe to record stats immediately
+      this.completeCurrentQuote(stats.finalWpm, context.currentAttempts);
       return {
-        action: 'showModal',
-        message: `Daily challenge completed! +${xpEarned} XP`,
-        xpDelta: xpEarned,
+        action: 'nextQuote',
+        message: `${context.currentDifficulty} quote completed! Moving to next difficulty.`,
+        newAttempts: 1,
       };
     }
 
-    return {
-      action: 'nextQuote',
-      message: `${context.currentDifficulty} quote completed! Moving to next difficulty.`,
-      newAttempts: 1,
+    // Final (3rd) quote — compute true 3-quote average without calling
+    // completeCurrentQuote yet (that would mark isCompletedToday = true in
+    // localStorage before the server confirms).
+    const prevAvg = this.getAverageWPM(); // average of the 2 completed quotes
+    const avgWpm = Math.round(
+      (prevAvg * context.completedQuotes + stats.finalWpm) /
+        (context.completedQuotes + 1)
+    );
+    const totalWords = stats.correctWords + stats.incorrectWords;
+    const payload: SessionPayload = {
+      mode: 'daily',
+      wpm: avgWpm,
+      totalWords,
+      correctWords: stats.correctWords,
+      incorrectWords: stats.incorrectWords,
     };
-  }
 
-  private logCompletionStats(stats: CompletionStats): void {
-    console.log('--- Completion Stats ---');
-    console.log(
-      `Correct words: ${stats.correctWords}, Incorrect: ${stats.incorrectWords}`
-    );
-    console.log(
-      `Total chars including spaces: ${stats.totalCharsIncludingSpaces}`
-    );
-    console.log(`Elapsed minutes: ${stats.elapsedMinutes.toFixed(2)}`);
-    console.log(`WPM: ${stats.finalWpm}`);
+    // Build a closure that does the save AND the post-save side-effects.
+    // Stored as retrySave so TypingInterface can call it again on failure.
+    const performSaveAndComplete = async (): Promise<CompletionResult> => {
+      try {
+        const response = await this.createSession(payload);
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        const data = (await response.json()) as SessionResponse;
+        const xpEarned = data.session?.xpDelta ?? 0;
+        // Server confirmed — now safe to write localStorage
+        this.completeCurrentQuote(stats.finalWpm, context.currentAttempts);
+        this.onShowModal();
+        return { action: 'showModal', xpDelta: xpEarned };
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : 'Network error — please retry.';
+        return {
+          action: 'saveError',
+          message,
+          retrySave: performSaveAndComplete,
+        };
+      }
+    };
+
+    return performSaveAndComplete();
   }
 }

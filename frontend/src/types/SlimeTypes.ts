@@ -40,3 +40,19 @@ export const SLIME_ANIMATIONS = {
   FLASH_DURATION: 120, // Duration of red flash in ms (snappier)
   DISAPPEAR_DURATION: 500, // Duration of disappear animation in ms
 };
+
+export const SLIME_COLORS = [
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#22c55e', // Green
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#a855f7', // Purple
+];
+
+export const SLIME_SIZES = [
+  0.6, // Small
+  0.8, // Medium (Normal)
+  1.1, // Large
+];

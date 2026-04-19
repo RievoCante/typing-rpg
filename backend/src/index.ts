@@ -37,7 +37,9 @@ app.use(
     tracesSampleRate: 0.1,
   })
 );
-app.use("*", cors());
+app.use("*", cors({
+  origin: ["https://typingrpg.com", "http://localhost:5173"],
+}));
 app.use("*", logger());
 // Populate auth context for all requests (even public) so getAuth works
 app.use("*", clerkMiddleware());

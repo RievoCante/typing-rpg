@@ -8,10 +8,10 @@ import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
   mode: z.enum(['daily', 'endless']),
-  wpm: z.number().int().nonnegative(),
-  totalWords: z.number().int().nonnegative(),
-  correctWords: z.number().int().nonnegative(),
-  incorrectWords: z.number().int().nonnegative(),
+  wpm: z.number().int().nonnegative().max(300),
+  totalWords: z.number().int().nonnegative().max(2000),
+  correctWords: z.number().int().nonnegative().max(2000),
+  incorrectWords: z.number().int().nonnegative().max(2000),
 });
 
 // POST /api/sessions
@@ -55,36 +55,39 @@ export const createSession = async (c: AppContext) => {
       }
     }
 
-    // Save session
-    const inserted = await db
-      .insert(gameSessions)
-      .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
-      .returning();
+    // Save session and apply XP atomically to prevent concurrent-request races
+    const { inserted, user, xpDelta } = await db.transaction(async (tx) => {
+      const [sessionRow] = await tx
+        .insert(gameSessions)
+        .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
+        .returning();
 
-    // Load or create user
-    let user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
-    if (!user) {
-      await db.insert(users).values({ userId, username: 'NewPlayer' }).onConflictDoNothing({ target: users.userId });
-      user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
-    }
-
-    // Compute XP and update user
-    let xpDelta = 0;
-    if (user) {
-      xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
-      if (xpDelta > 0) {
-        const updated = applyXp(user.level, user.xp, xpDelta);
-        await db
-          .update(users)
-          .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
-          .where(eq(users.userId, userId));
-        user.level = updated.level;
-        user.xp = updated.xp;
+      // Load or create user inside the transaction
+      let txUser = await tx.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
+      if (!txUser) {
+        await tx.insert(users).values({ userId, username: 'NewPlayer' }).onConflictDoNothing({ target: users.userId });
+        txUser = await tx.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
       }
-    }
+
+      // Compute XP and update user within the same transaction
+      let delta = 0;
+      if (txUser) {
+        delta = calculateXpDelta(mode, incorrectWords, wpm);
+        if (delta > 0) {
+          const updated = applyXp(txUser.level, txUser.xp, delta);
+          await tx
+            .update(users)
+            .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
+            .where(eq(users.userId, userId));
+          txUser = { ...txUser, level: updated.level, xp: updated.xp };
+        }
+      }
+
+      return { inserted: sessionRow, user: txUser, xpDelta: delta };
+    });
 
     // Include xpDelta in session payload so UI can display earned XP
-    const sessionWithXp = { ...inserted[0], xpDelta } as any;
+    const sessionWithXp = { ...inserted, xpDelta } as any;
 
     return c.json({ success: true, session: sessionWithXp, user }, 201);
   } catch (e) {

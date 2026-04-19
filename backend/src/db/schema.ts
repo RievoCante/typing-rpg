@@ -1,7 +1,7 @@
 // This file defines the database schema using Drizzle ORM.
 
 import { sql } from 'drizzle-orm';
-import { text, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { text, integer, sqliteTable, index } from 'drizzle-orm/sqlite-core';
 
 /**
  * The `users` table stores permanent player data.
@@ -23,18 +23,30 @@ export const users = sqliteTable('users', {
  * The `game_sessions` table logs the results of every game a user completes.
  * This provides a detailed history of player performance.
  */
-export const gameSessions = sqliteTable('game_sessions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.userId), // Foreign key to the users table
-  mode: text('mode', { enum: ['daily', 'endless'] }).notNull(),
-  wpm: integer('wpm').notNull(),
-  totalWords: integer('total_words').notNull(),
-  correctWords: integer('correct_words').notNull(),
-  incorrectWords: integer('incorrect_words').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .default(sql`(strftime('%s', 'now'))`)
-    .notNull(),
-});
+export const gameSessions = sqliteTable(
+  'game_sessions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.userId),
+    mode: text('mode', { enum: ['daily', 'endless'] }).notNull(),
+    wpm: integer('wpm').notNull(),
+    totalWords: integer('total_words').notNull(),
+    correctWords: integer('correct_words').notNull(),
+    incorrectWords: integer('incorrect_words').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(strftime('%s', 'now'))`)
+      .notNull(),
+  },
+  table => [
+    // Covers the leaderboard GROUP BY + WHERE mode + date range + ORDER BY wpm
+    index('idx_game_sessions_leaderboard').on(
+      table.mode,
+      table.createdAt,
+      table.userId,
+      table.wpm
+    ),
+  ]
+);
 
