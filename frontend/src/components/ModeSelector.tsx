@@ -1,6 +1,7 @@
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useGameContext } from '../hooks/useGameContext';
 import { useEffect, useState } from 'react';
+import WordCountSelector from './WordCountSelector';
 
 export default function ModeSelector() {
   const { theme } = useThemeContext();
@@ -16,7 +17,7 @@ export default function ModeSelector() {
   // Countdown shown in TypingInterface when completed
 
   return (
-    <div className="flex justify-center w-full py-6">
+    <div className="flex flex-col items-center w-full py-4">
       <div
         className={`relative flex rounded-lg p-1 transition-colors duration-300 ${
           theme === 'dark'
@@ -89,6 +90,9 @@ export default function ModeSelector() {
           </div>
         </div>
       </div>
+
+      {/* Word count selector - only visible in endless mode */}
+      {currentMode === 'endless' && <WordCountSelector />}
     </div>
   );
 }

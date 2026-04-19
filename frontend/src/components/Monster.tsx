@@ -20,7 +20,7 @@ export default function Monster({
   scale,
 }: MonsterProps) {
   return (
-    <div className="w-full max-w-md mx-auto py-8">
+    <div className="w-full max-w-md mx-auto py-4">
       {/* 3D Monster Model with 3:2 aspect ratio */}
       <div className="w-full aspect-[3/2] bg-transparent">
         <Canvas
