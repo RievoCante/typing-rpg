@@ -70,7 +70,8 @@ export const generateText = (
 
   // Endless mode: 25 random words
   const wordList = typedEnglish1kData.words;
-  if (!wordList || wordList.length === 0) return 'Word list is empty or not found.';
+  if (!wordList || wordList.length === 0)
+    return 'Word list is empty or not found.';
 
   const selectedWords: string[] = [];
   for (let i = 0; i < 25; i++) {
