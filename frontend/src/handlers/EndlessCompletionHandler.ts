@@ -2,7 +2,6 @@ import type {
   CompletionStats,
   CompletionResult,
   SessionPayload,
-  SessionResponse,
 } from '../types/completion';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
