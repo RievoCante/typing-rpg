@@ -10,6 +10,8 @@ interface GameContextType {
   decrementRemainingWords: () => void;
   monstersDefeated: number;
   incrementMonstersDefeated: () => void;
+  endlessWordCount: number;
+  setEndlessWordCount: (count: number) => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -22,4 +24,6 @@ export const GameContext = createContext<GameContextType>({
   decrementRemainingWords: () => {},
   monstersDefeated: 0,
   incrementMonstersDefeated: () => {},
+  endlessWordCount: 25,
+  setEndlessWordCount: () => {},
 });

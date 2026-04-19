@@ -42,6 +42,7 @@ export default function TypingInterface({
     setRemainingWords,
     decrementRemainingWords,
     incrementMonstersDefeated,
+    endlessWordCount,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -153,7 +154,7 @@ export default function TypingInterface({
     let newText: string;
     if (currentMode === 'daily')
       newText = generateText(currentMode, currentDifficulty);
-    else newText = generateText(currentMode);
+    else newText = generateText(currentMode, undefined, endlessWordCount);
 
     setText(newText);
     const wordCount = newText.match(/\S+/g)?.length || 0;
@@ -177,6 +178,7 @@ export default function TypingInterface({
     resetSession,
     resetForNewSession,
     incrementMonstersDefeated,
+    endlessWordCount,
   ]);
 
   useEffect(() => {
@@ -388,7 +390,7 @@ export default function TypingInterface({
 
   return (
     <>
-      <div className="relative max-w-3xl mx-auto mt-8">
+      <div className="relative max-w-3xl mx-auto mt-4">
         <div
           ref={containerRef}
           onKeyDown={handleKeyDown}

@@ -62,19 +62,21 @@ export const getDailyQuote = (
 
 export const generateText = (
   mode: 'daily' | 'endless',
-  difficulty?: 'easy' | 'medium' | 'hard'
+  difficulty?: 'easy' | 'medium' | 'hard',
+  endlessWordCount?: number
 ): string => {
   if (mode === 'daily') {
     return getDailyQuote(difficulty ?? 'easy');
   }
 
-  // Endless mode: 25 random words
+  // Endless mode: configurable word count (default 25)
   const wordList = typedEnglish1kData.words;
   if (!wordList || wordList.length === 0)
     return 'Word list is empty or not found.';
 
+  const wordCount = endlessWordCount ?? 25;
   const selectedWords: string[] = [];
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < wordCount; i++) {
     selectedWords.push(wordList[Math.floor(Math.random() * wordList.length)]);
   }
   return selectedWords.join(' ');
