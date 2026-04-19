@@ -23,3 +23,16 @@ export interface CompletionContext {
 }
 
 export type Mode = 'daily' | 'endless';
+
+export interface SessionPayload {
+  mode: Mode;
+  wpm: number;
+  totalWords: number;
+  correctWords: number;
+  incorrectWords: number;
+}
+
+export interface SessionResponse {
+  success: boolean;
+  session: { xpDelta: number };
+}

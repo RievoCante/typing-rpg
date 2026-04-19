@@ -1,5 +1,5 @@
 import { GameContext } from './GameContext';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 export const GameProvider = ({
   children,
@@ -24,17 +24,27 @@ export const GameProvider = ({
     setMonstersDefeated(prev => prev + 1);
   }, []);
 
-  const contextValue = {
-    currentMode,
-    setCurrentMode,
-    totalWords,
-    remainingWords,
-    setTotalWords,
-    setRemainingWords,
-    decrementRemainingWords,
-    monstersDefeated,
-    incrementMonstersDefeated,
-  };
+  const contextValue = useMemo(
+    () => ({
+      currentMode,
+      setCurrentMode,
+      totalWords,
+      remainingWords,
+      setTotalWords,
+      setRemainingWords,
+      decrementRemainingWords,
+      monstersDefeated,
+      incrementMonstersDefeated,
+    }),
+    [
+      currentMode,
+      totalWords,
+      remainingWords,
+      decrementRemainingWords,
+      monstersDefeated,
+      incrementMonstersDefeated,
+    ]
+  );
 
   return (
     <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>

@@ -380,6 +380,9 @@ export default function TypingInterface({
     if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
     setPendingRetrySave(null);
     reloadPlayerStats();
+    if (result.action === 'showModal') {
+      setShowCongratsModal(true);
+    }
   }, [pendingRetrySave, reloadPlayerStats]);
 
   return (

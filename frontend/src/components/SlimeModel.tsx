@@ -4,6 +4,8 @@ import { Mesh, Color, MeshPhongMaterial } from 'three';
 import type { SlimeTypeEnum } from '../types/SlimeTypes';
 import { SLIME_CONFIGS, SLIME_ANIMATIONS } from '../types/SlimeTypes';
 
+const HIT_FLASH_COLOR = new Color('#ff4d4d');
+
 interface SlimeModelProps {
   slimeType: SlimeTypeEnum;
   isHit: boolean;
@@ -40,7 +42,7 @@ export default function SlimeModel({
       : new Color('#7ecbff');
 
     return { finalColor: body, emissiveColor: emissive };
-  }, [activeColor, customColor, slimeType]);
+  }, [activeColor, customColor]);
 
   useEffect(() => {
     if (isHit) {
@@ -80,8 +82,8 @@ export default function SlimeModel({
           1 - flashElapsed / SLIME_ANIMATIONS.FLASH_DURATION;
         // Blend body color toward red; keep this cheap and allocation-free
         const mat = bodyMatRef.current as MeshPhongMaterial;
-        mat.color.copy(finalColor).lerp(new Color('#ff4d4d'), flashIntensity);
-        mat.emissive.set('#ff4d4d');
+        mat.color.copy(finalColor).lerp(HIT_FLASH_COLOR, flashIntensity);
+        mat.emissive.copy(HIT_FLASH_COLOR);
         mat.emissiveIntensity = 0.25 + 0.75 * flashIntensity;
       } else {
         // Restore base color

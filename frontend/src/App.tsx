@@ -42,21 +42,19 @@ function GameContent() {
     totalWords > 0 ? (remainingWords / totalWords) * 100 : 100;
   const isDefeated = healthPercentage <= 0;
 
-  // Monster visuals customization
-  const [monsterVisuals, setMonsterVisuals] = useState({
-    color: SLIME_COLORS[1], // Default to orange
-    scale: SLIME_SIZES[1], // Default to medium
-  });
+  // Each new monster gets a random color and size
+  const [monsterVisuals, setMonsterVisuals] = useState(() => ({
+    color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
+    scale: SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)],
+  }));
 
-  // Randomize visuals when a new monster appears (monstersDefeated increments)
+  // Re-randomize visuals when a monster is defeated (monstersDefeated increments)
   useEffect(() => {
-    // We skip the very first spawn if we want predictable start, OR randomize it too.
-    // If we want random from start:
-    const randomColor =
-      SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)];
-    const randomScale =
-      SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)];
-    setMonsterVisuals({ color: randomColor, scale: randomScale });
+    if (monstersDefeated === 0) return; // skip initial mount
+    setMonsterVisuals({
+      color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
+      scale: SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)],
+    });
   }, [monstersDefeated]);
 
   if (bootstrapping) return <LoadingScreen />;

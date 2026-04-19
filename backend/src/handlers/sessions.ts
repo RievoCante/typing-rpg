@@ -8,10 +8,10 @@ import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
   mode: z.enum(['daily', 'endless']),
-  wpm: z.number().int().nonnegative(),
-  totalWords: z.number().int().nonnegative(),
-  correctWords: z.number().int().nonnegative(),
-  incorrectWords: z.number().int().nonnegative(),
+  wpm: z.number().int().nonnegative().max(300),
+  totalWords: z.number().int().nonnegative().max(2000),
+  correctWords: z.number().int().nonnegative().max(2000),
+  incorrectWords: z.number().int().nonnegative().max(2000),
 });
 
 // POST /api/sessions

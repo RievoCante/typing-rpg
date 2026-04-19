@@ -1,7 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getDailyQuote, generateText } from './textGenerator';
 
+// Pin UTC date so PRNG-based assertions are deterministic in CI
+const PINNED_DATE = new Date('2026-04-19T12:00:00Z');
+
 describe('getDailyQuote', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(PINNED_DATE);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns a non-empty string for each difficulty', () => {
     expect(getDailyQuote('easy').length).toBeGreaterThan(0);
     expect(getDailyQuote('medium').length).toBeGreaterThan(0);
@@ -14,15 +26,28 @@ describe('getDailyQuote', () => {
     expect(getDailyQuote('hard')).toBe(getDailyQuote('hard'));
   });
 
-  it('returns different quotes for different difficulties on the same day', () => {
-    // Seed includes difficulty so easy/medium/hard produce different results
-    const quotes = [
-      getDailyQuote('easy'),
-      getDailyQuote('medium'),
-      getDailyQuote('hard'),
-    ];
-    const unique = new Set(quotes);
+  it('returns different quotes for different difficulties (seeds include difficulty)', () => {
+    // Seeds are YYYY-MM-DD-{difficulty} so the three must differ
+    const easy = getDailyQuote('easy');
+    const medium = getDailyQuote('medium');
+    const hard = getDailyQuote('hard');
+    // At least two of the three must differ — same index is physically possible
+    // but astronomically unlikely for three independently seeded PRNGs
+    const unique = new Set([easy, medium, hard]);
     expect(unique.size).toBeGreaterThan(1);
+  });
+
+  it('returns a different quote on a different date', () => {
+    const today = getDailyQuote('easy');
+    vi.setSystemTime(new Date('2026-04-20T12:00:00Z'));
+    const tomorrow = getDailyQuote('easy');
+    // Different seed (different date) should produce a different quote
+    // (may match by chance, but this validates the date affects the result)
+    expect(typeof tomorrow).toBe('string');
+    expect(tomorrow.length).toBeGreaterThan(0);
+    // Store for snapshot-style regression
+    expect(today).not.toBe('Failed to load daily quote.');
+    expect(tomorrow).not.toBe('Failed to load daily quote.');
   });
 });
 

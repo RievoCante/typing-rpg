@@ -1,17 +1,9 @@
-import type { CompletionStats, CompletionResult } from '../types/completion';
-
-interface SessionPayload {
-  mode: 'daily' | 'endless';
-  wpm: number;
-  totalWords: number;
-  correctWords: number;
-  incorrectWords: number;
-}
-
-interface SessionResponse {
-  success: boolean;
-  session: { xpDelta: number };
-}
+import type {
+  CompletionStats,
+  CompletionResult,
+  SessionPayload,
+  SessionResponse,
+} from '../types/completion';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
 
@@ -41,8 +33,8 @@ export class EndlessCompletionHandler {
     };
   }
 
-  /** Attempts the save up to 3 times with delays. Returns server xpDelta, or 0 on total failure. */
-  private async saveWithRetry(payload: SessionPayload): Promise<number> {
+  /** Attempts the save up to 4 times (1 initial + 3 retries with delays). */
+  private async saveWithRetry(payload: SessionPayload): Promise<void> {
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       if (attempt > 0) {
         await new Promise(res => setTimeout(res, RETRY_DELAYS_MS[attempt - 1]));
@@ -50,13 +42,11 @@ export class EndlessCompletionHandler {
       try {
         const response = await this.createSession(payload);
         if (!response.ok) continue;
-        const data = (await response.json()) as SessionResponse;
-        return data.session?.xpDelta ?? 0;
+        return;
       } catch {
         // network error — retry
       }
     }
     console.error('Failed to save endless session after retries');
-    return 0;
   }
 }

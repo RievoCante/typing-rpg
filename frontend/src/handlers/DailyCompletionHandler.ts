@@ -6,20 +6,9 @@ import type {
   CompletionStats,
   CompletionResult,
   CompletionContext,
+  SessionPayload,
+  SessionResponse,
 } from '../types/completion';
-
-interface SessionPayload {
-  mode: 'daily' | 'endless';
-  wpm: number;
-  totalWords: number;
-  correctWords: number;
-  incorrectWords: number;
-}
-
-interface SessionResponse {
-  success: boolean;
-  session: { xpDelta: number };
-}
 
 export class DailyCompletionHandler {
   constructor(
