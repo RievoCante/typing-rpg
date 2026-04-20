@@ -139,39 +139,72 @@ export default function TypingText({
 
   const textLines = createFixedLines();
 
+  // Find which line contains the cursor position
+  const getCursorLineIndex = () => {
+    for (let i = 0; i < textLines.length; i++) {
+      const line = textLines[i];
+      const lineEndIndex = line.startIndex + line.chars.length;
+      if (cursorPosition >= line.startIndex && cursorPosition < lineEndIndex) {
+        return i;
+      }
+    }
+    // If cursor is at the very end, it's on the last line
+    if (cursorPosition >= text.length && textLines.length > 0) {
+      return textLines.length - 1;
+    }
+    return 0;
+  };
+
+  const cursorLineIndex = getCursorLineIndex();
+
+  // Get the 3 visible lines starting from cursor line
+  const visibleLines = [
+    textLines[cursorLineIndex],
+    textLines[cursorLineIndex + 1],
+    textLines[cursorLineIndex + 2],
+  ];
+
   return (
     <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out">
-      <div className="space-y-0">
-        {textLines.map((line, lineIndex) => (
-          <div key={lineIndex} className="block">
-            {line.chars.map((char, charIndexInLine) => {
-              const absoluteIndex = line.startIndex + charIndexInLine;
-              const charStyle = getCharStyle(
-                charStatus[absoluteIndex] || 'pending'
-              );
-              const displayChar = getDisplayChar(char, absoluteIndex);
-              const isInError =
-                !/\s/.test(char) && isInErrorWord(absoluteIndex);
-              const underlineClass = isInError
-                ? 'underline decoration-red-500 decoration-2 underline-offset-2'
-                : '';
+      <div className="space-y-0 h-[4.5em] overflow-hidden">
+        {' '}
+        {/* Fixed height for exactly 3 lines */}
+        {visibleLines.map((line, lineIndex) => (
+          <div key={cursorLineIndex + lineIndex} className="block h-[1.5em]">
+            {' '}
+            {/* Each line is exactly 1.5em tall */}
+            {line ? (
+              line.chars.map((char, charIndexInLine) => {
+                const absoluteIndex = line.startIndex + charIndexInLine;
+                const charStyle = getCharStyle(
+                  charStatus[absoluteIndex] || 'pending'
+                );
+                const displayChar = getDisplayChar(char, absoluteIndex);
+                const isInError =
+                  !/\s/.test(char) && isInErrorWord(absoluteIndex);
+                const underlineClass = isInError
+                  ? 'underline decoration-red-500 decoration-2 underline-offset-2'
+                  : '';
 
-              return (
-                <span
-                  key={absoluteIndex}
-                  className={`${charStyle} ${underlineClass} relative`}
-                >
-                  {displayChar}
-                  {absoluteIndex === cursorPosition && (
-                    <span
-                      className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
-                        !hasStartedTyping ? 'animate-blink' : ''
-                      }`}
-                    />
-                  )}
-                </span>
-              );
-            })}
+                return (
+                  <span
+                    key={absoluteIndex}
+                    className={`${charStyle} ${underlineClass} relative`}
+                  >
+                    {displayChar}
+                    {absoluteIndex === cursorPosition && (
+                      <span
+                        className={`absolute left-0 h-6 top-[0.25rem] border-l-2 border-yellow-400 ${
+                          !hasStartedTyping ? 'animate-blink' : ''
+                        }`}
+                      />
+                    )}
+                  </span>
+                );
+              })
+            ) : (
+              <span>&nbsp;</span>
+            )}
           </div>
         ))}
       </div>
