@@ -157,12 +157,17 @@ export default function TypingText({
 
   const cursorLineIndex = getCursorLineIndex();
 
-  // Get the 3 visible lines: [previous, current, next]
-  // This shows 1 completed line before cursor, the active line with cursor, and the upcoming line
+  // Calculate viewport start index:
+  // - At start (cursor on line 0): show from line 0, cursor on first visible line
+  // - After completing line 0: still show from line 0, cursor moves to second visible line
+  // - After line 1+: show from cursor-1, keeping cursor on middle line
+  const viewportStartIndex = cursorLineIndex <= 1 ? 0 : cursorLineIndex - 1;
+
+  // Get the 3 visible lines
   const visibleLines = [
-    textLines[cursorLineIndex - 1], // Previous completed line
-    textLines[cursorLineIndex], // Current line with cursor
-    textLines[cursorLineIndex + 1], // Next upcoming line
+    textLines[viewportStartIndex],
+    textLines[viewportStartIndex + 1],
+    textLines[viewportStartIndex + 2],
   ];
 
   return (
@@ -171,7 +176,7 @@ export default function TypingText({
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (
-          <div key={`line-${cursorLineIndex}-${lineIndex}`} className="block h-[1.5em]">
+          <div key={`line-${viewportStartIndex}-${lineIndex}`} className="block h-[1.5em]">
             {' '}
             {/* Each line is exactly 1.5em tall */}
             {line ? (
