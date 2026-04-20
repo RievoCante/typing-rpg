@@ -39,7 +39,7 @@ Single-page app. Users type words to battle slimes. Two modes: **Daily** (3 quot
 - **`handlers/EndlessCompletionHandler.ts`** — Endless mode: submits session on every text completion, calculates optimistic XP.
 - **`hooks/useApi.ts`** — Clerk-authenticated API client. Reads `VITE_API_URL` from env, prepends `/api` to all paths.
 - **`utils/calculateXP.ts`** — mirrors backend XP logic for optimistic display (must stay in sync with `backend/src/core/xp.ts`).
-- **`components/TypingText.tsx`** — Displays typing text with 3-line viewport. Implements MonkeyType-style scrolling: cursor always stays on the first visible line, completed text scrolls away and disappears. Fixed height container (4.5em = 3 lines × 1.5em line height) with overflow hidden.
+- **`components/TypingText.tsx`** — Displays typing text with 3-line viewport. Implements MonkeyType-style scrolling with smart viewport: cursor starts on first line, transitions to middle position after completing first line, then stays centered while text scrolls. Fixed height container (4.5em) with overflow hidden.
 - **`components/SlimeModel.tsx` / `Monster.tsx`** — Three.js 3D slime with hit/defeat animations.
 - **`static/english/`** — word lists (1k, 5k, 10k words, quotes) used by `utils/textGenerator.ts`.
 

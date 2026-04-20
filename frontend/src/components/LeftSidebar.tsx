@@ -1,4 +1,4 @@
-// Fixed left sidebar with hamburger trigger and expandable menu
+// Fixed left sidebar with icon-only dock that expands on hover
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Menu, Clock, Trophy } from 'lucide-react';
 import { FaDiscord } from 'react-icons/fa';
@@ -15,7 +15,7 @@ type MenuItem = {
 
 export default function LeftSidebar() {
   const { theme } = useThemeContext();
-  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -28,19 +28,19 @@ export default function LeftSidebar() {
       {
         id: 'recent-sessions',
         label: 'Recent sessions',
-        icon: <Clock size={16} />,
+        icon: <Clock size={18} />,
         onClick: () => setShowRecent(true),
       },
       {
         id: 'leaderboard',
         label: 'Leaderboard',
-        icon: <Trophy size={16} />,
+        icon: <Trophy size={18} />,
         onClick: () => navigate('/leaderboard'),
       },
       {
         id: 'discord',
         label: 'Discord',
-        icon: <FaDiscord size={16} className={textClass} />,
+        icon: <FaDiscord size={18} className={textClass} />,
         onClick: () =>
           window.open(
             'https://discord.gg/cdC2fW9HyD',
@@ -52,83 +52,72 @@ export default function LeftSidebar() {
     [textClass, navigate]
   );
 
-  // click outside to close (simple, robust)
+  // click outside to collapse (optional UX improvement)
   useEffect(() => {
-    if (!open) return;
+    if (!hovered) return;
     const onDocClick = (e: MouseEvent) => {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (!rootRef.current.contains(e.target as Node)) setHovered(false);
     };
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
+  }, [hovered]);
 
   return (
     <>
       {/* Container */}
-      <div ref={rootRef} className="fixed top-48 left-3 z-[70] select-none">
-        {/* Single expanding container */}
+      <div
+        ref={rootRef}
+        className="fixed top-48 left-3 z-[70] select-none"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Expanding container */}
         <div
-          className={`shadow rounded-2xl transition-[width,max-height,padding,background-color] duration-300 ease-out ${
-            open ? 'w-72 max-h-80 p-2' : 'w-12 h-12 p-0'
+          className={`shadow rounded-2xl transition-all duration-300 ease-out overflow-hidden ${
+            hovered ? 'w-56 py-3 px-2' : 'w-12 py-3 px-0'
           }`}
-          style={{ background: open ? bg : 'transparent', overflow: 'visible' }}
+          style={{ background: hovered ? bg : 'transparent' }}
         >
-          {/* Header row with hamburger */}
-          <div className="flex items-center relative group">
+          {/* Header row with hamburger (decorative, always visible) */}
+          <div className="flex items-center justify-center h-10 mb-2">
             <button
               type="button"
-              aria-label="Open menu"
-              aria-expanded={open}
-              onClick={() => setOpen(v => !v)}
-              className={`h-12 w-12 flex items-center justify-center rounded-full ${
-                open
-                  ? ''
-                  : theme === 'dark'
-                    ? 'hover:bg-white/10'
-                    : 'hover:bg-gray-100'
+              aria-label="Menu"
+              className={`h-10 w-10 flex items-center justify-center rounded-full transition-colors ${
+                theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-gray-100'
               }`}
             >
               <Menu size={18} className={textClass} />
             </button>
-            {/* Tooltip */}
-            {!open && (
-              <div
-                className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap pointer-events-none z-[80] ${
-                  theme === 'dark'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-800 text-white'
-                }`}
-              >
-                show menu bar
-              </div>
-            )}
           </div>
 
-          {/* Items */}
-          <div
-            className={`transition-opacity duration-200 ${
-              open ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          >
-            <ul className="py-2">
-              {items.map(item => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      item.onClick();
-                    }}
-                    className={`w-full px-4 py-3 flex items-center gap-2 hover:bg-black/10 dark:hover:bg-white/10 ${textClass}`}
+          {/* Menu items - icons always visible, text appears on hover */}
+          <ul className="flex flex-col gap-1">
+            {items.map(item => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHovered(false);
+                    item.onClick();
+                  }}
+                  className={`w-full h-10 flex items-center gap-3 rounded-lg transition-colors ${
+                    hovered ? 'px-3 hover:bg-black/10 dark:hover:bg-white/10' : 'justify-center px-0'
+                  } ${textClass}`}
+                >
+                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span
+                    className={`text-sm whitespace-nowrap transition-all duration-200 ${
+                      hovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
+                    }`}
                   >
-                    {item.icon}
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    {item.label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
