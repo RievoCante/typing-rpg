@@ -223,6 +223,7 @@ export default function TypingInterface({
     resetSession,
     resetForNewSession,
     incrementMonstersDefeated,
+    endlessWordCount,
   ]);
 
   useEffect(() => {

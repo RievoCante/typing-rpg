@@ -20,6 +20,25 @@ const getStoredWordCount = (): number => {
   return DEFAULT_WORD_COUNT;
 };
 
+const STORAGE_KEY = 'endless_word_count';
+const DEFAULT_WORD_COUNT = 25;
+const VALID_WORD_COUNTS = [10, 25, 50, 100];
+
+const getStoredWordCount = (): number => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (VALID_WORD_COUNTS.includes(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // localStorage not available
+  }
+  return DEFAULT_WORD_COUNT;
+};
+
 export const GameProvider = ({
   children,
   initialMode = 'daily',
