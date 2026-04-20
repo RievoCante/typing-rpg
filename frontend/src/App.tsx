@@ -30,13 +30,8 @@ function GameContent() {
     xpToNextLevel,
     reload: reloadPlayerStats,
   } = usePlayerStats();
-  const {
-    totalWords,
-    remainingWords,
-    currentMode,
-    monstersDefeated,
-    isCurrentMonsterDefeated,
-  } = useGameContext();
+  const { currentMode, monstersDefeated, isCurrentMonsterDefeated } =
+    useGameContext();
 
   const dailyProgress = useDailyProgress();
   const { markCompletedToday } = dailyProgress;

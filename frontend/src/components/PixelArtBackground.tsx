@@ -72,13 +72,13 @@ export default function PixelArtBackground() {
       }
 
       // Draw slime banners (decorative pixel art)
-      drawSlimeBanners(ctx, width, height);
+      drawSlimeBanners(ctx, width);
     },
     [colors]
   );
 
   const drawSlimeBanners = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    (ctx: CanvasRenderingContext2D, width: number) => {
       const bannerWidth = 60;
       const bannerHeight = 100;
       const bannerSpacing = 200;
@@ -217,7 +217,7 @@ export default function PixelArtBackground() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     const animate = () => {
       const time = Date.now() - startTime;
