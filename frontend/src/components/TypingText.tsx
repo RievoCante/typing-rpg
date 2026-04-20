@@ -176,7 +176,10 @@ export default function TypingText({
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (
-          <div key={`line-${viewportStartIndex}-${lineIndex}`} className="block h-[1.5em]">
+          <div
+            key={`line-${viewportStartIndex}-${lineIndex}`}
+            className="block h-[1.5em]"
+          >
             {' '}
             {/* Each line is exactly 1.5em tall */}
             {line ? (

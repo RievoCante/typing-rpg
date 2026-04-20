@@ -91,10 +91,14 @@ export default function LeftSidebar() {
                   }}
                   className={`w-full h-10 flex items-center gap-3 rounded-lg transition-colors hover:bg-black/10 dark:hover:bg-white/10 ${textClass}`}
                 >
-                  <span className="flex-shrink-0 w-6 flex justify-center ml-1">{item.icon}</span>
+                  <span className="flex-shrink-0 w-6 flex justify-center ml-1">
+                    {item.icon}
+                  </span>
                   <span
                     className={`text-sm whitespace-nowrap transition-all duration-300 ease-out overflow-hidden ${
-                      hovered ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'
+                      hovered
+                        ? 'opacity-100 max-w-[200px]'
+                        : 'opacity-0 max-w-0'
                     }`}
                   >
                     {item.label}

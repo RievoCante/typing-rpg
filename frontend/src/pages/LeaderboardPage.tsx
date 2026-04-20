@@ -203,7 +203,11 @@ export default function LeaderboardPage() {
         <LeftSidebar />
         <Header />
         <div className="pt-4 pb-12">
-          <h1 className={`text-center text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Leaderboard</h1>
+          <h1
+            className={`text-center text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+          >
+            Leaderboard
+          </h1>
           {table}
         </div>
       </div>
