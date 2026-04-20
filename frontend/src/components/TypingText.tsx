@@ -157,11 +157,12 @@ export default function TypingText({
 
   const cursorLineIndex = getCursorLineIndex();
 
-  // Get the 3 visible lines starting from cursor line
+  // Get the 3 visible lines: [previous, current, next]
+  // This shows 1 completed line before cursor, the active line with cursor, and the upcoming line
   const visibleLines = [
-    textLines[cursorLineIndex],
-    textLines[cursorLineIndex + 1],
-    textLines[cursorLineIndex + 2],
+    textLines[cursorLineIndex - 1], // Previous completed line
+    textLines[cursorLineIndex], // Current line with cursor
+    textLines[cursorLineIndex + 1], // Next upcoming line
   ];
 
   return (
