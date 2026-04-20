@@ -39,6 +39,7 @@ Single-page app. Users type words to battle slimes. Two modes: **Daily** (3 quot
 - **`handlers/EndlessCompletionHandler.ts`** — Endless mode: submits session on every text completion, calculates optimistic XP.
 - **`hooks/useApi.ts`** — Clerk-authenticated API client. Reads `VITE_API_URL` from env, prepends `/api` to all paths.
 - **`utils/calculateXP.ts`** — mirrors backend XP logic for optimistic display (must stay in sync with `backend/src/core/xp.ts`).
+- **`components/TypingText.tsx`** — Displays typing text with 3-line viewport. Implements MonkeyType-style scrolling with smart viewport: cursor starts on first line, transitions to middle position after completing first line, then stays centered while text scrolls. Fixed height container (4.5em) with overflow hidden.
 - **`components/SlimeModel.tsx` / `Monster.tsx`** — Three.js 3D slime with hit/defeat animations.
 - **`static/english/`** — word lists (1k, 5k, 10k words, quotes) used by `utils/textGenerator.ts`.
 
@@ -53,7 +54,7 @@ Single-page app. Users type words to battle slimes. Two modes: **Daily** (3 quot
 
 ### Infrastructure
 - **Frontend env vars**: `VITE_API_URL`, `VITE_CLERK_PUBLISHABLE_KEY`
-- **Backend env vars**: Clerk secret key (Cloudflare Worker secret), Sentry DSN hardcoded in `index.ts`
+- **Backend env vars**: Clerk secret key (Cloudflare Worker secret), Sentry DSN from Worker secret
 - **CI/CD** (`.github/workflows/ci.yml`): lint + format + typecheck + build on frontend; typecheck + tests on backend. Auto-deploys backend to Cloudflare Workers on push to `main` (runs D1 migrations first).
 - **Branch strategy**: feature branches → `dev` → `main` (triggers deploy).
 

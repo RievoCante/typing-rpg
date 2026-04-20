@@ -9,13 +9,13 @@ export default function SiteLogo() {
     <button
       type="button"
       aria-label="Typing RPG Home"
-      className="fixed top-3 left-3 z-50 block"
+      className="fixed top-3 left-3 z-50 block cursor-pointer group"
       onClick={() => navigate('/')}
     >
       <img
         src="/typing-rpg-logo.svg"
         alt="Typing RPG"
-        className="h-32 sm:h-40 w-auto drop-shadow"
+        className="h-32 sm:h-40 w-auto drop-shadow transition-transform duration-200 ease-out group-hover:scale-105"
         style={{ filter: theme === 'dark' ? 'none' : 'none' }}
       />
     </button>
