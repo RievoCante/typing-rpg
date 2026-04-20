@@ -25,18 +25,20 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
 );
 
 // MIDDLEWARE
-// Note: Sentry DSN is hardcoded for Cloudflare Workers deployment
-// This is acceptable since: 1) DSN is server-side only, 2) Cloudflare Workers
-// don't easily support build-time env vars, 3) DSN is safe to expose (it's for sending, not reading data)
-// For production best practice, consider using Cloudflare Workers secrets
-app.use(
-  "*",
-  sentry({
-    dsn: "https://fc88096eb65c14e942c6098e5271b73a@o4510185802629120.ingest.us.sentry.io/4510220039028736",
-    environment: "production",
-    tracesSampleRate: 0.1,
-  })
-);
+// Sentry DSN from Cloudflare Workers secret (SENTRY_DSN)
+// For local dev, add SENTRY_DSN to backend/.dev.vars
+app.use("*", async (c, next) => {
+  if (c.env.SENTRY_DSN) {
+    const sentryMiddleware = sentry({
+      dsn: c.env.SENTRY_DSN,
+      environment: c.env.MODE ?? "production",
+      tracesSampleRate: 0.1,
+    });
+    await sentryMiddleware(c, next);
+  } else {
+    await next();
+  }
+});
 app.use("*", cors({
   origin: ["https://typingrpg.com", "http://localhost:5173"],
 }));
