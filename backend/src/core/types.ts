@@ -8,6 +8,9 @@ import { createDbClient } from '../db';
 export type Bindings = {
   DB: D1Database;
   CLERK_SECRET_KEY: string;
+  RATE_LIMIT_KV: KVNamespace;
+  SENTRY_DSN: string;
+  MODE: string;
 };
 
 // TYPES for the variables we will add to the Hono context.

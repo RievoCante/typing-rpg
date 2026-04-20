@@ -140,7 +140,7 @@ export default function TypingText({
   const textLines = createFixedLines();
 
   return (
-    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider">
+    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out">
       <div className="space-y-0">
         {textLines.map((line, lineIndex) => (
           <div key={lineIndex} className="block">

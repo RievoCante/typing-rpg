@@ -48,6 +48,10 @@ export default function TypingInterface({
 
   // Core state - text
   const [text, setText] = useState<string>('');
+  // Restart key to force text regeneration on manual restart
+  const [restartKey, setRestartKey] = useState<number>(0);
+  // Transition state for smooth text changes
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Daily mode state
   const [currentAttempts, setCurrentAttempts] = useState<number>(1);
@@ -60,13 +64,15 @@ export default function TypingInterface({
     topPct: 45,
     leftPct: 50,
   });
-  // HIT popup (re-using the same pattern as +XP)
-  const [hitVisible, setHitVisible] = useState(false);
-  const [hitShow, setHitShow] = useState(false);
-  const [hitPos, setHitPos] = useState<{ topPct: number; leftPct: number }>({
-    topPct: 40,
-    leftPct: 50,
-  });
+  // HIT popups - array-based for independent multiple hits
+  interface HitItem {
+    id: number;
+    topPct: number;
+    leftPct: number;
+    show: boolean;
+  }
+  const [hits, setHits] = useState<HitItem[]>([]);
+  const hitIdRef = useRef(0);
   const [isFocused, setIsFocused] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [celebrateText, setCelebrateText] = useState('');
@@ -107,14 +113,24 @@ export default function TypingInterface({
 
   const handleWordCompleted = useCallback(() => {
     decrementRemainingWords();
-    // Spawn HIT pop near monster area (similar to +XP pattern)
+    // Spawn HIT pop near monster area (independent from other hits)
     const left = 50 + (Math.random() * 24 - 12); // 38% - 62%
     const top = 36 + (Math.random() * 16 - 8); // 28% - 44%
-    setHitPos({ topPct: top, leftPct: left });
-    setHitVisible(true);
-    const t1 = setTimeout(() => setHitShow(true), 10);
-    const t2 = setTimeout(() => setHitShow(false), 220);
-    const t3 = setTimeout(() => setHitVisible(false), 420);
+    const id = ++hitIdRef.current;
+    const newHit: HitItem = { id, topPct: top, leftPct: left, show: false };
+    setHits(prev => [...prev, newHit]);
+    // Trigger show animation
+    const t1 = setTimeout(() => {
+      setHits(prev => prev.map(h => (h.id === id ? { ...h, show: true } : h)));
+    }, 10);
+    // Start hide animation
+    const t2 = setTimeout(() => {
+      setHits(prev => prev.map(h => (h.id === id ? { ...h, show: false } : h)));
+    }, 600);
+    // Remove from array
+    const t3 = setTimeout(() => {
+      setHits(prev => prev.filter(h => h.id !== id));
+    }, 900);
     // Also notify slime model to flash red
     try {
       window.dispatchEvent(new Event('word-hit'));
@@ -150,16 +166,48 @@ export default function TypingInterface({
   const { resetSession } = performance;
   const { resetForNewSession } = completion;
 
-  const initializeNewText = useCallback(() => {
-    let newText: string;
-    if (currentMode === 'daily')
-      newText = generateText(currentMode, currentDifficulty);
-    else newText = generateText(currentMode, undefined, endlessWordCount);
+  // Effect 1: Generate new text when mode, word count, or restart key changes
+  // Uses smooth fade transition to prevent flashing
+  useEffect(() => {
+    // Start transition - fade out
+    setIsTransitioning(true);
 
-    setText(newText);
-    const wordCount = newText.match(/\S+/g)?.length || 0;
-    setTotalWords(wordCount);
-    setRemainingWords(wordCount);
+    // Generate new text after brief delay for fade-out
+    const timeoutId = setTimeout(() => {
+      let newText: string;
+      if (currentMode === 'daily')
+        newText = generateText(currentMode, currentDifficulty);
+      else newText = generateText(currentMode, undefined, endlessWordCount);
+
+      setText(newText);
+      const wordCount = newText.match(/\S+/g)?.length || 0;
+      setTotalWords(wordCount);
+      setRemainingWords(wordCount);
+
+      // Fade back in
+      setIsTransitioning(false);
+    }, 150); // 150ms for smooth fade-out
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    currentMode,
+    currentDifficulty,
+    setTotalWords,
+    setRemainingWords,
+    endlessWordCount,
+    restartKey,
+  ]);
+
+  // Manual restart function - increments restartKey to trigger text regeneration
+  const restartSession = useCallback(() => {
+    setRestartKey(prev => prev + 1);
+  }, []);
+
+  // Effect 2: Reset state when text actually changes
+  // Separated from text generation to avoid circular dependency with resetTypingState
+  useEffect(() => {
+    if (text.length === 0) return; // Skip on initial mount
+
     resetTypingState();
     resetSession();
     resetForNewSession();
@@ -170,20 +218,12 @@ export default function TypingInterface({
     incrementMonstersDefeated();
     if (containerRef.current) containerRef.current.focus();
   }, [
-    currentMode,
-    currentDifficulty,
-    setTotalWords,
-    setRemainingWords,
+    text,
     resetTypingState,
     resetSession,
     resetForNewSession,
     incrementMonstersDefeated,
-    endlessWordCount,
   ]);
-
-  useEffect(() => {
-    initializeNewText();
-  }, [initializeNewText]);
 
   useEffect(() => {
     if (!dailyProgress.isCompleted) setHasShownDailyCompletion(false);
@@ -224,9 +264,13 @@ export default function TypingInterface({
       setIsProcessingCompletion(true);
       markAsProcessed();
 
+      // Force health to 0% to trigger defeat state for last word
+      // (decrementRemainingWords only fires on space, so last word needs this)
+      setRemainingWords(0);
+
       if (!hasStartedTyping || !startTime || text.length === 0) {
         setIsProcessingCompletion(false);
-        initializeNewText();
+        restartSession();
         return;
       }
 
@@ -239,7 +283,7 @@ export default function TypingInterface({
       const stats = calculateFinalStats();
       if (!stats) {
         setIsProcessingCompletion(false);
-        initializeNewText();
+        restartSession();
         return;
       }
 
@@ -275,8 +319,8 @@ export default function TypingInterface({
               setCurrentAttempts(result.newAttempts);
             setTimeout(() => {
               setIsProcessingCompletion(false);
-              initializeNewText();
-            }, 1000);
+              restartSession();
+            }, 400); // Fast spawn
             break;
           case 'nextQuote':
             if (result.newAttempts !== undefined)
@@ -284,7 +328,7 @@ export default function TypingInterface({
             setIsProcessingCompletion(false);
             setCelebrateText('Next challenge!');
             setCelebrating(true);
-            setTimeout(() => setCelebrating(false), 1000);
+            setTimeout(() => setCelebrating(false), 400);
             break;
           case 'showModal':
             setIsProcessingCompletion(false);
@@ -294,12 +338,12 @@ export default function TypingInterface({
             if (currentMode === 'endless') {
               setCelebrateText(getWpmTitle(stats.finalWpm));
               setCelebrating(true);
-              setTimeout(() => setCelebrating(false), 1000);
+              setTimeout(() => setCelebrating(false), 400);
             }
             setTimeout(() => {
               setIsProcessingCompletion(false);
-              initializeNewText();
-            }, 1000);
+              restartSession();
+            }, 400); // Fast spawn for endless mode
             break;
         }
       })();
@@ -319,7 +363,7 @@ export default function TypingInterface({
     markAsProcessed,
     markSessionCompleted,
     calculateFinalStats,
-    initializeNewText,
+    restartSession,
     completionHandler,
     reloadPlayerStats,
   ]);
@@ -347,20 +391,27 @@ export default function TypingInterface({
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
-    // Allow focus traversal
+    // Allow focus traversal and system shortcuts
     if (key === 'Tab') return;
-    e.preventDefault();
-    if (key === ' ') typingMechanics.handleSpaceBar();
-    else if (key === 'Backspace') {
+
+    // Only handle and prevent default for keys we process
+    if (key === ' ') {
+      e.preventDefault();
+      typingMechanics.handleSpaceBar();
+    } else if (key === 'Backspace') {
+      e.preventDefault();
       if (e.ctrlKey || e.altKey) typingMechanics.handleWordDeletion();
       else typingMechanics.handleBackspace();
-    } else if (key.length === 1) {
+    } else if (key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      // Only typing characters (no modifiers)
+      e.preventDefault();
       if (!hasStartedTyping) {
         setHasStartedTyping(true);
         performance.startSession();
       }
       typingMechanics.handleCharacterInput(key);
     }
+    // Let all other keys (system shortcuts like cmd+tab) pass through
   };
 
   const handleModalContinue = () => {
@@ -397,11 +448,11 @@ export default function TypingInterface({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           tabIndex={0}
-          className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-colors duration-300 ${
+          className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
             theme === 'dark'
               ? 'bg-[#2A2C3C] text-white border border-gray-700'
               : 'bg-white text-gray-900 border border-gray-200'
-          } ${!isFocused || celebrating || isProcessingCompletion || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''}`}
+          } ${!isFocused || celebrating || isProcessingCompletion || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''} ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
         >
           <TypingText
             text={text}
@@ -428,11 +479,11 @@ export default function TypingInterface({
           <button
             type="button"
             aria-label="Restart typing"
-            onClick={initializeNewText}
+            onClick={restartSession}
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                initializeNewText();
+                restartSession();
               }
             }}
             tabIndex={0}
@@ -563,13 +614,14 @@ export default function TypingInterface({
         </div>
       )}
 
-      {hitVisible && (
-        <div className="fixed inset-0 pointer-events-none z-40">
+      {/* Multiple independent HIT effects */}
+      {hits.map(hit => (
+        <div key={hit.id} className="fixed inset-0 pointer-events-none z-40">
           <div
-            className={`absolute transition-all ${hitShow ? 'opacity-100 -translate-y-1 scale-110' : 'opacity-0 translate-y-0 scale-95'} duration-200 ease-out`}
+            className={`absolute transition-all ${hit.show ? 'opacity-100 -translate-y-1 scale-110' : 'opacity-0 translate-y-0 scale-95'} duration-500 ease-out`}
             style={{
-              top: `${hitPos.topPct}%`,
-              left: `${hitPos.leftPct}%`,
+              top: `${hit.topPct}%`,
+              left: `${hit.leftPct}%`,
               transform: 'translate(-50%, -50%)',
             }}
           >
@@ -578,7 +630,7 @@ export default function TypingInterface({
             </span>
           </div>
         </div>
-      )}
+      ))}
     </>
   );
 }

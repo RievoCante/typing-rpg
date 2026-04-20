@@ -10,6 +10,9 @@ interface GameContextType {
   decrementRemainingWords: () => void;
   monstersDefeated: number;
   incrementMonstersDefeated: () => void;
+  // Monster defeat state tracking
+  isCurrentMonsterDefeated: boolean;
+  resetDefeatState: () => void;
   endlessWordCount: number;
   setEndlessWordCount: (count: number) => void;
 }
@@ -24,6 +27,9 @@ export const GameContext = createContext<GameContextType>({
   decrementRemainingWords: () => {},
   monstersDefeated: 0,
   incrementMonstersDefeated: () => {},
+  // Monster defeat state tracking
+  isCurrentMonsterDefeated: false,
+  resetDefeatState: () => {},
   endlessWordCount: 25,
   setEndlessWordCount: () => {},
 });
