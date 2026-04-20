@@ -1,6 +1,6 @@
 // Fixed left sidebar with icon-only dock that expands on hover
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Menu, Clock, Trophy } from 'lucide-react';
+import { Clock, Trophy } from 'lucide-react';
 import { FaDiscord } from 'react-icons/fa';
 import { useThemeContext } from '../hooks/useThemeContext';
 import RecentSessionsModal from './RecentSessionsModal';
@@ -74,24 +74,11 @@ export default function LeftSidebar() {
       >
         {/* Expanding container */}
         <div
-          className={`shadow rounded-2xl transition-all duration-300 ease-out overflow-hidden ${
-            hovered ? 'w-56 py-3 px-2' : 'w-12 py-3 px-0'
+          className={`shadow rounded-2xl transition-[width,background-color] duration-300 ease-out overflow-hidden py-3 pl-2 ${
+            hovered ? 'w-56 pr-2' : 'w-12 pr-0'
           }`}
           style={{ background: hovered ? bg : 'transparent' }}
         >
-          {/* Header row with hamburger (decorative, always visible) */}
-          <div className="flex items-center justify-center h-10 mb-2">
-            <button
-              type="button"
-              aria-label="Menu"
-              className={`h-10 w-10 flex items-center justify-center rounded-full transition-colors ${
-                theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-gray-100'
-              }`}
-            >
-              <Menu size={18} className={textClass} />
-            </button>
-          </div>
-
           {/* Menu items - icons always visible, text appears on hover */}
           <ul className="flex flex-col gap-1">
             {items.map(item => (
@@ -102,14 +89,12 @@ export default function LeftSidebar() {
                     setHovered(false);
                     item.onClick();
                   }}
-                  className={`w-full h-10 flex items-center gap-3 rounded-lg transition-colors ${
-                    hovered ? 'px-3 hover:bg-black/10 dark:hover:bg-white/10' : 'justify-center px-0'
-                  } ${textClass}`}
+                  className={`w-full h-10 flex items-center gap-3 rounded-lg transition-colors hover:bg-black/10 dark:hover:bg-white/10 ${textClass}`}
                 >
-                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span className="flex-shrink-0 w-6 flex justify-center ml-1">{item.icon}</span>
                   <span
-                    className={`text-sm whitespace-nowrap transition-all duration-200 ${
-                      hovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
+                    className={`text-sm whitespace-nowrap transition-all duration-300 ease-out overflow-hidden ${
+                      hovered ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'
                     }`}
                   >
                     {item.label}
