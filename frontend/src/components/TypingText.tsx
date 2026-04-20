@@ -171,7 +171,7 @@ export default function TypingText({
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (
-          <div key={cursorLineIndex + lineIndex} className="block h-[1.5em]">
+          <div key={`line-${cursorLineIndex}-${lineIndex}`} className="block h-[1.5em]">
             {' '}
             {/* Each line is exactly 1.5em tall */}
             {line ? (
@@ -204,7 +204,7 @@ export default function TypingText({
                 );
               })
             ) : (
-              <span>&nbsp;</span>
+              <>&nbsp;</>
             )}
           </div>
         ))}
