@@ -1,16 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-export type RaidPlayer = {
-  userId: string;
-  username: string;
-  hp: number;
-  maxHp: number;
-  isHost: boolean;
-  isAlive: boolean;
-  wordsTyped: number;
-  wordsCorrect: number;
-  damageDealt: number;
-};
+import type { RaidServerMessage, RaidPlayer, RaidStats } from './useRaidSocket';
 
 export type RaidPhase = 'lobby' | 'playing' | 'finished';
 
@@ -21,12 +10,14 @@ export type RaidState = {
   bossMaxHp: number;
   localText: string;
   isHost: boolean;
-  isLocalAlive: boolean;
   result: 'victory' | 'defeat' | null;
-  stats: { totalWords: number; avgWpm: number; durationMs: number } | null;
+  stats: RaidStats | null;
 };
 
-export function useRaidState(lastMessage: any, localUserId: string) {
+export function useRaidState(
+  lastMessage: RaidServerMessage | null,
+  localUserId: string
+) {
   const [state, setState] = useState<RaidState>({
     phase: 'lobby',
     players: [],
@@ -34,7 +25,6 @@ export function useRaidState(lastMessage: any, localUserId: string) {
     bossMaxHp: 0,
     localText: '',
     isHost: false,
-    isLocalAlive: true,
     result: null,
     stats: null,
   });
@@ -46,7 +36,9 @@ export function useRaidState(lastMessage: any, localUserId: string) {
       case 'room_state':
         setState(prev => {
           const players = lastMessage.players || [];
-          const localPlayer = players.find((p: RaidPlayer) => p.userId === localUserId);
+          const localPlayer = players.find(
+            (p: RaidPlayer) => p.userId === localUserId
+          );
           return {
             ...prev,
             phase: lastMessage.phase,
@@ -54,7 +46,6 @@ export function useRaidState(lastMessage: any, localUserId: string) {
             bossHp: lastMessage.bossHp ?? prev.bossHp,
             bossMaxHp: lastMessage.bossMaxHp ?? prev.bossMaxHp,
             isHost: localPlayer?.isHost ?? false,
-            isLocalAlive: localPlayer?.isAlive ?? true,
           };
         });
         break;
@@ -66,9 +57,12 @@ export function useRaidState(lastMessage: any, localUserId: string) {
         }));
         break;
       case 'player_died':
-        if (lastMessage.playerId === localUserId) {
-          setState(prev => ({ ...prev, isLocalAlive: false }));
-        }
+        setState(prev => ({
+          ...prev,
+          players: prev.players.map(p =>
+            p.userId === lastMessage.playerId ? { ...p, isAlive: false } : p
+          ),
+        }));
         break;
       case 'victory':
       case 'defeat':
@@ -82,7 +76,13 @@ export function useRaidState(lastMessage: any, localUserId: string) {
     }
   }, [lastMessage, localUserId]);
 
-  const isPhase = useCallback((phase: RaidPhase) => state.phase === phase, [state.phase]);
+  const isPhase = useCallback(
+    (phase: RaidPhase) => state.phase === phase,
+    [state.phase]
+  );
 
-  return { state, isPhase };
+  const isLocalAlive =
+    state.players.find(p => p.userId === localUserId)?.isAlive ?? true;
+
+  return { state, isPhase, isLocalAlive };
 }
