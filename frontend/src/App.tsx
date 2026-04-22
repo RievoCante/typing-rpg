@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SignedIn } from '@clerk/clerk-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -30,6 +31,8 @@ import LoadingScreen from './components/LoadingScreen';
 import VolumeControl from './components/VolumeControl';
 import SiteLogo from './components/SiteLogo';
 import LeftSidebar from './components/LeftSidebar';
+import RaidLobbyPage from './pages/RaidLobbyPage';
+import RaidRoomPage from './pages/RaidRoomPage';
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -184,11 +187,17 @@ function GameContent() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <GameProvider>
-        <GameContent />
-      </GameProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <GameProvider>
+          <Routes>
+            <Route path="/" element={<GameContent />} />
+            <Route path="/raid" element={<RaidLobbyPage />} />
+            <Route path="/raid/:roomId" element={<RaidRoomPage />} />
+          </Routes>
+        </GameProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 
