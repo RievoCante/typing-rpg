@@ -6,6 +6,7 @@ import {
   useCallback,
   useMemo,
 } from 'react';
+import { useGameContext } from '../hooks/useGameContext';
 import TypingText from './TypingText';
 import { generateText } from '../utils/textGenerator';
 import CongratsModal from './CongratsModal';
@@ -13,9 +14,9 @@ import OverlayBanner from './OverlayBanner';
 import { Share2, RotateCcw } from 'lucide-react';
 import { getWpmTitle } from '../utils/wpmTitle';
 import WPMDisplay from './WPMDisplay';
+import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 
 // Context
-import { useGameContext } from '../hooks/useGameContext';
 import { useThemeContext } from '../hooks/useThemeContext';
 
 // Custom Hooks
@@ -43,6 +44,11 @@ export default function TypingInterface({
     decrementRemainingWords,
     incrementMonstersDefeated,
     endlessWordCount,
+    endlessDifficulty,
+    damagePlayerFromMistake,
+    isPlayerDead,
+    hasStartedTyping,
+    setHasStartedTyping,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -73,6 +79,16 @@ export default function TypingInterface({
   }
   const [hits, setHits] = useState<HitItem[]>([]);
   const hitIdRef = useRef(0);
+
+  // ATTACK! popups - array-based for independent multiple attacks
+  interface AttackItem {
+    id: number;
+    topPct: number;
+    leftPct: number;
+    show: boolean;
+  }
+  const [attacks, setAttacks] = useState<AttackItem[]>([]);
+  const attackIdRef = useRef(0);
   const [isFocused, setIsFocused] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [celebrateText, setCelebrateText] = useState('');
@@ -108,8 +124,6 @@ export default function TypingInterface({
   >(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const [hasStartedTyping, setHasStartedTyping] = useState(false);
 
   const handleWordCompleted = useCallback(() => {
     decrementRemainingWords();
@@ -147,7 +161,62 @@ export default function TypingInterface({
   const typingMechanics = useTypingMechanics({
     text,
     onWordCompleted: handleWordCompleted,
+    onWordMistake: damagePlayerFromMistake,
   });
+
+  // Ref to read final charStatus inside completion effect without adding it to deps
+  const charStatusRef = useRef(typingMechanics.charStatus);
+  charStatusRef.current = typingMechanics.charStatus;
+
+  // Handle monster attack event to show ATTACK! popup
+  useEffect(() => {
+    const handleMonsterAttack = () => {
+      // Spawn ATTACK! popup near player health bar area
+      const left = 15 + (Math.random() * 10 - 5); // 10% - 20% (left side near health bar)
+      const top = 35 + (Math.random() * 20 - 10); // 25% - 45%
+      const id = ++attackIdRef.current;
+      const newAttack: AttackItem = {
+        id,
+        topPct: top,
+        leftPct: left,
+        show: false,
+      };
+      setAttacks(prev => [...prev, newAttack]);
+      // Trigger show animation
+      const t1 = setTimeout(() => {
+        setAttacks(prev =>
+          prev.map(a => (a.id === id ? { ...a, show: true } : a))
+        );
+      }, 10);
+      // Start hide animation
+      const t2 = setTimeout(() => {
+        setAttacks(prev =>
+          prev.map(a => (a.id === id ? { ...a, show: false } : a))
+        );
+      }, 600);
+      // Remove from array
+      const t3 = setTimeout(() => {
+        setAttacks(prev => prev.filter(a => a.id !== id));
+      }, 900);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    };
+
+    window.addEventListener(
+      'monster-attack',
+      handleMonsterAttack as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        'monster-attack',
+        handleMonsterAttack as EventListener
+      );
+    };
+  }, []);
 
   const performance = usePerformanceTracking({
     text,
@@ -177,7 +246,13 @@ export default function TypingInterface({
       let newText: string;
       if (currentMode === 'daily')
         newText = generateText(currentMode, currentDifficulty);
-      else newText = generateText(currentMode, undefined, endlessWordCount);
+      else
+        newText = generateText(
+          currentMode,
+          undefined,
+          endlessWordCount,
+          endlessDifficulty
+        );
 
       setText(newText);
       const wordCount = newText.match(/\S+/g)?.length || 0;
@@ -195,6 +270,7 @@ export default function TypingInterface({
     setTotalWords,
     setRemainingWords,
     endlessWordCount,
+    endlessDifficulty,
     restartKey,
   ]);
 
@@ -214,16 +290,15 @@ export default function TypingInterface({
     setHasStartedTyping(false);
     setIsProcessingCompletion(false);
     setEarnedXp(0);
-    // New text means new monster
-    incrementMonstersDefeated();
+    // Note: Monster only changes when defeated (handled in completion handler)
     if (containerRef.current) containerRef.current.focus();
   }, [
     text,
     resetTypingState,
     resetSession,
     resetForNewSession,
-    incrementMonstersDefeated,
     endlessWordCount,
+    setHasStartedTyping,
   ]);
 
   useEffect(() => {
@@ -281,6 +356,26 @@ export default function TypingInterface({
       }
       markSessionCompleted();
 
+      // Check if the last word (no trailing space) has any incorrect chars.
+      // Words completed with space already triggered damage in handleSpaceBar.
+      // The final word only gets punished here if it was typed wrong.
+      const finalCharStatus = charStatusRef.current;
+      if (finalCharStatus.length > 0) {
+        // Find the start of the last word (after the last space, or start of text)
+        let lastWordStart = text.length - 1;
+        while (lastWordStart >= 0 && text[lastWordStart] !== ' ') {
+          lastWordStart--;
+        }
+        lastWordStart++; // move past the space (or to 0 if no space found)
+
+        const hasLastWordMistake = finalCharStatus
+          .slice(lastWordStart)
+          .some(status => status === 'incorrect');
+        if (hasLastWordMistake) {
+          damagePlayerFromMistake();
+        }
+      }
+
       const stats = calculateFinalStats();
       if (!stats) {
         setIsProcessingCompletion(false);
@@ -310,6 +405,9 @@ export default function TypingInterface({
         }
 
         if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
+
+        // Monster defeated - spawn new one
+        incrementMonstersDefeated();
 
         // Background refresh - don't block UI
         reloadPlayerStats();
@@ -354,6 +452,7 @@ export default function TypingInterface({
     isProcessingCompletion,
     isSessionAlreadyCompleted,
     startTime,
+    text,
     text.length,
     currentMode,
     currentDifficulty,
@@ -367,6 +466,9 @@ export default function TypingInterface({
     restartSession,
     completionHandler,
     reloadPlayerStats,
+    incrementMonstersDefeated,
+    setRemainingWords,
+    damagePlayerFromMistake,
   ]);
 
   // Trigger XP popup animation when XP earned
@@ -391,6 +493,9 @@ export default function TypingInterface({
   }, [earnedXp]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    // Prevent all typing when player is dead
+    if (isPlayerDead) return;
+
     const { key } = e;
     // Allow focus traversal and system shortcuts
     if (key === 'Tab') return;
@@ -442,138 +547,146 @@ export default function TypingInterface({
 
   return (
     <>
-      <div className="relative max-w-3xl mx-auto mt-4">
-        <div
-          ref={containerRef}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          tabIndex={0}
-          className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
-            theme === 'dark'
-              ? 'bg-[#2A2C3C] text-white border border-gray-700'
-              : 'bg-white text-gray-900 border border-gray-200'
-          } ${!isFocused || celebrating || isProcessingCompletion || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''} ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
-        >
-          <TypingText
-            text={text}
-            charStatus={typingMechanics.charStatus}
-            typedChars={typingMechanics.typedChars}
-            cursorPosition={typingMechanics.cursorPosition}
-            hasStartedTyping={hasStartedTyping}
-          />
-
-          <div className="flex justify-between items-center pt-4">
-            <WPMDisplay
-              wpm={performance.wpm}
-              isCalculating={
-                hasStartedTyping &&
-                typingMechanics.cursorPosition < text.length &&
-                !isProcessingCompletion
-              }
-            />
-          </div>
+      <div className="relative max-w-4xl mx-auto mt-4 flex items-stretch gap-4">
+        {/* Vertical Player Health Bar - Left Side */}
+        <div className="flex-shrink-0 flex items-center">
+          <VerticalPlayerHealthBar />
         </div>
 
-        {/* Reset button with tooltip and keyboard hint */}
-        <div className="absolute bottom-4 right-4 z-10 group">
-          <button
-            type="button"
-            aria-label="Restart typing"
-            onClick={restartSession}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                restartSession();
-              }
-            }}
-            tabIndex={0}
-            className="rounded-full p-3 transition-colors bg-transparent text-gray-700 hover:bg-black/10 dark:text-gray-200 dark:hover:bg-white/10"
-          >
-            <RotateCcw size={18} />
-          </button>
+        {/* Main typing area */}
+        <div className="flex-1 relative">
           <div
-            className={`absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
+            ref={containerRef}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            tabIndex={0}
+            className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
               theme === 'dark'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-800 text-white'
-            }`}
+                ? 'bg-[#2A2C3C] text-white border border-gray-700'
+                : 'bg-white text-gray-900 border border-gray-200'
+            } ${!isFocused || celebrating || isProcessingCompletion || isPlayerDead || (currentMode === 'daily' && dailyProgress.isCompletedToday) ? 'filter blur-sm brightness-95' : ''} ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
           >
-            restart
-            <span className="ml-2 opacity-80">
-              <kbd
-                className={`px-1.5 py-0.5 rounded border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}
-              >
-                tab
-              </kbd>
-              <span className="mx-1">+</span>
-              <kbd
-                className={`px-1.5 py-0.5 rounded border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}
-              >
-                enter
-              </kbd>
-            </span>
-          </div>
-        </div>
+            <TypingText
+              text={text}
+              charStatus={typingMechanics.charStatus}
+              typedChars={typingMechanics.typedChars}
+              cursorPosition={typingMechanics.cursorPosition}
+              hasStartedTyping={hasStartedTyping}
+            />
 
-        {/* Focus prompt over the panel only */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
-          <OverlayBanner
-            visible={
-              !isFocused &&
-              !(currentMode === 'daily' && dailyProgress.isCompletedToday)
-            }
-            message="Click to start fighting!"
-            tone="info"
-            onClick={() => containerRef.current?.focus()}
-          />
-        </div>
+            <div className="flex justify-between items-center pt-4">
+              <WPMDisplay
+                wpm={performance.wpm}
+                isCalculating={
+                  hasStartedTyping &&
+                  typingMechanics.cursorPosition < text.length &&
+                  !isProcessingCompletion
+                }
+              />
+            </div>
 
-        {/* Endless celebration over the panel only */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
-          <OverlayBanner
-            visible={celebrating}
-            message={celebrateText}
-            tone="celebrate"
-          />
-        </div>
-
-        {/* Daily completed overlay over the panel only */}
-        {currentMode === 'daily' && dailyProgress.isCompletedToday && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
-            <div className="flex flex-col items-center gap-3 pointer-events-auto">
-              <div className="px-6 py-2 rounded-lg text-white font-extrabold text-2xl bg-emerald-600/90 shadow">
-                COMPLETED!
-              </div>
-              {resetTimeLeft && (
-                <div
-                  className="text-xs sm:text-sm -mt-1 text-black dark:text-white"
-                  style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
-                >
-                  Resets in {String(resetTimeLeft.hours).padStart(2, '0')}:
-                  {String(resetTimeLeft.minutes).padStart(2, '0')}:
-                  {String(resetTimeLeft.seconds).padStart(2, '0')} UTC
-                </div>
-              )}
+            {/* Reset button with tooltip and keyboard hint */}
+            <div className="absolute bottom-4 right-4 z-10 group">
               <button
                 type="button"
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/90 text-black hover:bg-white transition-colors shadow dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                aria-label="Restart typing"
+                onClick={restartSession}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    restartSession();
+                  }
+                }}
+                tabIndex={0}
+                className="rounded-full p-3 transition-colors bg-transparent text-gray-700 hover:bg-black/10 dark:text-gray-200 dark:hover:bg-white/10"
               >
-                <Share2
-                  size={16}
-                  className="text-black dark:text-white"
-                  style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
-                />
-                <span
-                  className="text-black dark:text-white"
-                  style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
-                >
-                  Share
-                </span>
+                <RotateCcw size={18} />
               </button>
+              <div
+                className={`absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
+                  theme === 'dark'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-800 text-white'
+                }`}
+              >
+                restart
+                <span className="ml-2 opacity-80">
+                  <kbd
+                    className={`px-1.5 py-0.5 rounded border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}
+                  >
+                    tab
+                  </kbd>
+                  <span className="mx-1">+</span>
+                  <kbd
+                    className={`px-1.5 py-0.5 rounded border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'}`}
+                  >
+                    enter
+                  </kbd>
+                </span>
+              </div>
             </div>
           </div>
-        )}
+
+          {/* Focus prompt over the panel only */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
+            <OverlayBanner
+              visible={
+                !isFocused &&
+                !(currentMode === 'daily' && dailyProgress.isCompletedToday)
+              }
+              message="Click to start fighting!"
+              tone="info"
+              onClick={() => containerRef.current?.focus()}
+            />
+          </div>
+
+          {/* Endless celebration over the panel only */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
+            <OverlayBanner
+              visible={celebrating}
+              message={celebrateText}
+              tone="celebrate"
+            />
+          </div>
+
+          {/* Daily completed overlay over the panel only */}
+          {currentMode === 'daily' && dailyProgress.isCompletedToday && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
+              <div className="flex flex-col items-center gap-3 pointer-events-auto">
+                <div className="px-6 py-2 rounded-lg text-white font-extrabold text-2xl bg-emerald-600/90 shadow">
+                  COMPLETED!
+                </div>
+                {resetTimeLeft && (
+                  <div
+                    className="text-xs sm:text-sm -mt-1 text-black dark:text-white"
+                    style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+                  >
+                    Resets in {String(resetTimeLeft.hours).padStart(2, '0')}:
+                    {String(resetTimeLeft.minutes).padStart(2, '0')}:
+                    {String(resetTimeLeft.seconds).padStart(2, '0')} UTC
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/90 text-black hover:bg-white transition-colors shadow dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                >
+                  <Share2
+                    size={16}
+                    className="text-black dark:text-white"
+                    style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+                  />
+                  <span
+                    className="text-black dark:text-white"
+                    style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+                  >
+                    Share
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <CongratsModal
@@ -628,6 +741,24 @@ export default function TypingInterface({
           >
             <span className="text-red-500 font-extrabold text-xl select-none drop-shadow">
               HIT
+            </span>
+          </div>
+        </div>
+      ))}
+
+      {/* Multiple independent ATTACK! effects */}
+      {attacks.map(attack => (
+        <div key={attack.id} className="fixed inset-0 pointer-events-none z-40">
+          <div
+            className={`absolute transition-all ${attack.show ? 'opacity-100 -translate-y-1 scale-110' : 'opacity-0 translate-y-0 scale-95'} duration-500 ease-out`}
+            style={{
+              top: `${attack.topPct}%`,
+              left: `${attack.leftPct}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <span className="text-purple-500 font-extrabold text-xl select-none drop-shadow">
+              ATTACK!
             </span>
           </div>
         </div>

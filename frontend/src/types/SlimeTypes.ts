@@ -1,11 +1,13 @@
 // Slime type definitions and constants
 
 export type SlimeTypeEnum = 'normal' | 'mini-boss' | 'boss';
+export type SlimeShapeEnum = 'round' | 'square';
 
 export interface SlimeType {
   type: SlimeTypeEnum;
   color: string;
   scale: number;
+  shape: SlimeShapeEnum;
 }
 
 export interface SlimeState {
@@ -20,16 +22,19 @@ export const SLIME_CONFIGS: Record<SlimeTypeEnum, SlimeType> = {
     type: 'normal',
     color: '#87CEEB', // Light blue
     scale: 0.8,
+    shape: 'round',
   },
   'mini-boss': {
     type: 'mini-boss',
     color: '#ef4444', // Red
     scale: 1.0,
+    shape: 'round',
   },
   boss: {
     type: 'boss',
     color: '#8b5cf6', // Purple
     scale: 1.3,
+    shape: 'round',
   },
 };
 
