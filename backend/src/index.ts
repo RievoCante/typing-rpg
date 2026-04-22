@@ -78,6 +78,24 @@ app.get("/daily/status", authMiddleware, limiter, getDailyStatus);
 app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
 app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
 
-export default app;
+import raidRoutes from "./handlers/raid";
+app.route("/raid", raidRoutes);
+
+const worker = {
+  async fetch(req: Request, env: Bindings, ctx: any) {
+    const url = new URL(req.url);
+    // Route WebSocket upgrade requests to Durable Object
+    if (url.pathname.startsWith('/api/raid/rooms/') && url.pathname.endsWith('/ws')) {
+      const roomId = url.pathname.split('/')[4];
+      const doId = env.RAID_ROOMS.idFromName(roomId);
+      const room = env.RAID_ROOMS.get(doId);
+      return room.fetch(req);
+    }
+    // Everything else goes through Hono
+    return app.fetch(req, env, ctx);
+  },
+};
+
+export default worker;
 
 export { RaidRoom } from "./rooms/RaidRoom";
