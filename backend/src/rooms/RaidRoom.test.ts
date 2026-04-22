@@ -19,6 +19,13 @@ describe('RaidRoom', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    // Clear any pending timers from the room instance
+    if ((room as any).state?.attackTimer) {
+      clearInterval((room as any).state.attackTimer);
+    }
+    if ((room as any).state?.graceTimer) {
+      clearTimeout((room as any).state.graceTimer);
+    }
   });
 
   it('starts in lobby phase', () => {

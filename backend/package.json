@@ -1,5 +1,8 @@
 {
   "name": "backend",
+  "imports": {
+    "cloudflare:workers": "./__mocks__/cloudflare-workers.ts"
+  },
   "scripts": {
     "dev": "wrangler d1 migrations apply typing-rpg-db --local && wrangler dev src/index.ts --local",
     "db:gen": "drizzle-kit generate",
