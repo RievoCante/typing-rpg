@@ -8,7 +8,7 @@ name = "typing-rpg-backend"
 main = "src/index.ts"
 
 # This setting ensures your Worker uses a recent, stable version of the Workers runtime.
-compatibility_date = "2024-05-12"
+compatibility_date = "2025-04-01"
 
 # This section defines the binding to our D1 database.
 # This is how our code gets access to the database.
@@ -27,3 +27,18 @@ id = "0e8f22caff7a40f596a9bcded20f2f6f"
 # wrangler.toml (wrangler v3.88.0^)
 [observability.logs]
 enabled = true
+
+# Add Durable Object binding for raid rooms
+[[durable_objects.bindings]]
+name = "RAID_ROOMS"
+class_name = "RaidRoom"
+
+# Add KV namespace for raid lobby index
+[[kv_namespaces]]
+binding = "RAIDS_KV"
+id = "TEMP_KV_ID" # Replace with real KV namespace ID before deploying
+
+# Add DO migration entry
+[[migrations]]
+tag = "v1-add-raid-rooms"
+new_classes = ["RaidRoom"]
