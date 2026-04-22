@@ -79,3 +79,5 @@ app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
 app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
 
 export default app;
+
+export { RaidRoom } from "./rooms/RaidRoom";
