@@ -44,6 +44,10 @@ export default function RaidLobbyPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        alert('Failed to create room');
+        return;
+      }
       const data = await res.json();
       if (data.roomId) {
         navigate(`/raid/${data.roomId}`);
@@ -56,10 +60,14 @@ export default function RaidLobbyPage() {
   const handleJoinRoom = async (roomId: string) => {
     try {
       const token = await getToken();
-      await fetch(`${apiUrl}/api/raid/rooms/${roomId}/join`, {
+      const res = await fetch(`${apiUrl}/api/raid/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        alert('Failed to join room');
+        return;
+      }
       navigate(`/raid/${roomId}`);
     } catch {
       alert('Failed to join room');
@@ -80,16 +88,25 @@ export default function RaidLobbyPage() {
       {loading ? (
         <p>Loading rooms...</p>
       ) : rooms.length === 0 ? (
-        <p className="text-gray-400">No active rooms. Be the first to create one!</p>
+        <p className="text-gray-400">
+          No active rooms. Be the first to create one!
+        </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {rooms.map(room => (
-            <div key={room.roomId} className="p-4 bg-gray-800 rounded-lg shadow">
+            <div
+              key={room.roomId}
+              className="p-4 bg-gray-800 rounded-lg shadow"
+            >
               <div className="flex justify-between items-center mb-2">
                 <span className="font-mono text-lg">{room.roomId}</span>
-                <span className="text-sm text-gray-400">{room.playerCount}/3</span>
+                <span className="text-sm text-gray-400">
+                  {room.playerCount}/3
+                </span>
               </div>
-              <p className="text-sm text-gray-400 mb-3">Host: {room.hostName}</p>
+              <p className="text-sm text-gray-400 mb-3">
+                Host: {room.hostName}
+              </p>
               <button
                 onClick={() => handleJoinRoom(room.roomId)}
                 className="w-full py-2 bg-blue-600 rounded hover:bg-blue-700"

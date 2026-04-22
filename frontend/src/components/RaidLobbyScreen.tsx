@@ -3,13 +3,20 @@ import { useState } from 'react';
 interface Props {
   players: { userId: string; username: string; isHost: boolean }[];
   isHost: boolean;
+  localUserId: string;
   onJoin: (username: string) => void;
   onStartGame: () => void;
 }
 
-export default function RaidLobbyScreen({ players, isHost, onJoin, onStartGame }: Props) {
+export default function RaidLobbyScreen({
+  players,
+  isHost,
+  localUserId,
+  onJoin,
+  onStartGame,
+}: Props) {
   const [username, setUsername] = useState('');
-  const [joined, setJoined] = useState(false);
+  const joined = players.some(p => p.userId === localUserId);
 
   if (!joined) {
     return (
@@ -25,7 +32,6 @@ export default function RaidLobbyScreen({ players, isHost, onJoin, onStartGame }
             onKeyDown={e => {
               if (e.key === 'Enter' && username.trim()) {
                 onJoin(username.trim());
-                setJoined(true);
               }
             }}
           />
@@ -33,7 +39,6 @@ export default function RaidLobbyScreen({ players, isHost, onJoin, onStartGame }
             onClick={() => {
               if (username.trim()) {
                 onJoin(username.trim());
-                setJoined(true);
               }
             }}
             className="w-full py-3 bg-red-600 rounded font-bold hover:bg-red-700"
@@ -56,7 +61,10 @@ export default function RaidLobbyScreen({ players, isHost, onJoin, onStartGame }
             <ul className="space-y-2">
               {players.map(p => (
                 <li key={p.userId} className="p-3 bg-gray-700 rounded">
-                  {p.username} {p.isHost && <span className="text-yellow-400 text-sm ml-2">(Host)</span>}
+                  {p.username}{' '}
+                  {p.isHost && (
+                    <span className="text-yellow-400 text-sm ml-2">(Host)</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -70,7 +78,9 @@ export default function RaidLobbyScreen({ players, isHost, onJoin, onStartGame }
             Start Game
           </button>
         )}
-        {!isHost && <p className="text-gray-400">Waiting for host to start...</p>}
+        {!isHost && (
+          <p className="text-gray-400">Waiting for host to start...</p>
+        )}
       </div>
     </div>
   );

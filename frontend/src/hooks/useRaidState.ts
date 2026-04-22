@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { RaidServerMessage, RaidPlayer, RaidStats } from './useRaidSocket';
 
+export type { RaidPlayer } from './useRaidSocket';
+
 export type RaidPhase = 'lobby' | 'playing' | 'finished';
 
 export type RaidState = {

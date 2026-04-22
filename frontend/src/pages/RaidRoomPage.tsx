@@ -12,10 +12,13 @@ export default function RaidRoomPage() {
   const { userId } = useAuth();
   const apiUrl = import.meta.env.VITE_API_URL;
 
-  const wsUrl = `${apiUrl.replace('http', 'ws')}/api/raid/rooms/${roomId}/ws`;
+  const wsUrl = `${apiUrl.replace(/^http/, 'ws')}/api/raid/rooms/${roomId}/ws`;
   const { lastMessage, isConnected, error, send } = useRaidSocket(wsUrl);
   // IMPORTANT: useRaidState returns isLocalAlive separately, not in state
-  const { state, isPhase, isLocalAlive } = useRaidState(lastMessage, userId ?? '');
+  const { state, isPhase, isLocalAlive } = useRaidState(
+    lastMessage,
+    userId ?? ''
+  );
 
   const handleJoin = (username: string) => {
     send({ type: 'join', userId: userId ?? 'anon', username });
@@ -29,16 +32,15 @@ export default function RaidRoomPage() {
     send({ type: 'word_complete', wordIndex });
   };
 
-  const handlePlayerDead = () => {
-    send({ type: 'player_dead' });
-  };
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <button onClick={() => navigate('/raid')} className="px-4 py-2 bg-gray-700 rounded">
+          <button
+            onClick={() => navigate('/raid')}
+            className="px-4 py-2 bg-gray-700 rounded"
+          >
             Back to Lobby
           </button>
         </div>
@@ -60,6 +62,7 @@ export default function RaidRoomPage() {
         <RaidLobbyScreen
           players={state.players}
           isHost={state.isHost}
+          localUserId={userId ?? ''}
           onJoin={handleJoin}
           onStartGame={handleStartGame}
         />
@@ -73,7 +76,6 @@ export default function RaidRoomPage() {
           isLocalAlive={isLocalAlive}
           localUserId={userId ?? ''}
           onWordComplete={handleWordComplete}
-          onPlayerDead={handlePlayerDead}
         />
       )}
       {isPhase('finished') && (

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import { useEffect, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTypingMechanics } from '../hooks/useTypingMechanics';
 import TypingText from './TypingText';
 import type { RaidPlayer } from '../hooks/useRaidState';
@@ -9,7 +10,6 @@ interface Props {
   text: string;
   isAlive: boolean;
   onWordComplete?: (wordIndex: number) => void;
-  onPlayerDead?: () => void;
 }
 
 export default function RaidPlayerLane({
@@ -18,21 +18,19 @@ export default function RaidPlayerLane({
   text,
   isAlive,
   onWordComplete,
-  onPlayerDead,
 }: Props) {
-  const [wordIndex, setWordIndex] = useState(0);
+  const wordIndexRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const typingMechanics = useTypingMechanics({
     text,
     onWordCompleted: () => {
-      setWordIndex(prev => {
-        const next = prev + 1;
-        onWordComplete?.(next);
-        return next;
-      });
+      wordIndexRef.current++;
+      onWordComplete?.(wordIndexRef.current);
     },
   });
+
+  const { resetTypingState } = typingMechanics;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!isLocal || !isAlive) return;
@@ -60,9 +58,9 @@ export default function RaidPlayerLane({
   }, [isLocal, text]);
 
   useEffect(() => {
-    typingMechanics.resetTypingState();
-    setWordIndex(0);
-  }, [text]);
+    resetTypingState();
+    wordIndexRef.current = 0;
+  }, [text, resetTypingState]);
 
   if (!player) {
     return (
@@ -75,12 +73,16 @@ export default function RaidPlayerLane({
   const hpPercent = player.maxHp > 0 ? (player.hp / player.maxHp) * 100 : 0;
 
   return (
-    <div className={`relative p-4 bg-gray-800 rounded-lg ${isLocal ? 'ring-2 ring-blue-500' : ''}`}>
+    <div
+      className={`relative p-4 bg-gray-800 rounded-lg ${isLocal ? 'ring-2 ring-blue-500' : ''}`}
+    >
       {/* Player Header */}
       <div className="mb-3">
         <div className="flex justify-between items-center mb-1">
           <span className="font-bold">{player.username}</span>
-          <span className="text-sm text-gray-400">{player.damageDealt} dmg</span>
+          <span className="text-sm text-gray-400">
+            {player.damageDealt} dmg
+          </span>
         </div>
         <div className="w-full h-3 bg-gray-700 rounded overflow-hidden">
           <div
@@ -107,7 +109,7 @@ export default function RaidPlayerLane({
               hasStartedTyping={true}
             />
           </div>
-        ) : (
+        ) : text ? (
           <div className="p-4 bg-gray-900 rounded min-h-[100px] opacity-70">
             <TypingText
               text={text}
@@ -117,13 +119,19 @@ export default function RaidPlayerLane({
               hasStartedTyping={false}
             />
           </div>
+        ) : (
+          <div className="p-4 bg-gray-900 rounded min-h-[100px] opacity-70 flex items-center justify-center">
+            <p className="text-gray-500">Waiting...</p>
+          </div>
         )}
 
         {/* Spectator Overlay */}
         {!isAlive && (
           <div className="absolute inset-0 bg-black/60 rounded flex items-center justify-center">
             <div className="text-center">
-              <p className="text-2xl font-bold text-red-400 mb-1">SPECTATOR MODE</p>
+              <p className="text-2xl font-bold text-red-400 mb-1">
+                SPECTATOR MODE
+              </p>
               <p className="text-sm text-gray-300">Watch your team!</p>
             </div>
           </div>

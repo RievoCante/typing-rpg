@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import RaidPlayerLane from './RaidPlayerLane';
 import type { RaidPlayer } from '../hooks/useRaidState';
 
@@ -10,7 +9,6 @@ interface Props {
   isLocalAlive: boolean;
   localUserId: string;
   onWordComplete: (wordIndex: number) => void;
-  onPlayerDead: () => void;
 }
 
 export default function RaidGame({
@@ -21,15 +19,8 @@ export default function RaidGame({
   isLocalAlive,
   localUserId,
   onWordComplete,
-  onPlayerDead,
 }: Props) {
   const bossHpPercent = bossMaxHp > 0 ? (bossHp / bossMaxHp) * 100 : 0;
-
-  const handleLocalDead = useCallback(() => {
-    if (isLocalAlive) {
-      onPlayerDead();
-    }
-  }, [isLocalAlive, onPlayerDead]);
 
   return (
     <div className="min-h-screen p-4">
@@ -42,7 +33,9 @@ export default function RaidGame({
             style={{ width: `${bossHpPercent}%` }}
           />
         </div>
-        <p className="mt-1 text-sm text-gray-300">{bossHp} / {bossMaxHp} HP</p>
+        <p className="mt-1 text-sm text-gray-300">
+          {bossHp} / {bossMaxHp} HP
+        </p>
       </div>
 
       {/* Player Lanes */}
@@ -56,9 +49,8 @@ export default function RaidGame({
               player={player}
               isLocal={isLocal}
               text={isLocal ? localText : ''}
-              isAlive={isLocal ? isLocalAlive : player?.isAlive ?? false}
+              isAlive={isLocal ? isLocalAlive : (player?.isAlive ?? false)}
               onWordComplete={isLocal ? onWordComplete : undefined}
-              onPlayerDead={isLocal ? handleLocalDead : undefined}
             />
           );
         })}
