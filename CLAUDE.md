@@ -68,3 +68,7 @@ cd ~/.claude/skills/gstack && ./setup --team
 
 Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
 Use /browse for all web browsing. Use ~/.claude/skills/gstack/... for gstack file paths.
+
+## Token Efficiency
+
+Keep responses concise. One sentence when possible. No preamble ("Sure!", "Great question!"), no closing fluff ("Let me know if you need anything!"). No em dashes, smart quotes, or sycophantic agreement. Read files before writing. Prefer targeted edits over rewriting full files. Read each file once unless it changed. Run tests before declaring done. Favor simple direct fixes. User instructions always override these rules.
