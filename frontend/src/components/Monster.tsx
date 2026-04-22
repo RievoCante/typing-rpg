@@ -3,23 +3,31 @@
 import { useRef, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
+import GolemModel from './GolemModel';
 import ParticleBurst from './ParticleBurst';
-import type { SlimeTypeEnum } from '../types/SlimeTypes';
+import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
+import type { GolemTypeEnum } from '../types/GolemTypes';
+
+export type MonsterFamily = 'slime' | 'golem';
 
 interface MonsterProps {
-  monsterType: SlimeTypeEnum;
+  monsterFamily: MonsterFamily;
+  monsterType: SlimeTypeEnum | GolemTypeEnum;
   isHit?: boolean;
   isDefeated?: boolean;
   color?: string;
   scale?: number;
+  shape?: SlimeShapeEnum; // For slimes only
 }
 
 export default function Monster({
+  monsterFamily,
   monsterType,
   isHit = false,
   isDefeated = false,
   color,
   scale,
+  shape,
 }: MonsterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
@@ -75,13 +83,24 @@ export default function Monster({
             />
 
             {/* Main monster model */}
-            <SlimeModel
-              slimeType={monsterType}
-              isHit={isHit}
-              isDefeated={isDefeated}
-              customColor={color}
-              customScale={scale}
-            />
+            {monsterFamily === 'slime' ? (
+              <SlimeModel
+                slimeType={monsterType as SlimeTypeEnum}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+                shape={shape}
+              />
+            ) : (
+              <GolemModel
+                golemType={monsterType as GolemTypeEnum}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+              />
+            )}
           </Canvas>
         </div>
       </div>

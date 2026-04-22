@@ -1,7 +1,7 @@
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useGameContext } from '../hooks/useGameContext';
 import { useEffect, useState } from 'react';
-import WordCountSelector from './WordCountSelector';
+import EndlessOptions from './EndlessOptions';
 
 export default function ModeSelector() {
   const { theme } = useThemeContext();
@@ -91,8 +91,8 @@ export default function ModeSelector() {
         </div>
       </div>
 
-      {/* Word count selector - only visible in endless mode */}
-      {currentMode === 'endless' && <WordCountSelector />}
+      {/* Endless mode options - word count and difficulty in one row */}
+      {currentMode === 'endless' && <EndlessOptions />}
     </div>
   );
 }

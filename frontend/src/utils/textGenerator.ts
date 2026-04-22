@@ -2,6 +2,8 @@
 
 import dailyQuotesData from '../static/english/english_quotes_1.json';
 import english1kData from '../static/english/english_1k.json';
+import english5kData from '../static/english/english_5k.json';
+import english10kData from '../static/english/english_10k.json';
 
 interface DailyQuotesData {
   easy: string[];
@@ -15,6 +17,8 @@ interface WordListData {
 
 const typedDailyQuotesData = dailyQuotesData as DailyQuotesData;
 const typedEnglish1kData = english1kData as WordListData;
+const typedEnglish5kData = english5kData as WordListData;
+const typedEnglish10kData = english10kData as WordListData;
 
 // Returns the current UTC date as "YYYY-MM-DD".
 // All users in the same UTC day see the same daily quotes.
@@ -63,18 +67,36 @@ export const getDailyQuote = (
 export const generateText = (
   mode: 'daily' | 'endless',
   difficulty?: 'easy' | 'medium' | 'hard',
-  endlessWordCount?: number
+  endlessWordCount?: number,
+  endlessDifficulty?: 'beginner' | 'intermediate' | 'advanced'
 ): string => {
   if (mode === 'daily') {
     return getDailyQuote(difficulty ?? 'easy');
   }
 
-  // Endless mode: configurable word count (default 25)
-  const wordList = typedEnglish1kData.words;
+  // Endless mode: configurable word count and difficulty
+  const wordCount = endlessWordCount ?? 25;
+  const difficultyLevel = endlessDifficulty ?? 'beginner';
+
+  // Select word list based on difficulty
+  let wordList: string[];
+  switch (difficultyLevel) {
+    case 'beginner':
+      wordList = typedEnglish1kData.words;
+      break;
+    case 'intermediate':
+      wordList = typedEnglish5kData.words;
+      break;
+    case 'advanced':
+      wordList = typedEnglish10kData.words;
+      break;
+    default:
+      wordList = typedEnglish1kData.words;
+  }
+
   if (!wordList || wordList.length === 0)
     return 'Word list is empty or not found.';
 
-  const wordCount = endlessWordCount ?? 25;
   const selectedWords: string[] = [];
   for (let i = 0; i < wordCount; i++) {
     selectedWords.push(wordList[Math.floor(Math.random() * wordList.length)]);

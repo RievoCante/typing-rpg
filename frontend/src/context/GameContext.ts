@@ -1,5 +1,7 @@
 import { createContext } from 'react';
 
+export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
+
 interface GameContextType {
   currentMode: 'daily' | 'endless';
   setCurrentMode: (mode: 'daily' | 'endless') => void;
@@ -15,6 +17,13 @@ interface GameContextType {
   resetDefeatState: () => void;
   endlessWordCount: number;
   setEndlessWordCount: (count: number) => void;
+  endlessDifficulty: 'beginner' | 'intermediate' | 'advanced';
+  setEndlessDifficulty: (
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+  ) => void;
+  // Player typing state
+  hasStartedTyping: boolean;
+  setHasStartedTyping: (value: boolean) => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -32,4 +41,9 @@ export const GameContext = createContext<GameContextType>({
   resetDefeatState: () => {},
   endlessWordCount: 25,
   setEndlessWordCount: () => {},
+  endlessDifficulty: 'beginner',
+  setEndlessDifficulty: () => {},
+  // Player typing state
+  hasStartedTyping: false,
+  setHasStartedTyping: () => {},
 });

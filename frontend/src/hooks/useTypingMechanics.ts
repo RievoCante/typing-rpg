@@ -5,12 +5,14 @@ interface UseTypingMechanicsProps {
   text: string;
   onCharacterInput?: (key: string) => void;
   onWordCompleted?: () => void;
+  onWordMistake?: () => void;
 }
 
 export const useTypingMechanics = ({
   text,
   onCharacterInput,
   onWordCompleted,
+  onWordMistake,
 }: UseTypingMechanicsProps) => {
   const [charStatus, setCharStatus] = useState<CharStatus[]>([]);
   const [typedChars, setTypedChars] = useState<(string | null)[]>([]);
@@ -164,8 +166,9 @@ export const useTypingMechanics = ({
       // Move cursor forward.
       setCursorPosition(prev => prev + 1);
     } else {
-      // If the word is incorrect, treat the space as an incorrect character.
-      // This provides feedback without locking.
+      // If the word is incorrect, monster attacks!
+      onWordMistake?.();
+      // Treat the space as an incorrect character for visual feedback.
       handleCharacterInput(' ');
     }
   }, [
@@ -174,6 +177,7 @@ export const useTypingMechanics = ({
     charStatus,
     typedChars,
     onWordCompleted,
+    onWordMistake,
     handleCharacterInput,
   ]);
 

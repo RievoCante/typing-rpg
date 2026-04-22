@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Color, MeshPhongMaterial } from 'three';
-import type { SlimeTypeEnum } from '../types/SlimeTypes';
+import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import { SLIME_CONFIGS, SLIME_ANIMATIONS } from '../types/SlimeTypes';
 
 const HIT_FLASH_COLOR = new Color('#ff4d4d');
@@ -12,6 +12,7 @@ interface SlimeModelProps {
   isDefeated: boolean;
   customColor?: string;
   customScale?: number;
+  shape?: SlimeShapeEnum; // Override shape if provided
 }
 
 export default function SlimeModel({
@@ -20,6 +21,7 @@ export default function SlimeModel({
   isDefeated,
   customColor,
   customScale,
+  shape: shapeProp,
 }: SlimeModelProps) {
   const meshRef = useRef<Mesh>(null);
   const bodyMatRef = useRef<MeshPhongMaterial | null>(null);
@@ -30,6 +32,7 @@ export default function SlimeModel({
   const config = SLIME_CONFIGS[slimeType];
   const activeColor = customColor !== undefined ? customColor : config.color;
   const activeScale = customScale || config.scale;
+  const activeShape = shapeProp || config.shape;
 
   const { finalColor, emissiveColor } = useMemo(() => {
     const base = new Color(activeColor as unknown as string);
@@ -49,6 +52,20 @@ export default function SlimeModel({
       setHitFlashTime(Date.now());
     }
   }, [isHit]);
+
+  // Reset opacity when monster spawns (not defeated)
+  useEffect(() => {
+    if (!isDefeated && meshRef.current) {
+      const material = meshRef.current.material as { opacity: number };
+      material.opacity = 0.95;
+    }
+    if (!isDefeated && leftEyeRef.current && rightEyeRef.current) {
+      const leftMaterial = leftEyeRef.current.material as { opacity: number };
+      const rightMaterial = rightEyeRef.current.material as { opacity: number };
+      leftMaterial.opacity = 1.0;
+      rightMaterial.opacity = 1.0;
+    }
+  }, [isDefeated]);
 
   // Also flash on global 'word-hit' event so we don't rely on parent props
   useEffect(() => {
@@ -128,7 +145,11 @@ export default function SlimeModel({
   return (
     <group>
       <mesh ref={meshRef} position={[0, 0, 0]}>
-        <sphereGeometry args={[1, 32, 32]} />
+        {activeShape === 'square' ? (
+          <dodecahedronGeometry args={[1, 0]} />
+        ) : (
+          <sphereGeometry args={[1, 32, 32]} />
+        )}
         <meshPhongMaterial
           ref={bodyMatRef}
           color={finalColor}
