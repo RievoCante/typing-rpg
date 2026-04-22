@@ -49,6 +49,7 @@ export default function TypingInterface({
     isPlayerDead,
     hasStartedTyping,
     setHasStartedTyping,
+    setIsPaused,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -558,8 +559,14 @@ export default function TypingInterface({
           <div
             ref={containerRef}
             onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={() => {
+              setIsFocused(true);
+              setIsPaused(false);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              setIsPaused(true);
+            }}
             tabIndex={0}
             className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
               theme === 'dark'

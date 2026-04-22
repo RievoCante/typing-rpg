@@ -45,10 +45,9 @@ function GameContent() {
     isCurrentMonsterDefeated,
     setCurrentMonsterType,
     isPlayerDead,
-    resetPlayerHealth,
-    resetKillStreak,
     givePotion,
     hasPotion,
+    resetGameState,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -126,12 +125,9 @@ function GameContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monstersDefeated]);
 
-  // Handle player death - reset everything
+  // Handle player death - reset everything while preserving current mode
   const handleDeathRestart = () => {
-    resetPlayerHealth();
-    resetKillStreak();
-    // Reload page or reset session - for now, we'll just reload
-    window.location.reload();
+    resetGameState();
   };
 
   if (bootstrapping) return <LoadingScreen />;

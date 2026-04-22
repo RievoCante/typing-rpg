@@ -24,6 +24,9 @@ interface GameContextType {
   // Player typing state
   hasStartedTyping: boolean;
   setHasStartedTyping: (value: boolean) => void;
+  // Pause state (typing unfocused)
+  isPaused: boolean;
+  setIsPaused: (value: boolean) => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -46,4 +49,7 @@ export const GameContext = createContext<GameContextType>({
   // Player typing state
   hasStartedTyping: false,
   setHasStartedTyping: () => {},
+  // Pause state
+  isPaused: false,
+  setIsPaused: () => {},
 });
