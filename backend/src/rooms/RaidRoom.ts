@@ -26,6 +26,7 @@ type RaidRoomState = {
   createdAt: number;
   startedAt: number | null;
   attackTimer: ReturnType<typeof setInterval> | null;
+  graceTimer: ReturnType<typeof setTimeout> | null;
 };
 
 const BASE_HP_PER_PLAYER = 125;
@@ -73,6 +74,7 @@ export class RaidRoom extends DurableObject {
       createdAt: Date.now(),
       startedAt: null,
       attackTimer: null,
+      graceTimer: null,
     };
   }
 
@@ -84,7 +86,7 @@ export class RaidRoom extends DurableObject {
     }
 
     try {
-      const env = this.env as any;
+      const env = this.env as { CLERK_SECRET_KEY: string };
       await verifyToken(token, { secretKey: env.CLERK_SECRET_KEY });
     } catch {
       return new Response('Unauthorized', { status: 401 });
@@ -132,6 +134,7 @@ export class RaidRoom extends DurableObject {
   }
 
   handlePlayerJoin(ws: WebSocket, data: { userId: string; username: string }) {
+    if (this.state.phase !== 'lobby') return;
     const isHost = this.state.players.size === 0;
     const player: PlayerState = {
       userId: data.userId,
@@ -155,7 +158,6 @@ export class RaidRoom extends DurableObject {
     if (this.state.phase !== 'lobby') return;
 
     const playerCount = this.state.players.size;
-    this.state.bossBaseHp = BASE_HP_PER_PLAYER;
     this.state.bossMaxHp = BASE_HP_PER_PLAYER * playerCount;
     this.state.bossHp = this.state.bossMaxHp;
     this.state.phase = 'playing';
@@ -241,6 +243,11 @@ export class RaidRoom extends DurableObject {
   }
 
   endGame(status: 'victory' | 'defeat') {
+    if (this.state.phase === 'finished') return;
+    if (this.state.graceTimer) {
+      clearTimeout(this.state.graceTimer);
+      this.state.graceTimer = null;
+    }
     if (this.state.attackTimer) {
       clearInterval(this.state.attackTimer);
       this.state.attackTimer = null;
@@ -251,7 +258,7 @@ export class RaidRoom extends DurableObject {
     this.broadcast({ type: status, stats: this.buildStats() });
     this.broadcastRoomState();
 
-    setTimeout(() => {
+    this.state.graceTimer = setTimeout(() => {
       for (const [ws] of this.state.players) {
         try { ws.close(); } catch {}
       }
@@ -261,7 +268,7 @@ export class RaidRoom extends DurableObject {
   buildStats() {
     const players = Array.from(this.state.players.values());
     const totalWords = players.reduce((sum, p) => sum + p.wordsCorrect, 0);
-    const avgWpm = 0;
+    const avgWpm = 0; // TODO: calculate from timestamps if needed
     const durationMs = this.state.startedAt ? Date.now() - this.state.startedAt : 0;
     return { totalWords, avgWpm, durationMs };
   }
@@ -299,7 +306,7 @@ export class RaidRoom extends DurableObject {
     }
   }
 
-  async webSocketClose(ws: WebSocket) {
+  webSocketClose(ws: WebSocket) {
     const player = this.state.players.get(ws);
     this.state.players.delete(ws);
     if (player) {
@@ -312,6 +319,10 @@ export class RaidRoom extends DurableObject {
       }
     }
     this.broadcastRoomState();
+
+    if (this.state.players.size === 0 && this.state.phase === 'playing') {
+      this.endGame('defeat');
+    }
   }
 }
 
