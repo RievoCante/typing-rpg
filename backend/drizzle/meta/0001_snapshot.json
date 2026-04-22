@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "fa4d39c2-551e-4d0e-bc7d-57e6d286c1ba",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "a609b6f0-705a-40f2-af6b-e38378e21f55",
+  "prevId": "fa4d39c2-551e-4d0e-bc7d-57e6d286c1ba",
   "tables": {
     "game_sessions": {
       "name": "game_sessions",
@@ -65,7 +65,18 @@
           "default": "(strftime('%s', 'now'))"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_game_sessions_leaderboard": {
+          "name": "idx_game_sessions_leaderboard",
+          "columns": [
+            "mode",
+            "created_at",
+            "user_id",
+            "wpm"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "game_sessions_user_id_users_user_id_fk": {
           "name": "game_sessions_user_id_users_user_id_fk",
