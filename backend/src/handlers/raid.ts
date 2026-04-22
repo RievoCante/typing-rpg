@@ -1,13 +1,15 @@
-import { Hono } from 'hono';
+import { Hono, Context } from 'hono';
 import { Bindings, Variables } from '../core/types';
 import { authMiddleware } from '../core/auth';
 import { getAuth } from '@hono/clerk-auth';
 import { generateRoomId } from '../rooms/RaidRoom';
+import { eq, desc } from 'drizzle-orm';
+import { raidPlayers } from '../db/schema';
 
 const raid = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Helper to build ws URL from request
-function getWsUrl(c: any, roomId: string) {
+function getWsUrl(c: Context, roomId: string) {
   const url = new URL(c.req.url);
   const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${url.host}/api/raid/rooms/${roomId}/ws`;
@@ -32,10 +34,6 @@ raid.post('/rooms', authMiddleware, async (c) => {
 
   const roomId = generateRoomId();
   const doId = c.env.RAID_ROOMS.idFromName(roomId);
-  const room = c.env.RAID_ROOMS.get(doId);
-
-  // Create DO instance by pinging it
-  await room.fetch(new Request('http://internal/init'));
 
   // Write lobby entry to KV with 10-min TTL
   const lobbyEntry = {
@@ -56,8 +54,10 @@ raid.post('/rooms/:id/join', authMiddleware, async (c) => {
   if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
 
   const roomId = c.req.param('id');
-  const doId = c.env.RAID_ROOMS.idFromName(roomId);
-  const room = c.env.RAID_ROOMS.get(doId);
+  const existing = await c.env.RAIDS_KV.get(`lobby:${roomId}`);
+  if (!existing) {
+    return c.json({ error: 'Room not found' }, 404);
+  }
 
   return c.json({ roomId, wsUrl: getWsUrl(c, roomId) });
 });
@@ -68,11 +68,10 @@ raid.get('/sessions', authMiddleware, async (c) => {
   if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
 
   const db = c.get('db');
-  const sessions = await db.query.raidPlayers.findMany({
-    where: (players: any, { eq }: any) => eq(players.userId, auth.userId),
-    orderBy: (players: any, { desc }: any) => [desc(players.id)],
-    limit: 50,
-  });
+  const sessions = await db.select().from(raidPlayers)
+    .where(eq(raidPlayers.userId, auth.userId))
+    .orderBy(desc(raidPlayers.id))
+    .limit(50);
 
   return c.json(sessions);
 });

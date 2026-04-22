@@ -79,6 +79,7 @@ app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
 app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
 
 import raidRoutes from "./handlers/raid";
+app.use("/raid/*", limiter);
 app.route("/raid", raidRoutes);
 
 const worker = {
@@ -86,7 +87,9 @@ const worker = {
     const url = new URL(req.url);
     // Route WebSocket upgrade requests to Durable Object
     if (url.pathname.startsWith('/api/raid/rooms/') && url.pathname.endsWith('/ws')) {
-      const roomId = url.pathname.split('/')[4];
+      const match = url.pathname.match(/^\/api\/raid\/rooms\/([^\/]+)\/ws$/);
+      if (!match) return app.fetch(req, env, ctx);
+      const roomId = match[1];
       const doId = env.RAID_ROOMS.idFromName(roomId);
       const room = env.RAID_ROOMS.get(doId);
       return room.fetch(req);
