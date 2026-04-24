@@ -8,13 +8,14 @@ export default function ModeSelector() {
   const { currentMode, setCurrentMode } = useGameContext();
   const [, setTick] = useState(0);
 
+  const activeIndex =
+    currentMode === 'raid' ? 2 : currentMode === 'daily' ? 0 : 1;
+
   // Live ticking countdown without heavy re-renders
   useEffect(() => {
     const id = setInterval(() => setTick(n => (n + 1) % 60), 1000);
     return () => clearInterval(id);
   }, []);
-
-  // Countdown shown in TypingInterface when completed
 
   return (
     <div className="flex flex-col items-center w-full py-4">
@@ -27,11 +28,10 @@ export default function ModeSelector() {
       >
         {/* Sliding background indicator */}
         <div
-          className={`absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-md transition-all duration-300 ease-in-out ${
+          className={`absolute top-1 bottom-1 left-1 w-[calc(33.33%-0.33rem)] rounded-md transition-all duration-300 ease-in-out ${
             theme === 'dark' ? 'bg-gray-700' : 'bg-white shadow-sm'
-          } ${
-            currentMode === 'endless' ? 'translate-x-full' : 'translate-x-0'
           }`}
+          style={{ transform: `translateX(${activeIndex * 100}%)` }}
         />
 
         {/* Daily Mode Button */}
@@ -50,7 +50,6 @@ export default function ModeSelector() {
           >
             Daily
           </button>
-          {/* Tooltip */}
           <div
             className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
               theme === 'dark'
@@ -78,7 +77,6 @@ export default function ModeSelector() {
           >
             Endless
           </button>
-          {/* Tooltip */}
           <div
             className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
               theme === 'dark'
@@ -87,6 +85,33 @@ export default function ModeSelector() {
             }`}
           >
             practice typing and kill monsters endlessly!
+          </div>
+        </div>
+
+        {/* Raid Button */}
+        <div className="relative group">
+          <button
+            onClick={() => setCurrentMode('raid')}
+            className={`relative z-10 px-8 py-3 rounded-md transition-all duration-300 font-medium text-lg min-w-[140px] flex items-center justify-center ${
+              currentMode === 'raid'
+                ? theme === 'dark'
+                  ? 'text-white'
+                  : 'text-gray-900'
+                : theme === 'dark'
+                  ? 'text-gray-400 hover:text-gray-300'
+                  : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Raid
+          </button>
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-[750ms] whitespace-nowrap ${
+              theme === 'dark'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-800 text-white'
+            }`}
+          >
+            team up and raid together!
           </div>
         </div>
       </div>
