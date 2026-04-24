@@ -86,6 +86,7 @@ export default function RaidView() {
     try {
       const token = await getToken();
       if (!token) {
+        setCreating(false);
         alert('Please sign in to create a room');
         return;
       }
