@@ -1,7 +1,6 @@
 interface Props {
   players: { userId: string; username: string; isHost: boolean }[];
   isHost: boolean;
-  localUserId: string;
   onStartGame: () => void;
 }
 

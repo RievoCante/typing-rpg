@@ -85,6 +85,10 @@ export default function RaidView() {
     setCreating(true);
     try {
       const token = await getToken();
+      if (!token) {
+        alert('Please sign in to create a room');
+        return;
+      }
       const res = await fetch(`${apiUrl}/api/raid/rooms`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -106,6 +110,10 @@ export default function RaidView() {
   const handleJoinRoom = async (roomId: string) => {
     try {
       const token = await getToken();
+      if (!token) {
+        alert('Please sign in to join a room');
+        return;
+      }
       const res = await fetch(`${apiUrl}/api/raid/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -206,7 +214,6 @@ export default function RaidView() {
         <RaidLobbyScreen
           players={state.players}
           isHost={state.isHost}
-          localUserId={userId ?? ''}
           onStartGame={() => send({ type: 'start_game' })}
         />
       )}
