@@ -19,7 +19,7 @@ export default function RaidResultScreen({
   onHome,
 }: Props) {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full text-center">
         <h2
           className={`text-4xl font-bold mb-4 ${result === 'victory' ? 'text-green-400' : 'text-red-400'}`}

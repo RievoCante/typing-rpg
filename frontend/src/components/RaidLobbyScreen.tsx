@@ -1,57 +1,17 @@
-import { useState } from 'react';
-
 interface Props {
   players: { userId: string; username: string; isHost: boolean }[];
   isHost: boolean;
   localUserId: string;
-  onJoin: (username: string) => void;
   onStartGame: () => void;
 }
 
 export default function RaidLobbyScreen({
   players,
   isHost,
-  localUserId,
-  onJoin,
   onStartGame,
 }: Props) {
-  const [username, setUsername] = useState('');
-  const joined = players.some(p => p.userId === localUserId);
-
-  if (!joined) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4">Enter the Raid</h2>
-          <input
-            type="text"
-            placeholder="Your name"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            className="w-full p-3 mb-4 bg-gray-700 rounded text-white"
-            onKeyDown={e => {
-              if (e.key === 'Enter' && username.trim()) {
-                onJoin(username.trim());
-              }
-            }}
-          />
-          <button
-            onClick={() => {
-              if (username.trim()) {
-                onJoin(username.trim());
-              }
-            }}
-            className="w-full py-3 bg-red-600 rounded font-bold hover:bg-red-700"
-          >
-            Join Room
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full text-center">
         <h2 className="text-2xl font-bold mb-6">Lobby</h2>
         <div className="mb-6">
