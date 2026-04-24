@@ -74,7 +74,7 @@ export const GameProvider = ({
   children: React.ReactNode;
   initialMode?: 'daily' | 'endless';
 }) => {
-  const [currentMode, setCurrentMode] = useState<'daily' | 'endless'>(
+  const [currentMode, setCurrentMode] = useState<'daily' | 'endless' | 'raid'>(
     initialMode
   );
   const [totalWords, setTotalWords] = useState<number>(0);

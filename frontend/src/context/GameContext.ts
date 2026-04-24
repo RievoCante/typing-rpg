@@ -3,8 +3,8 @@ import { createContext } from 'react';
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
 interface GameContextType {
-  currentMode: 'daily' | 'endless';
-  setCurrentMode: (mode: 'daily' | 'endless') => void;
+  currentMode: 'daily' | 'endless' | 'raid';
+  setCurrentMode: (mode: 'daily' | 'endless' | 'raid') => void;
   totalWords: number;
   remainingWords: number;
   setTotalWords: (count: number) => void;
