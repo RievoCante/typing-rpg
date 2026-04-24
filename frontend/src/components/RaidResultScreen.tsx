@@ -1,5 +1,3 @@
-import { useNavigate } from 'react-router-dom';
-
 interface Props {
   result: 'victory' | 'defeat' | null;
   stats: { totalWords: number; avgWpm: number; durationMs: number } | null;
@@ -10,6 +8,7 @@ interface Props {
     isAlive: boolean;
   }[];
   onPlayAgain: () => void;
+  onHome: () => void;
 }
 
 export default function RaidResultScreen({
@@ -17,9 +16,8 @@ export default function RaidResultScreen({
   stats,
   players,
   onPlayAgain,
+  onHome,
 }: Props) {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full text-center">
@@ -58,7 +56,7 @@ export default function RaidResultScreen({
             Play Again
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={onHome}
             className="px-6 py-2 bg-gray-600 rounded hover:bg-gray-700"
           >
             Home
