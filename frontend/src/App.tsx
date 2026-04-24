@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SignedIn } from '@clerk/clerk-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -21,18 +20,15 @@ import type { MonsterFamily } from './components/Monster';
 import type { MonsterTypeEnum } from './context/GameContext';
 import PotionPopup from './components/PotionPopup';
 import DeathPopup from './components/DeathPopup';
+import RaidView from './components/RaidView';
 
 // Contexts
-import { ThemeProvider } from './context/ThemeProvider';
-import { GameProvider } from './context/GameProvider';
 import { useGameContext } from './hooks/useGameContext';
 import { useBootstrap } from './hooks/useBootstrap';
 import LoadingScreen from './components/LoadingScreen';
 import VolumeControl from './components/VolumeControl';
 import SiteLogo from './components/SiteLogo';
 import LeftSidebar from './components/LeftSidebar';
-import RaidLobbyPage from './pages/RaidLobbyPage';
-import RaidRoomPage from './pages/RaidRoomPage';
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -146,32 +142,38 @@ function GameContent() {
         <LeftSidebar />
         <Header />
         <ModeSelector />
-        <HealthBar />
-        <Monster
-          key={monstersDefeated}
-          monsterFamily={monsterFamily}
-          monsterType={monsterType}
-          isDefeated={isDefeated}
-          color={monsterVisuals.color}
-          scale={monsterVisuals.scale}
-          shape={monsterShape}
-        />
-        <SignedIn>
-          <PlayerLevel
-            level={level}
-            currentXp={currentXp}
-            xpToNextLevel={xpToNextLevel}
-          />
-        </SignedIn>
-        <TypingInterface
-          dailyProgress={dailyProgress}
-          reloadPlayerStats={reloadPlayerStats}
-        />
-        {currentMode === 'daily' && (
-          <MilestoneProgress
-            completedQuotes={dailyProgress.completedQuotes}
-            totalMilestones={3}
-          />
+        {currentMode === 'raid' ? (
+          <RaidView />
+        ) : (
+          <>
+            <HealthBar />
+            <Monster
+              key={monstersDefeated}
+              monsterFamily={monsterFamily}
+              monsterType={monsterType}
+              isDefeated={isDefeated}
+              color={monsterVisuals.color}
+              scale={monsterVisuals.scale}
+              shape={monsterShape}
+            />
+            <SignedIn>
+              <PlayerLevel
+                level={level}
+                currentXp={currentXp}
+                xpToNextLevel={xpToNextLevel}
+              />
+            </SignedIn>
+            <TypingInterface
+              dailyProgress={dailyProgress}
+              reloadPlayerStats={reloadPlayerStats}
+            />
+            {currentMode === 'daily' && (
+              <MilestoneProgress
+                completedQuotes={dailyProgress.completedQuotes}
+                totalMilestones={3}
+              />
+            )}
+          </>
         )}
         <VolumeControl />
 
@@ -186,19 +188,7 @@ function GameContent() {
 }
 
 function App() {
-  return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <GameProvider>
-          <Routes>
-            <Route path="/" element={<GameContent />} />
-            <Route path="/raid" element={<RaidLobbyPage />} />
-            <Route path="/raid/:roomId" element={<RaidRoomPage />} />
-          </Routes>
-        </GameProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  );
+  return <GameContent />;
 }
 
 export default App;
