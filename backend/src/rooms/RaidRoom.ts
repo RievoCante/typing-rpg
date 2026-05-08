@@ -1,5 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { verifyToken } from '@clerk/backend';
+import { createDbClient } from '../db';
+import { raidSessions, raidPlayers } from '../db/schema';
 
 type PlayerState = {
   userId: string;
@@ -23,6 +25,7 @@ type RaidRoomState = {
   bossBaseHp: number;
   finalBossHp: number;
   texts: Map<string, string>;
+  roomId: string;
   createdAt: number;
   startedAt: number | null;
   attackTimer: ReturnType<typeof setInterval> | null;
@@ -71,6 +74,7 @@ export class RaidRoom extends DurableObject {
       bossBaseHp: BASE_HP_PER_PLAYER,
       finalBossHp: 0,
       texts: new Map(),
+      roomId: crypto.randomUUID(),
       createdAt: Date.now(),
       startedAt: null,
       attackTimer: null,
@@ -242,7 +246,7 @@ export class RaidRoom extends DurableObject {
     }
   }
 
-  endGame(status: 'victory' | 'defeat') {
+  async endGame(status: 'victory' | 'defeat') {
     if (this.state.phase === 'finished') return;
     if (this.state.graceTimer) {
       clearTimeout(this.state.graceTimer);
@@ -263,6 +267,42 @@ export class RaidRoom extends DurableObject {
         try { ws.close(); } catch {}
       }
     }, GRACE_PERIOD_MS);
+
+    this.persistSession(status).catch(() => {});
+  }
+
+  private async persistSession(status: 'victory' | 'defeat') {
+    try {
+      const db = createDbClient((this.env as any).DB);
+      const [session] = await db
+        .insert(raidSessions)
+        .values({
+          roomId: this.state.roomId,
+          startedAt: new Date(this.state.startedAt ?? Date.now()),
+          endedAt: new Date(),
+          playerCount: this.state.players.size,
+          bossBaseHp: this.state.bossBaseHp,
+          bossMaxHp: this.state.bossMaxHp,
+          finalBossHp: this.state.finalBossHp,
+          status,
+        })
+        .returning({ id: raidSessions.id });
+
+      const playerRows = Array.from(this.state.players.values()).map(p => ({
+        sessionId: session.id,
+        userId: p.userId,
+        username: p.username,
+        damageDealt: p.damageDealt,
+        wordsTyped: p.wordsTyped,
+        wordsCorrect: p.wordsCorrect,
+        survived: p.isAlive,
+      }));
+      if (playerRows.length > 0) {
+        await db.insert(raidPlayers).values(playerRows);
+      }
+    } catch (e) {
+      console.error('Failed to persist raid session:', e);
+    }
   }
 
   buildStats() {

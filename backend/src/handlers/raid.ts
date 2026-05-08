@@ -2,29 +2,49 @@ import { Hono, Context } from 'hono';
 import { Bindings, Variables } from '../core/types';
 import { authMiddleware } from '../core/auth';
 import { getAuth } from '@hono/clerk-auth';
-import { generateRoomId } from '../rooms/RaidRoom';
 import { eq, desc } from 'drizzle-orm';
-import { raidPlayers } from '../db/schema';
+import { raidPlayers, raidRooms, users } from '../db/schema';
 
 const raid = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Helper to build ws URL from request
-function getWsUrl(c: Context, roomId: string) {
-  const url = new URL(c.req.url);
-  const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${url.host}/api/raid/rooms/${roomId}/ws`;
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 6;
+
+function generateRoomCode(): string {
+  let code = '';
+  for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
+    code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+  }
+  return code;
 }
 
-// GET /api/raid/rooms — list public lobby
+// Helper to build ws URL from request
+function getWsUrl(c: Context, roomCode: string) {
+  const url = new URL(c.req.url);
+  const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${url.host}/raid/${roomCode}`;
+}
+
+// GET /api/raid/rooms — list public lobby (waiting rooms only)
 raid.get('/rooms', async (c) => {
-  const kv = c.env.RAIDS_KV;
-  const keys = await kv.list({ prefix: 'lobby:' });
-  const rooms = [];
-  for (const key of keys.keys) {
-    const data = await kv.get(key.name, 'json');
-    if (data) rooms.push(data);
-  }
-  return c.json(rooms);
+  const db = c.get('db');
+  
+  const rooms = await db.query.raidRooms.findMany({
+    where: (r, { eq }) => eq(r.status, 'waiting'),
+    orderBy: (r, { desc }) => [desc(r.createdAt)],
+  });
+
+  // For MVP, player count comes from DO. Return static for now.
+  const roomsWithCount = rooms.map(room => ({
+    roomCode: room.roomCode,
+    hostUsername: room.hostUsername,
+    playerCount: 1, // Will be updated via real-time from DO
+    maxPlayers: room.maxPlayers,
+    status: room.status,
+    createdAt: room.createdAt instanceof Date ? room.createdAt.getTime() : Number(room.createdAt) * 1000,
+  }));
+
+  return c.json({ rooms: roomsWithCount });
 });
 
 // POST /api/raid/rooms — create a room
@@ -32,34 +52,55 @@ raid.post('/rooms', authMiddleware, async (c) => {
   const auth = getAuth(c);
   if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
 
-  const roomId = generateRoomId();
-  const doId = c.env.RAID_ROOMS.idFromName(roomId);
+  const db = c.get('db');
+  const [userRow] = await db.select({ username: users.username })
+    .from(users)
+    .where(eq(users.userId, auth.userId))
+    .limit(1);
 
-  // Write lobby entry to KV with 10-min TTL
-  const lobbyEntry = {
-    roomId,
-    hostName: auth.userId,
-    playerCount: 0,
-    status: 'lobby',
-    createdAt: Date.now(),
-  };
-  await c.env.RAIDS_KV.put(`lobby:${roomId}`, JSON.stringify(lobbyEntry), { expirationTtl: 600 });
+  // Generate unique room code
+  let roomCode = generateRoomCode();
+  let attempts = 0;
+  while (attempts < 10) {
+    const existing = await db.query.raidRooms.findFirst({
+      where: (r, { eq }) => eq(r.roomCode, roomCode),
+    });
+    if (!existing) break;
+    roomCode = generateRoomCode();
+    attempts++;
+  }
 
-  return c.json({ roomId, wsUrl: getWsUrl(c, roomId) });
+  const createdAt = new Date();
+  const expiresAt = createdAt.getTime() + 5 * 60 * 1000; // 5 minutes
+
+  await db.insert(raidRooms).values({
+    roomCode,
+    hostId: auth.userId,
+    hostUsername: userRow?.username ?? auth.userId,
+    status: 'waiting',
+    maxPlayers: 4,
+    createdAt,
+  });
+
+  return c.json({ roomCode, expiresAt, wsUrl: getWsUrl(c, roomCode) });
 });
 
-// POST /api/raid/rooms/:id/join — join a room
-raid.post('/rooms/:id/join', authMiddleware, async (c) => {
+// POST /api/raid/rooms/:code/join — get ws URL for room
+raid.post('/rooms/:code/join', authMiddleware, async (c) => {
   const auth = getAuth(c);
   if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
 
-  const roomId = c.req.param('id');
-  const existing = await c.env.RAIDS_KV.get(`lobby:${roomId}`);
-  if (!existing) {
-    return c.json({ error: 'Room not found' }, 404);
-  }
+  const roomCode = c.req.param('code').toUpperCase();
+  const db = c.get('db');
 
-  return c.json({ roomId, wsUrl: getWsUrl(c, roomId) });
+  const room = await db.query.raidRooms.findFirst({
+    where: (r, { eq }) => eq(r.roomCode, roomCode),
+  });
+
+  if (!room) return c.json({ error: 'Room not found' }, 404);
+  if (room.status !== 'waiting') return c.json({ error: 'Room is not accepting players' }, 400);
+
+  return c.json({ roomCode, wsUrl: getWsUrl(c, roomCode) });
 });
 
 // GET /api/raid/sessions — my raid history

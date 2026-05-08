@@ -85,12 +85,11 @@ app.route("/raid", raidRoutes);
 const worker = {
   async fetch(req: Request, env: Bindings, ctx: any) {
     const url = new URL(req.url);
-    // Route WebSocket upgrade requests to Durable Object
-    if (url.pathname.startsWith('/api/raid/rooms/') && url.pathname.endsWith('/ws')) {
-      const match = url.pathname.match(/^\/api\/raid\/rooms\/([^\/]+)\/ws$/);
-      if (!match) return app.fetch(req, env, ctx);
-      const roomId = match[1];
-      const doId = env.RAID_ROOMS.idFromName(roomId);
+    // Route WebSocket upgrade requests to Durable Object at /raid/:roomCode
+    // Path pattern: /raid/XXXXXX (6 char room code)
+    if (url.pathname.startsWith('/raid/') && url.pathname.length === 12 && req.headers.get('Upgrade') === 'websocket') {
+      const roomCode = url.pathname.slice(6); // /raid/XXXXXX = 6 chars
+      const doId = env.RAID_ROOMS.idFromName(roomCode);
       const room = env.RAID_ROOMS.get(doId);
       return room.fetch(req);
     }
