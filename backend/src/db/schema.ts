@@ -91,3 +91,17 @@ export const raidPlayers = sqliteTable(
   ]
 );
 
+/**
+ * Raid room registry for matchmaking.
+ */
+export const raidRooms = sqliteTable('raid_rooms', {
+  roomCode: text('room_code').primaryKey(),
+  hostId: text('host_id').notNull(),
+  hostUsername: text('host_username').notNull(),
+  status: text('status', { enum: ['waiting', 'active', 'ended'] }).default('waiting').notNull(),
+  maxPlayers: integer('max_players').default(4).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .default(sql`(strftime('%s', 'now'))`)
+    .notNull(),
+});
+
