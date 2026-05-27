@@ -2,8 +2,9 @@ import { Hono, Context } from 'hono';
 import { Bindings, Variables } from '../core/types';
 import { authMiddleware } from '../core/auth';
 import { getAuth } from '@hono/clerk-auth';
-import { eq, desc, gt, and } from 'drizzle-orm';
-import { raidPlayers, raidRooms, users } from '../db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { raidPlayers, raidRooms } from '../db/schema';
+import { getUserOrGuest } from '../core/raidAuth';
 
 const raid = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -18,44 +19,29 @@ function generateRoomCode(): string {
   return code;
 }
 
-function generateGuestId(): string {
-  return `guest-${crypto.randomUUID().slice(0, 8)}`;
-}
-
-function generateGuestUsername(): string {
-  return `Guest-${Math.floor(Math.random() * 900) + 100}`;
-}
-
-// Helper to build ws URL from request
-function getWsUrl(c: Context, roomCode: string) {
+// Build the WebSocket URL the frontend will connect with. Credentials are
+// embedded so the worker.fetch upgrade handler can validate auth BEFORE
+// routing to the Durable Object, and the DO can trust them without any
+// re-derivation. For Clerk users we forward the bearer token so the upgrade
+// can verify the userId matches `sub`.
+function getWsUrl(
+  c: Context,
+  roomCode: string,
+  userId: string,
+  username: string
+): string {
   const url = new URL(c.req.url);
   const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${url.host}/raid/${roomCode}`;
-}
+  const params = new URLSearchParams({ userId, username });
 
-// Helper to get user info or generate guest credentials
-async function getUserOrGuest(c: Context): Promise<{ userId: string; username: string; isGuest: boolean }> {
-  const auth = getAuth(c);
-  
-  if (auth?.userId) {
-    const db = c.get('db');
-    const [userRow] = await db.select({ username: users.username })
-      .from(users)
-      .where(eq(users.userId, auth.userId))
-      .limit(1);
-    
-    return {
-      userId: auth.userId,
-      username: userRow?.username ?? auth.userId,
-      isGuest: false,
-    };
+  // Forward the bearer token so the WS upgrade can verify the authenticated
+  // userId. Guests have no token; nothing to forward.
+  const auth = c.req.header('Authorization');
+  if (auth?.startsWith('Bearer ')) {
+    params.set('token', auth.slice(7));
   }
-  
-  return {
-    userId: generateGuestId(),
-    username: generateGuestUsername(),
-    isGuest: true,
-  };
+
+  return `${protocol}//${url.host}/raid/${roomCode}?${params.toString()}`;
 }
 
 // GET /api/raid/rooms — list public lobby (waiting rooms only)
@@ -101,13 +87,16 @@ raid.post('/rooms', async (c) => {
 
   return c.json({
     roomCode,
-    wsUrl: getWsUrl(c, roomCode),
+    wsUrl: getWsUrl(c, roomCode, user.userId, user.username),
+    userId: user.userId,
+    username: user.username,
+    isGuest: user.isGuest,
   });
 });
 
 // POST /api/raid/rooms/:code/join — get ws URL for room
 raid.post('/rooms/:code/join', async (c) => {
-  await getUserOrGuest(c); // Validates user or generates guest, but we don't need to use the result here
+  const user = await getUserOrGuest(c);
 
   const roomCode = c.req.param('code').toUpperCase();
   const db = c.get('db');
@@ -119,7 +108,13 @@ raid.post('/rooms/:code/join', async (c) => {
   if (!room) return c.json({ error: 'Room not found' }, 404);
   if (room.status !== 'waiting') return c.json({ error: 'Room is not accepting players' }, 400);
 
-  return c.json({ roomCode, wsUrl: getWsUrl(c, roomCode) });
+  return c.json({
+    roomCode,
+    wsUrl: getWsUrl(c, roomCode, user.userId, user.username),
+    userId: user.userId,
+    username: user.username,
+    isGuest: user.isGuest,
+  });
 });
 
 // GET /api/raid/sessions — my raid history

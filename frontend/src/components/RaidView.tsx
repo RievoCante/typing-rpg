@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useRaidSocket } from '../hooks/useRaidSocket';
 import { useRaidState } from '../hooks/useRaidState';
-import { useApi } from '../hooks/useApi';
 import { useGameContext } from '../hooks/useGameContext';
 import RaidLobbyScreen from './RaidLobbyScreen';
 import RaidGame from './RaidGame';
@@ -18,6 +17,15 @@ interface LobbyRoom {
   status: string;
 }
 
+interface RoomResponse {
+  roomCode: string;
+  wsUrl: string;
+  userId: string;
+  username: string;
+  isGuest: boolean;
+  error?: string;
+}
+
 export default function RaidView() {
   const [phase, setPhase] = useState<Phase>('room-list');
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
@@ -31,9 +39,8 @@ export default function RaidView() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const hasJoined = useRef(false);
 
-  const { userId, getToken } = useAuth();
+  const { getToken } = useAuth();
   const { setCurrentMode } = useGameContext();
-  const { getMe } = useApi();
   const apiUrl = import.meta.env.VITE_API_URL;
 
   // Fetch room list when in room-list phase, poll every 5 seconds
@@ -56,26 +63,12 @@ export default function RaidView() {
     return () => clearInterval(id);
   }, [phase, fetchRooms]);
 
-  // Fetch username once a room is selected (wsUrl is now set from backend response)
+  // Reset join state when leaving a room. Credentials are set when the
+  // backend responds to create/join — never generated locally.
   useEffect(() => {
     if (!activeRoomId) return;
     hasJoined.current = false;
-
-    // Get username: if logged in use API, else generate guest name
-    if (userId) {
-      setLocalUserId(userId);
-      getMe()
-        .then(r => r.json())
-        .then(data => setUsername(data?.username ?? null))
-        .catch(() => {});
-    } else {
-      // Generate guest userId and username
-      const guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
-      const guestName = `Guest-${Math.floor(Math.random() * 900) + 100}`;
-      setLocalUserId(guestId);
-      setUsername(guestName);
-    }
-  }, [activeRoomId, getMe, userId]);
+  }, [activeRoomId]);
 
   const { lastMessage, isConnected, error, send } = useRaidSocket(wsUrl ?? '');
   const { state, isPhase, isLocalAlive } = useRaidState(
@@ -90,11 +83,13 @@ export default function RaidView() {
     }
   }, [isConnected]);
 
-  // Auto-join once connected and username is ready
+  // Auto-join once connected. Identity is established by the WS upgrade URL
+  // params (validated server-side); the join message is just the "I'm ready"
+  // signal — the DO ignores any userId/username in the body.
   useEffect(() => {
     if (isConnected && username && localUserId && !hasJoined.current) {
       hasJoined.current = true;
-      send({ type: 'join', userId: localUserId, username });
+      send({ type: 'join' });
     }
   }, [isConnected, username, localUserId, send]);
 
@@ -102,11 +97,8 @@ export default function RaidView() {
     setCreating(true);
     try {
       const token = await getToken();
-      // Optional auth - include token if available
       const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(`${apiUrl}/api/raid/rooms`, {
         method: 'POST',
@@ -116,10 +108,12 @@ export default function RaidView() {
         alert('Failed to create room');
         return;
       }
-      const data = await res.json();
-      if (data.roomCode && data.wsUrl) {
+      const data: RoomResponse = await res.json();
+      if (data.roomCode && data.wsUrl && data.userId && data.username) {
+        setLocalUserId(data.userId);
+        setUsername(data.username);
         setActiveRoomId(data.roomCode);
-        setWsUrl(data.wsUrl); // Use wsUrl from backend
+        setWsUrl(data.wsUrl);
         setPhase('in-room');
       }
     } finally {
@@ -131,11 +125,8 @@ export default function RaidView() {
     setJoinError(null);
     try {
       const token = await getToken();
-      // Optional auth - include token if available
       const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(`${apiUrl}/api/raid/rooms/${roomId}/join`, {
         method: 'POST',
@@ -148,12 +139,16 @@ export default function RaidView() {
         else setJoinError('Failed to join room');
         return;
       }
-      const data = await res.json();
-      setActiveRoomId(roomId);
-      if (data.wsUrl) {
-        setWsUrl(data.wsUrl); // Use wsUrl from backend
+      const data: RoomResponse = await res.json();
+      if (data.userId && data.username && data.wsUrl) {
+        setLocalUserId(data.userId);
+        setUsername(data.username);
+        setWsUrl(data.wsUrl);
+        setActiveRoomId(roomId);
+        setPhase('in-room');
+      } else {
+        setJoinError('Invalid server response');
       }
-      setPhase('in-room');
     } catch {
       setJoinError('Failed to join room');
     }
@@ -171,6 +166,8 @@ export default function RaidView() {
   const handleBackToLobby = () => {
     setWsUrl(null);
     setActiveRoomId(null);
+    setLocalUserId(null);
+    setUsername(null);
     setPhase('room-list');
     setLoading(true);
   };

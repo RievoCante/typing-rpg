@@ -294,6 +294,53 @@ describe('RaidRoom', () => {
     expect(syncSpy).toHaveBeenCalledWith(2, 'active');
   });
 
+  // ── WS credential sourcing (P1-4) ──
+
+  it('webSocketMessage("join") uses stored credentials, ignoring message body', () => {
+    const ws = { send: vi.fn() } as any;
+    // Simulate worker.fetch storing validated credentials for this WS
+    (room as any).wsCredentials.set(ws, {
+      userId: 'trusted-id',
+      username: 'TrustedName',
+    });
+
+    // Client tries to impersonate a different user via the message body
+    (room as any).webSocketMessage(
+      ws,
+      JSON.stringify({
+        type: 'join',
+        userId: 'spoofed-id',
+        username: 'Attacker',
+      })
+    );
+
+    const players = Array.from((room as any).state.players.values());
+    expect(players.length).toBe(1);
+    expect((players[0] as any).userId).toBe('trusted-id');
+    expect((players[0] as any).username).toBe('TrustedName');
+  });
+
+  it('webSocketMessage("join") drops the join when no credentials are stored', () => {
+    const ws = { send: vi.fn() } as any;
+    // No entry in wsCredentials — simulates a malformed/bypassed upgrade
+    (room as any).webSocketMessage(
+      ws,
+      JSON.stringify({ type: 'join', userId: 'x', username: 'X' })
+    );
+    expect((room as any).state.players.size).toBe(0);
+  });
+
+  it('webSocketClose cleans up wsCredentials for the closed WS', () => {
+    const ws = { send: vi.fn() } as any;
+    (room as any).wsCredentials.set(ws, {
+      userId: 'u1',
+      username: 'Alice',
+    });
+    (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' });
+    (room as any).webSocketClose(ws);
+    expect((room as any).wsCredentials.has(ws)).toBe(false);
+  });
+
   // ── webSocketError regression test ──
 
   it('removes player on webSocketError and transfers host in lobby', () => {

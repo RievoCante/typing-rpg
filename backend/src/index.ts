@@ -19,6 +19,7 @@ import { Bindings, Variables } from "./core/types";
 import { authMiddleware } from "./core/auth";
 import { kvRateLimit } from "./core/rateLimit";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
+import { validateRaidWsAuth } from "./core/raidAuth";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
   "/api"
@@ -86,8 +87,18 @@ const worker = {
   async fetch(req: Request, env: Bindings, ctx: any) {
     const url = new URL(req.url);
     // Route WebSocket upgrade requests to Durable Object at /raid/:roomCode
-    // Path pattern: /raid/XXXXXX (6 char room code)
-    if (url.pathname.startsWith('/raid/') && url.pathname.length === 12 && req.headers.get('Upgrade') === 'websocket') {
+    // Path pattern: /raid/XXXXXX (6 char room code).
+    // Auth is validated HERE — the DO trusts the credentials it sees in the
+    // URL because we have already verified them.
+    if (
+      url.pathname.startsWith('/raid/') &&
+      url.pathname.length === 12 &&
+      req.headers.get('Upgrade') === 'websocket'
+    ) {
+      const authResult = await validateRaidWsAuth(url, env as { CLERK_SECRET_KEY?: string });
+      if (!authResult.ok) {
+        return new Response(authResult.error, { status: authResult.status });
+      }
       const roomCode = url.pathname.slice(6); // /raid/XXXXXX = 6 chars
       const doId = env.RAID_ROOMS.idFromName(roomCode);
       const room = env.RAID_ROOMS.get(doId);

@@ -23,13 +23,26 @@ export default function RaidResultScreen({
   const statsByUserId = new Map((stats?.players ?? []).map(p => [p.userId, p]));
   const localXp = statsByUserId.get(localUserId)?.xpAwarded ?? 0;
 
+  // Don't render a result heading if `result` hasn't arrived — a null fallback
+  // to DEFEAT would silently mask missing state.
+  const headingClass =
+    result === 'victory'
+      ? 'text-green-400'
+      : result === 'defeat'
+        ? 'text-red-400'
+        : 'text-gray-400';
+  const headingText =
+    result === 'victory'
+      ? 'VICTORY!'
+      : result === 'defeat'
+        ? 'DEFEAT'
+        : 'Loading...';
+
   return (
     <div className="flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full text-center">
-        <h2
-          className={`text-4xl font-bold mb-4 ${result === 'victory' ? 'text-green-400' : 'text-red-400'}`}
-        >
-          {result === 'victory' ? 'VICTORY!' : 'DEFEAT'}
+        <h2 className={`text-4xl font-bold mb-4 ${headingClass}`}>
+          {headingText}
         </h2>
 
         {result === 'victory' && localXp > 0 && (
