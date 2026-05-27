@@ -74,6 +74,11 @@ export function useRaidState(
             bossHp: lastMessage.bossHp ?? prev.bossHp,
             bossMaxHp: lastMessage.bossMaxHp ?? prev.bossMaxHp,
             isHost: localPlayer?.isHost ?? false,
+            // When the server attaches the terminal result/stats to a
+            // room_state (sent right after victory/defeat), pick them up here
+            // so a coalesced render still populates the result screen.
+            result: lastMessage.result ?? prev.result,
+            stats: lastMessage.stats ?? prev.stats,
             // Clear the prior error once we receive a fresh authoritative
             // room state — stale errors should not linger across phases.
             error: null,

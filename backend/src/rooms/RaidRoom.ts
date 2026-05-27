@@ -494,9 +494,13 @@ export class RaidRoom extends DurableObject {
     // Persist session and compute XP awards. Builds the xpByUserId map so we
     // can broadcast personalized XP in the stats payload.
     const xpByUserId = await this.persistSessionAndAwardXp(status);
+    const stats = this.buildStats(xpByUserId);
 
-    this.broadcast({ type: status, stats: this.buildStats(xpByUserId) });
-    this.broadcastRoomState();
+    // Broadcast the terminal result and a room_state that carries result+stats
+    // so clients that coalesce these two messages (React 18 auto-batching) still
+    // end up with a populated result screen.
+    this.broadcast({ type: status, stats });
+    this.broadcastRoomState({ result: status, stats });
 
     this.state.graceTimer = setTimeout(() => {
       for (const [ws] of this.state.players) {
@@ -614,7 +618,7 @@ export class RaidRoom extends DurableObject {
     return { totalWords, avgWpm, durationMs, players: perPlayer };
   }
 
-  broadcastRoomState() {
+  broadcastRoomState(extra?: { result?: 'victory' | 'defeat'; stats?: ReturnType<RaidRoom['buildStats']> }) {
     const players = Array.from(this.state.players.values()).map(p => ({
       userId: p.userId,
       username: p.username,
@@ -627,13 +631,15 @@ export class RaidRoom extends DurableObject {
       damageDealt: p.damageDealt,
     }));
 
-    const state = {
+    const state: Record<string, unknown> = {
       type: 'room_state',
       phase: this.state.phase,
       players,
       bossHp: this.state.bossHp,
       bossMaxHp: this.state.bossMaxHp,
     };
+    if (extra?.result) state.result = extra.result;
+    if (extra?.stats) state.stats = extra.stats;
 
     for (const [ws] of this.state.players) {
       try { ws.send(JSON.stringify(state)); } catch {

@@ -66,7 +66,9 @@ export default function RaidView() {
       setLocalUserId(userId);
       getMe()
         .then(r => r.json())
-        .then(data => setUsername(data?.username ?? null))
+        .then(data =>
+          setUsername(data?.user?.username ?? data?.username ?? null)
+        )
         .catch(() => {});
     } else {
       // Generate guest userId and username

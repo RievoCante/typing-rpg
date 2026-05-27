@@ -43,6 +43,8 @@ export type RaidServerMessage =
       players: RaidPlayer[];
       bossHp: number;
       bossMaxHp: number;
+      result?: 'victory' | 'defeat';
+      stats?: RaidStats;
     }
   | { type: 'game_started'; texts: Record<string, string> }
   | { type: 'player_died'; playerId: string }
