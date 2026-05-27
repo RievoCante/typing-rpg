@@ -62,7 +62,7 @@ function generateRoomId(): string {
   return id;
 }
 
-function generateText(wordCount: number = 25): string {
+function generateText(wordCount: number): string {
   const out: string[] = [];
   for (let i = 0; i < wordCount; i++) {
     out.push(WORDS[Math.floor(Math.random() * WORDS.length)]);
