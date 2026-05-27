@@ -1,6 +1,9 @@
 import { Context } from 'hono';
 import { getAuth } from '@hono/clerk-auth';
-import { verifyToken as clerkVerifyToken } from '@clerk/backend';
+import {
+  verifyToken as clerkVerifyToken,
+  createClerkClient,
+} from '@clerk/backend';
 import { eq } from 'drizzle-orm';
 import { users } from '../db/schema';
 import {
@@ -35,9 +38,49 @@ export async function getUserOrGuest(c: Context): Promise<Identity> {
       .where(eq(users.userId, auth.userId))
       .limit(1);
 
+    if (userRow?.username) {
+      return {
+        userId: auth.userId,
+        username: userRow.username,
+        isGuest: false,
+      };
+    }
+
+    // No local profile yet — pull display name from Clerk and upsert so
+    // future calls (and other features like leaderboards) see a real name
+    // instead of the raw Clerk userId.
+    let username = auth.userId;
+    try {
+      const clerkClient = createClerkClient({
+        secretKey: c.env.CLERK_SECRET_KEY,
+      });
+      const clerkUser = await clerkClient.users.getUser(auth.userId);
+      const fullName = [clerkUser.firstName, clerkUser.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      const email = clerkUser.emailAddresses[0]?.emailAddress;
+      username =
+        clerkUser.username ||
+        (fullName.length > 0 ? fullName : undefined) ||
+        email ||
+        auth.userId;
+    } catch {
+      // Clerk lookup failed — fall back to userId rather than crashing the
+      // raid flow. Better to render the id than to block room creation.
+    }
+
+    await db
+      .insert(users)
+      .values({ userId: auth.userId, username })
+      .onConflictDoUpdate({
+        target: users.userId,
+        set: { username },
+      });
+
     return {
       userId: auth.userId,
-      username: userRow?.username ?? auth.userId,
+      username,
       isGuest: false,
     };
   }
