@@ -20,10 +20,9 @@ import type { MonsterFamily } from './components/Monster';
 import type { MonsterTypeEnum } from './context/GameContext';
 import PotionPopup from './components/PotionPopup';
 import DeathPopup from './components/DeathPopup';
+import RaidView from './components/RaidView';
 
 // Contexts
-import { ThemeProvider } from './context/ThemeProvider';
-import { GameProvider } from './context/GameProvider';
 import { useGameContext } from './hooks/useGameContext';
 import { useBootstrap } from './hooks/useBootstrap';
 import LoadingScreen from './components/LoadingScreen';
@@ -45,10 +44,9 @@ function GameContent() {
     isCurrentMonsterDefeated,
     setCurrentMonsterType,
     isPlayerDead,
-    resetPlayerHealth,
-    resetKillStreak,
     givePotion,
     hasPotion,
+    resetGameState,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -126,12 +124,9 @@ function GameContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monstersDefeated]);
 
-  // Handle player death - reset everything
+  // Handle player death - reset everything while preserving current mode
   const handleDeathRestart = () => {
-    resetPlayerHealth();
-    resetKillStreak();
-    // Reload page or reset session - for now, we'll just reload
-    window.location.reload();
+    resetGameState();
   };
 
   if (bootstrapping) return <LoadingScreen />;
@@ -147,32 +142,38 @@ function GameContent() {
         <LeftSidebar />
         <Header />
         <ModeSelector />
-        <HealthBar />
-        <Monster
-          key={monstersDefeated}
-          monsterFamily={monsterFamily}
-          monsterType={monsterType}
-          isDefeated={isDefeated}
-          color={monsterVisuals.color}
-          scale={monsterVisuals.scale}
-          shape={monsterShape}
-        />
-        <SignedIn>
-          <PlayerLevel
-            level={level}
-            currentXp={currentXp}
-            xpToNextLevel={xpToNextLevel}
-          />
-        </SignedIn>
-        <TypingInterface
-          dailyProgress={dailyProgress}
-          reloadPlayerStats={reloadPlayerStats}
-        />
-        {currentMode === 'daily' && (
-          <MilestoneProgress
-            completedQuotes={dailyProgress.completedQuotes}
-            totalMilestones={3}
-          />
+        {currentMode === 'raid' ? (
+          <RaidView />
+        ) : (
+          <>
+            <HealthBar />
+            <Monster
+              key={monstersDefeated}
+              monsterFamily={monsterFamily}
+              monsterType={monsterType}
+              isDefeated={isDefeated}
+              color={monsterVisuals.color}
+              scale={monsterVisuals.scale}
+              shape={monsterShape}
+            />
+            <SignedIn>
+              <PlayerLevel
+                level={level}
+                currentXp={currentXp}
+                xpToNextLevel={xpToNextLevel}
+              />
+            </SignedIn>
+            <TypingInterface
+              dailyProgress={dailyProgress}
+              reloadPlayerStats={reloadPlayerStats}
+            />
+            {currentMode === 'daily' && (
+              <MilestoneProgress
+                completedQuotes={dailyProgress.completedQuotes}
+                totalMilestones={3}
+              />
+            )}
+          </>
         )}
         <VolumeControl />
 
@@ -187,13 +188,7 @@ function GameContent() {
 }
 
 function App() {
-  return (
-    <ThemeProvider>
-      <GameProvider>
-        <GameContent />
-      </GameProvider>
-    </ThemeProvider>
-  );
+  return <GameContent />;
 }
 
 export default App;

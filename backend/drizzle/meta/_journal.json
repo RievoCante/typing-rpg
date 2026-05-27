@@ -15,6 +15,34 @@
       "when": 1745000000000,
       "tag": "0001_add-leaderboard-index",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776845968384,
+      "tag": "0002_fantastic_roulette",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778261209257,
+      "tag": "0003_brown_lockheed",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779811352200,
+      "tag": "0004_add_player_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779811352201,
+      "tag": "0005_windy_changeling",
+      "breakpoints": true
     }
   ]
 }

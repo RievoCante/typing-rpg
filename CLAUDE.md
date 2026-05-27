@@ -1,70 +1,39 @@
-# CLAUDE.md
+# Typing RPG
 
-This file provides guidance to Claude Code when working with code in this repository.
+Type words to battle monsters. Modes: **Daily** (3 quotes, 1/day), **Endless** (XP per session), **Raid** (co-op, 2-3 players, guest mode supported).
 
-## Project Overview
+Monorepo: `frontend/` (React 19 + Vite) and `backend/` (Hono + Cloudflare Workers + D1 + Drizzle). Bun everywhere. Root `package.json` is empty — no root scripts.
 
-Single-page typing RPG. Users type words to battle slimes. Two modes: **Daily** (3 quotes at increasing difficulty, one attempt per day) and **Endless** (continuous play, XP per session).
+## Knowledge sources (read from vault)
 
-## Game Mechanics (Endless Mode)
+Product/feature specs live in the AI Brain vault, **not in this repo**:
 
-**Player Health System:**
-- Player has 100 HP max
-- Vertical red health bar on left side of typing area
-- Flashes when taking damage
-- Shows kill streak counter (🔥)
+- **Product spec (PRD):** `~/Workspace/ai-brain/business/typing-rpg/canonical/prd.md`
+- **Feature specs:** `~/Workspace/ai-brain/business/typing-rpg/canonical/features/<feature>.md` (e.g. `raid-boss.md`)
+- **Venture index + rules:** `~/Workspace/ai-brain/business/typing-rpg/index.md` and `CLAUDE.md`
 
-**Monster Attack System:**
-- Monster attacks periodically only after player starts typing
-- Attack intervals: Normal=6s, Mini-boss=5s, Boss=4s
-- Periodic damage: Normal=10, Mini-boss=15, Boss=20
-- Word mistake damage: 5-15 (random) — triggers once when pressing space after typing a wrong word. Also applies on text completion if the final word has mistakes (no trailing space)
-- "ATTACK!" popup in purple appears when taking periodic damage
+Read those for product/feature-level questions. This file holds engineering rules only. Never duplicate vault content here.
 
-**Healing Potion:**
-- 30% chance to drop after defeating a monster
-- Heals 25-50 HP (random)
-- Popup appears with "Drink Potion" button
-- Must click button to heal
+## Response Style
 
-**Death Punishment:**
-- When HP reaches 0, death popup shows final stats
-- "Try Again" button reloads page (session reset)
-- All progress lost, kill streak resets
+Keep responses short and concise. Save output tokens without sacrificing readability.
 
-**Monster Spawning:**
-- Monster persists when switching word counts or modes
-- New monster only spawns after defeating current one
-- 50/50 chance of Slime or Golem
-- Random type (normal/mini-boss/boss), color, size, shape
+## Verification (CI order)
 
-## Infrastructure
+- **Frontend**: install → lint → format:check → typecheck → test → build
+- **Backend**: install → typecheck → test
 
-- **Frontend env vars**: `VITE_API_URL`, `VITE_CLERK_PUBLISHABLE_KEY`
-- **Backend env vars**: Clerk secret key (Cloudflare Worker secret), Sentry DSN from Worker secret
-- **CI/CD** (`.github/workflows/ci.yml`): lint + format + typecheck + build on frontend; typecheck + tests on backend. Auto-deploys backend to Cloudflare Workers on push to `main` (runs D1 migrations first).
-- **Branch strategy**: feature branches → `dev` → `main` (triggers deploy).
+## Critical Rules
 
-## Workflow
+- **XP sync**: `frontend/src/utils/calculateXP.ts` MUST match `backend/src/core/xp.ts`.
+- **Wordlist sync**: `backend/src/static/english_1k.json` MUST match `frontend/src/static/english/english_1k.json` — backend imports its own copy at module init for raid text.
+- **Locked words**: pressing space after a correct word locks it — locked chars can't be deleted.
+- **Daily**: 3 quotes, 1 attempt/day, 500 base XP (0.5–1.5× WPM multiplier).
+- **Raid**: min 2 / max 3 players, 75-word texts, cooperative boss battle.
+- **Middleware order** (`backend/src/index.ts`): Sentry → CORS → logger → Clerk auth → DB client → rate limiter.
+- **Routing**: all routes in `frontend/src/main.tsx` via `createBrowserRouter`. `App.tsx` renders only `<GameContent />`.
+- **Guest mode**: raid backend generates random `guest-xxx` ID and `Guest-XXX` username for unauthenticated players.
 
-ALWAYS run format check and linting before considering a task complete.
+## Deployment
 
-- Frontend: `bun run lint && bun run format:check && bunx tsc --noEmit`
-- Backend: `bun test`
-
-## Domain-Specific Instructions
-
-See @frontend/CLAUDE.md for frontend-specific rules and @backend/CLAUDE.md for backend-specific rules.
-
-## gstack (recommended)
-
-This project uses [gstack](https://github.com/garrytan/gstack) for AI-assisted workflows.
-Install it for the best experience:
-
-```bash
-git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-cd ~/.claude/skills/gstack && ./setup --team
-```
-
-Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
-Use /browse for all web browsing. Use ~/.claude/skills/gstack/... for gstack file paths.
+Backend CD (GitHub Actions, `main` only): `bunx wrangler d1 migrations apply typing-rpg-db --remote` → `bunx wrangler deploy`. Frontend is containerized (`docker-compose.yml`).

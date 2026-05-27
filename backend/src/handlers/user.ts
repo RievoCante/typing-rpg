@@ -45,7 +45,10 @@ export const createUser = async (c: AppContext) => {
   await db
     .insert(users)
     .values({ userId: auth.userId, username })
-    .onConflictDoNothing({ target: users.userId });
+    .onConflictDoUpdate({
+      target: users.userId,
+      set: { username },
+    });
 
   const user = await db.query.users.findFirst({
     where: (u, { eq }) => eq(u.userId, auth.userId),

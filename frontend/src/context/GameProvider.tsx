@@ -24,16 +24,16 @@ const ATTACK_INTERVALS: Record<MonsterTypeEnum, number> = {
   boss: 4,
 };
 
-// Damage per monster type for periodic attacks
+// Damage per monster type for periodic attacks (reduced for better playability)
 const PERIODIC_DAMAGE: Record<MonsterTypeEnum, number> = {
-  normal: 10,
-  'mini-boss': 15,
-  boss: 20,
+  normal: 3,
+  'mini-boss': 5,
+  boss: 7,
 };
 
-// Damage for typo mistakes
-const MISTAKE_DAMAGE_MIN = 5;
-const MISTAKE_DAMAGE_MAX = 15;
+// Damage for typo mistakes (reduced for better playability)
+const MISTAKE_DAMAGE_MIN = 2;
+const MISTAKE_DAMAGE_MAX = 5;
 
 const getStoredWordCount = (): number => {
   try {
@@ -74,7 +74,7 @@ export const GameProvider = ({
   children: React.ReactNode;
   initialMode?: 'daily' | 'endless';
 }) => {
-  const [currentMode, setCurrentMode] = useState<'daily' | 'endless'>(
+  const [currentMode, setCurrentMode] = useState<'daily' | 'endless' | 'raid'>(
     initialMode
   );
   const [totalWords, setTotalWords] = useState<number>(0);
@@ -95,7 +95,7 @@ export const GameProvider = ({
   // Monster attack system
   const [currentMonsterType, setCurrentMonsterType] =
     useState<MonsterTypeEnum>('normal');
-  const attackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const attackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Kill streak
   const [killStreak, setKillStreak] = useState<number>(0);
@@ -106,6 +106,9 @@ export const GameProvider = ({
 
   // Player typing state - controls when monster can attack
   const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
+
+  // Pause state - stops monster attacks when typing area unfocused
+  const [isPaused, setIsPaused] = useState<boolean>(false);
 
   // Helper function to decrement remaining words (for word completion)
   const decrementRemainingWords = useCallback(() => {
@@ -199,6 +202,21 @@ export const GameProvider = ({
     setKillStreak(0);
   }, []);
 
+  // Reset all game state while preserving mode and settings (for death retry)
+  const resetGameState = useCallback(() => {
+    setPlayerHealth(MAX_PLAYER_HEALTH);
+    setIsPlayerDead(false);
+    setMonstersDefeated(0);
+    setKillStreak(0);
+    setHasPotion(false);
+    setPotionHealAmount(0);
+    setIsCurrentMonsterDefeated(false);
+    setHasStartedTyping(false);
+    setTotalWords(0);
+    setRemainingWords(0);
+    // Attack timer cleanup is handled by the useEffect when conditions change
+  }, []);
+
   // Potion functions
   const givePotion = useCallback(() => {
     if (Math.random() < POTION_CHANCE) {
@@ -229,7 +247,8 @@ export const GameProvider = ({
       isPlayerDead ||
       isCurrentMonsterDefeated ||
       totalWords === 0 ||
-      !hasStartedTyping
+      !hasStartedTyping ||
+      isPaused
     ) {
       if (attackTimerRef.current) {
         clearInterval(attackTimerRef.current);
@@ -264,6 +283,7 @@ export const GameProvider = ({
     isCurrentMonsterDefeated,
     totalWords,
     hasStartedTyping,
+    isPaused,
     damagePlayer,
   ]);
 
@@ -319,6 +339,11 @@ export const GameProvider = ({
       // Player typing state
       hasStartedTyping,
       setHasStartedTyping,
+      // Pause state
+      isPaused,
+      setIsPaused,
+      // Death retry
+      resetGameState,
     }),
     [
       currentMode,
@@ -348,6 +373,8 @@ export const GameProvider = ({
       drinkPotion,
       givePotion,
       hasStartedTyping,
+      isPaused,
+      resetGameState,
     ]
   );
 

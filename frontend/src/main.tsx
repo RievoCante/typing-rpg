@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import LeaderboardPage from './pages/LeaderboardPage';
+import RaidLobbyPage from './pages/RaidLobbyPage';
+import RaidGamePage from './pages/RaidGamePage';
 import './index.css';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { ThemeProvider } from './context/ThemeProvider';
@@ -33,6 +35,8 @@ if (!PUBLISHABLE_KEY) {
 const router = createBrowserRouter([
   { path: '/', element: <App /> },
   { path: '/leaderboard', element: <LeaderboardPage /> },
+  { path: '/raid', element: <RaidLobbyPage /> },
+  { path: '/raid/:roomCode', element: <RaidGamePage /> },
 ]);
 
 createRoot(document.getElementById('root')!).render(

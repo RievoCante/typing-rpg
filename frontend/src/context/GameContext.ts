@@ -3,8 +3,8 @@ import { createContext } from 'react';
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
 interface GameContextType {
-  currentMode: 'daily' | 'endless';
-  setCurrentMode: (mode: 'daily' | 'endless') => void;
+  currentMode: 'daily' | 'endless' | 'raid';
+  setCurrentMode: (mode: 'daily' | 'endless' | 'raid') => void;
   totalWords: number;
   remainingWords: number;
   setTotalWords: (count: number) => void;
@@ -24,6 +24,9 @@ interface GameContextType {
   // Player typing state
   hasStartedTyping: boolean;
   setHasStartedTyping: (value: boolean) => void;
+  // Pause state (typing unfocused)
+  isPaused: boolean;
+  setIsPaused: (value: boolean) => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -46,4 +49,7 @@ export const GameContext = createContext<GameContextType>({
   // Player typing state
   hasStartedTyping: false,
   setHasStartedTyping: () => {},
+  // Pause state
+  isPaused: false,
+  setIsPaused: () => {},
 });
