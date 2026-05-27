@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Sun, Moon, User, X } from 'lucide-react';
 import {
   SignedIn,
@@ -47,12 +46,6 @@ const Header: React.FC = () => {
         <div className="pl-24 sm:pl-28" />
 
         <div className="flex space-x-2 sm:space-x-4 items-start">
-          <Link
-            to="/raid"
-            className="text-white hover:text-red-400 font-bold px-2 py-1"
-          >
-            Raid
-          </Link>
           <SignedOut>
             <div className="relative">
               <SignInButton mode="modal">

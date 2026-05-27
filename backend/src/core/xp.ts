@@ -41,6 +41,15 @@ export function calculateXpDelta(mode: Mode, incorrectWords: number, wpm: number
   return Math.floor(base * wpmMult);
 }
 
+// Raid XP — awarded only on victory, only to authenticated players.
+// Mirrored in frontend/src/utils/calculateXP.ts.
+export const RAID_BASE_XP = 300;
+export const RAID_DAMAGE_MULTIPLIER = 5;
+
+export function calculateRaidXp(damageDealt: number): number {
+  return RAID_BASE_XP + Math.floor(damageDealt * RAID_DAMAGE_MULTIPLIER);
+}
+
 export function xpToNextLevel(level: number): number {
   if (level <= 1) return 20;
   let req = 20;

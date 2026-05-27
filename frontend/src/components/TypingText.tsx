@@ -171,8 +171,8 @@ export default function TypingText({
   ];
 
   return (
-    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out">
-      <div className="space-y-0 h-[4.5em] overflow-hidden">
+    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-center">
+      <div className="space-y-0 h-[4.5em] overflow-hidden flex flex-col items-center justify-center">
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (

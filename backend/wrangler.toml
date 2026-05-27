@@ -36,7 +36,7 @@ class_name = "RaidRoom"
 # Add KV namespace for raid lobby index
 [[kv_namespaces]]
 binding = "RAIDS_KV"
-id = "TEMP_KV_ID" # Replace with real KV namespace ID before deploying
+id = "f2854b63af57469b953be1881492ab9b"
 
 # Add DO migration entry
 [[migrations]]

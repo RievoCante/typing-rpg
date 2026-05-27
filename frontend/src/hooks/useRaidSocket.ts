@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const HEARTBEAT_INTERVAL_MS = 30000;
+// Heartbeat under common proxy idle timeouts (Cloudflare ~100s, browsers
+// sometimes shorter). 15s leaves ample margin while avoiding chatter.
+const HEARTBEAT_INTERVAL_MS = 15000;
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 3;
 
@@ -16,10 +18,22 @@ export type RaidPlayer = {
   damageDealt: number;
 };
 
+export type RaidPlayerResult = {
+  userId: string;
+  username: string;
+  damageDealt: number;
+  wordsCorrect: number;
+  wordsTyped: number;
+  survived: boolean;
+  wpm: number;
+  xpAwarded: number;
+};
+
 export type RaidStats = {
   totalWords: number;
   avgWpm: number;
   durationMs: number;
+  players?: RaidPlayerResult[];
 };
 
 export type RaidServerMessage =
@@ -36,13 +50,19 @@ export type RaidServerMessage =
   | { type: 'defeat'; stats: RaidStats }
   | {
       type: 'boss_attacked';
-      targetId: string;
       damage: number;
-      newBossHp: number;
+      players: { playerId: string; newHp: number; isAlive: boolean }[];
+    }
+  | {
+      type: 'player_hit';
+      playerId: string;
+      damage: number;
+      newHp: number;
     }
   | { type: 'word_hit'; playerId: string; newBossHp: number }
   | { type: 'player_joined'; userId: string; username: string }
-  | { type: 'player_left'; userId: string };
+  | { type: 'player_left'; userId: string }
+  | { type: 'error'; message: string };
 
 export function useRaidSocket(wsUrl: string) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -58,6 +78,7 @@ export function useRaidSocket(wsUrl: string) {
   );
 
   const connect = useCallback(() => {
+    if (!wsUrl) return;
     if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
       wsRef.current.close();
     }
@@ -85,7 +106,13 @@ export function useRaidSocket(wsUrl: string) {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
+      // Diagnostic: capture close code/reason so we can pin down mid-game drops.
+      console.warn('[raid-ws] close', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
       setIsConnected(false);
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
@@ -99,7 +126,8 @@ export function useRaidSocket(wsUrl: string) {
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = event => {
+      console.warn('[raid-ws] error', event);
       setError('Connection error. Retrying...');
     };
   }, [wsUrl]);

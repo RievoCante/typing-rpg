@@ -2,7 +2,7 @@ import { Hono, Context } from 'hono';
 import { Bindings, Variables } from '../core/types';
 import { authMiddleware } from '../core/auth';
 import { getAuth } from '@hono/clerk-auth';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, gt, and } from 'drizzle-orm';
 import { raidPlayers, raidRooms, users } from '../db/schema';
 
 const raid = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -18,6 +18,14 @@ function generateRoomCode(): string {
   return code;
 }
 
+function generateGuestId(): string {
+  return `guest-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function generateGuestUsername(): string {
+  return `Guest-${Math.floor(Math.random() * 900) + 100}`;
+}
+
 // Helper to build ws URL from request
 function getWsUrl(c: Context, roomCode: string) {
   const url = new URL(c.req.url);
@@ -25,70 +33,81 @@ function getWsUrl(c: Context, roomCode: string) {
   return `${protocol}//${url.host}/raid/${roomCode}`;
 }
 
+// Helper to get user info or generate guest credentials
+async function getUserOrGuest(c: Context): Promise<{ userId: string; username: string; isGuest: boolean }> {
+  const auth = getAuth(c);
+  
+  if (auth?.userId) {
+    const db = c.get('db');
+    const [userRow] = await db.select({ username: users.username })
+      .from(users)
+      .where(eq(users.userId, auth.userId))
+      .limit(1);
+    
+    return {
+      userId: auth.userId,
+      username: userRow?.username ?? auth.userId,
+      isGuest: false,
+    };
+  }
+  
+  return {
+    userId: generateGuestId(),
+    username: generateGuestUsername(),
+    isGuest: true,
+  };
+}
+
 // GET /api/raid/rooms — list public lobby (waiting rooms only)
 raid.get('/rooms', async (c) => {
   const db = c.get('db');
-  
+
+  // Hide rooms older than 10 minutes — they are likely abandoned or ghost rooms.
+  const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+
   const rooms = await db.query.raidRooms.findMany({
-    where: (r, { eq }) => eq(r.status, 'waiting'),
+    where: (r, { eq, gt, and }) => and(eq(r.status, 'waiting'), gt(r.createdAt, staleThreshold)),
     orderBy: (r, { desc }) => [desc(r.createdAt)],
   });
 
-  // For MVP, player count comes from DO. Return static for now.
-  const roomsWithCount = rooms.map(room => ({
-    roomCode: room.roomCode,
-    hostUsername: room.hostUsername,
-    playerCount: 1, // Will be updated via real-time from DO
-    maxPlayers: room.maxPlayers,
-    status: room.status,
-    createdAt: room.createdAt instanceof Date ? room.createdAt.getTime() : Number(room.createdAt) * 1000,
-  }));
+    const roomsWithCount = rooms.map(room => ({
+      roomId: room.roomCode,
+      hostName: room.hostUsername,
+      playerCount: room.playerCount,
+      maxPlayers: room.maxPlayers,
+      status: room.status,
+      createdAt: room.createdAt instanceof Date ? room.createdAt.getTime() : Number(room.createdAt) * 1000,
+    }));
 
   return c.json({ rooms: roomsWithCount });
 });
 
 // POST /api/raid/rooms — create a room
-raid.post('/rooms', authMiddleware, async (c) => {
-  const auth = getAuth(c);
-  if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
-
+raid.post('/rooms', async (c) => {
   const db = c.get('db');
-  const [userRow] = await db.select({ username: users.username })
-    .from(users)
-    .where(eq(users.userId, auth.userId))
-    .limit(1);
+  const user = await getUserOrGuest(c);
 
-  // Generate unique room code
-  let roomCode = generateRoomCode();
-  let attempts = 0;
-  while (attempts < 10) {
-    const existing = await db.query.raidRooms.findFirst({
-      where: (r, { eq }) => eq(r.roomCode, roomCode),
-    });
-    if (!existing) break;
-    roomCode = generateRoomCode();
-    attempts++;
-  }
-
-  const createdAt = new Date();
-  const expiresAt = createdAt.getTime() + 5 * 60 * 1000; // 5 minutes
+  const roomCode = generateRoomCode();
 
   await db.insert(raidRooms).values({
     roomCode,
-    hostId: auth.userId,
-    hostUsername: userRow?.username ?? auth.userId,
+    hostId: user.userId,
+    hostUsername: user.username,
     status: 'waiting',
-    maxPlayers: 4,
-    createdAt,
+    playerCount: 1,
+    maxPlayers: 3,
+    createdAt: new Date(),
   });
 
-  return c.json({ roomCode, expiresAt, wsUrl: getWsUrl(c, roomCode) });
+  return c.json({
+    roomCode,
+    wsUrl: getWsUrl(c, roomCode),
+  });
 });
 
 // POST /api/raid/rooms/:code/join — get ws URL for room
-raid.post('/rooms/:code/join', authMiddleware, async (c) => {
-  const auth = getAuth(c);
-  if (!auth?.userId) return c.json({ error: 'Unauthorized' }, 401);
+raid.post('/rooms/:code/join', async (c) => {
+  await getUserOrGuest(c); // Validates user or generates guest, but we don't need to use the result here
 
   const roomCode = c.req.param('code').toUpperCase();
   const db = c.get('db');

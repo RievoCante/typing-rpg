@@ -8,7 +8,7 @@ import {
   RaidStats,
 } from '../hooks/useRaidWebSocket';
 import RaidBossDisplay from '../components/RaidBossDisplay';
-import PlayerLane from '../components/PlayerLane';
+import RaidPlayerLane from '../components/RaidPlayerLane';
 import RaidResults from '../components/RaidResults';
 import { Sword } from 'lucide-react';
 
@@ -221,7 +221,7 @@ export default function RaidGamePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {raidState.players.map(player => (
-                <PlayerLane
+                <RaidPlayerLane
                   key={player.id}
                   player={player}
                   isCurrentPlayer={player.id === currentPlayerId}

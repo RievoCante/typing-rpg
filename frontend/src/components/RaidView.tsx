@@ -14,6 +14,7 @@ interface LobbyRoom {
   roomId: string;
   hostName: string;
   playerCount: number;
+  maxPlayers: number;
   status: string;
 }
 
@@ -25,6 +26,9 @@ export default function RaidView() {
   const [creating, setCreating] = useState(false);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [localUserId, setLocalUserId] = useState<string | null>(null);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
   const hasJoined = useRef(false);
 
   const { userId, getToken } = useAuth();
@@ -37,7 +41,7 @@ export default function RaidView() {
     try {
       const res = await fetch(`${apiUrl}/api/raid/rooms`);
       const data = await res.json();
-      setRooms(Array.isArray(data) ? data : []);
+      setRooms(Array.isArray(data.rooms) ? data.rooms : []);
     } catch {
       setRooms([]);
     } finally {
@@ -52,55 +56,70 @@ export default function RaidView() {
     return () => clearInterval(id);
   }, [phase, fetchRooms]);
 
-  // Build WebSocket URL and fetch username once a room is selected
+  // Fetch username once a room is selected (wsUrl is now set from backend response)
   useEffect(() => {
     if (!activeRoomId) return;
     hasJoined.current = false;
-    getToken().then(token => {
-      if (!token) return;
-      const base = apiUrl.replace(/^http/, 'ws');
-      setWsUrl(`${base}/api/raid/rooms/${activeRoomId}/ws?token=${token}`);
-    });
-    getMe()
-      .then(r => r.json())
-      .then(data => setUsername(data?.username ?? null))
-      .catch(() => {});
-  }, [activeRoomId, apiUrl, getToken, getMe]);
+
+    // Get username: if logged in use API, else generate guest name
+    if (userId) {
+      setLocalUserId(userId);
+      getMe()
+        .then(r => r.json())
+        .then(data => setUsername(data?.username ?? null))
+        .catch(() => {});
+    } else {
+      // Generate guest userId and username
+      const guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
+      const guestName = `Guest-${Math.floor(Math.random() * 900) + 100}`;
+      setLocalUserId(guestId);
+      setUsername(guestName);
+    }
+  }, [activeRoomId, getMe, userId]);
 
   const { lastMessage, isConnected, error, send } = useRaidSocket(wsUrl ?? '');
   const { state, isPhase, isLocalAlive } = useRaidState(
     lastMessage,
-    userId ?? ''
+    localUserId ?? ''
   );
+
+  // Reset hasJoined when disconnected so reconnection re-triggers join
+  useEffect(() => {
+    if (!isConnected) {
+      hasJoined.current = false;
+    }
+  }, [isConnected]);
 
   // Auto-join once connected and username is ready
   useEffect(() => {
-    if (isConnected && username && !hasJoined.current) {
+    if (isConnected && username && localUserId && !hasJoined.current) {
       hasJoined.current = true;
-      send({ type: 'join', userId: userId ?? 'anon', username });
+      send({ type: 'join', userId: localUserId, username });
     }
-  }, [isConnected, username, send, userId]);
+  }, [isConnected, username, localUserId, send]);
 
   const handleCreateRoom = async () => {
     setCreating(true);
     try {
       const token = await getToken();
-      if (!token) {
-        setCreating(false);
-        alert('Please sign in to create a room');
-        return;
+      // Optional auth - include token if available
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+
       const res = await fetch(`${apiUrl}/api/raid/rooms`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
       if (!res.ok) {
         alert('Failed to create room');
         return;
       }
       const data = await res.json();
-      if (data.roomId) {
-        setActiveRoomId(data.roomId);
+      if (data.roomCode && data.wsUrl) {
+        setActiveRoomId(data.roomCode);
+        setWsUrl(data.wsUrl); // Use wsUrl from backend
         setPhase('in-room');
       }
     } finally {
@@ -109,25 +128,44 @@ export default function RaidView() {
   };
 
   const handleJoinRoom = async (roomId: string) => {
+    setJoinError(null);
     try {
       const token = await getToken();
-      if (!token) {
-        alert('Please sign in to join a room');
-        return;
+      // Optional auth - include token if available
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+
       const res = await fetch(`${apiUrl}/api/raid/rooms/${roomId}/join`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
       if (!res.ok) {
-        alert('Failed to join room');
+        if (res.status === 404) setJoinError('Room not found');
+        else if (res.status === 400)
+          setJoinError('Room is not accepting players');
+        else setJoinError('Failed to join room');
         return;
       }
+      const data = await res.json();
       setActiveRoomId(roomId);
+      if (data.wsUrl) {
+        setWsUrl(data.wsUrl); // Use wsUrl from backend
+      }
       setPhase('in-room');
     } catch {
-      alert('Failed to join room');
+      setJoinError('Failed to join room');
     }
+  };
+
+  const handleJoinByCode = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (code.length !== 6) {
+      setJoinError('Room code must be 6 characters');
+      return;
+    }
+    await handleJoinRoom(code);
   };
 
   const handleBackToLobby = () => {
@@ -139,47 +177,84 @@ export default function RaidView() {
 
   if (phase === 'room-list') {
     return (
-      <div className="p-8 text-white">
-        <h1 className="text-3xl font-bold mb-6">Raid Lobby</h1>
-        <button
-          onClick={handleCreateRoom}
-          disabled={creating}
-          className="mb-6 px-6 py-3 bg-red-600 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
-        >
-          {creating ? 'Creating...' : 'Create Room'}
-        </button>
-        {loading ? (
-          <p>Loading rooms...</p>
-        ) : rooms.length === 0 ? (
-          <p className="text-gray-400">
-            No active rooms. Be the first to create one!
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {rooms.map(room => (
-              <div
-                key={room.roomId}
-                className="p-4 bg-gray-800 rounded-lg shadow"
+      <div className="min-h-screen p-8 text-white flex flex-col items-center">
+        <div className="max-w-4xl w-full text-center">
+          <h1 className="text-3xl font-bold mb-6">Raid Lobby</h1>
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-6">
+            <button
+              onClick={handleCreateRoom}
+              disabled={creating}
+              className="px-6 py-3 bg-red-600 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
+            >
+              {creating ? 'Creating...' : 'Create Room'}
+            </button>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={joinCode}
+                onChange={e =>
+                  setJoinCode(e.target.value.toUpperCase().slice(0, 6))
+                }
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleJoinByCode();
+                }}
+                placeholder="ROOM CODE"
+                maxLength={6}
+                className="px-3 py-3 bg-gray-800 rounded-lg font-mono uppercase tracking-widest text-center w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleJoinByCode}
+                disabled={joinCode.trim().length !== 6}
+                className="px-4 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-mono text-lg">{room.roomId}</span>
-                  <span className="text-sm text-gray-400">
-                    {room.playerCount}/3
-                  </span>
-                </div>
-                <p className="text-sm text-gray-400 mb-3">
-                  Host: {room.hostName}
-                </p>
-                <button
-                  onClick={() => handleJoinRoom(room.roomId)}
-                  className="w-full py-2 bg-blue-600 rounded hover:bg-blue-700"
-                >
-                  Join
-                </button>
-              </div>
-            ))}
+                Join by Code
+              </button>
+            </div>
           </div>
-        )}
+          {joinError && (
+            <p className="mb-4 text-red-400 text-sm">{joinError}</p>
+          )}
+          {loading ? (
+            <p>Loading rooms...</p>
+          ) : rooms.length === 0 ? (
+            <p className="text-gray-400">
+              No active rooms. Be the first to create one!
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {rooms.map(room => {
+                const isFull = room.playerCount >= room.maxPlayers;
+                return (
+                  <div
+                    key={room.roomId}
+                    className="p-4 bg-gray-800 rounded-lg shadow"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-mono text-lg">{room.roomId}</span>
+                      <span
+                        className={`text-sm ${isFull ? 'text-red-400 font-semibold' : 'text-gray-400'}`}
+                      >
+                        {room.playerCount}/{room.maxPlayers}
+                        {isFull && ' · FULL'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Host: {room.hostName}
+                    </p>
+                    <button
+                      onClick={() => handleJoinRoom(room.roomId)}
+                      disabled={isFull}
+                      title={isFull ? 'Room is full' : undefined}
+                      className="w-full py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600"
+                    >
+                      {isFull ? 'Full' : 'Join'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -213,9 +288,12 @@ export default function RaidView() {
     <div className="text-white">
       {isPhase('lobby') && (
         <RaidLobbyScreen
+          roomCode={activeRoomId ?? ''}
           players={state.players}
           isHost={state.isHost}
           onStartGame={() => send({ type: 'start_game' })}
+          onLeaveRoom={handleBackToLobby}
+          error={state.error}
         />
       )}
       {isPhase('playing') && (
@@ -225,10 +303,13 @@ export default function RaidView() {
           bossMaxHp={state.bossMaxHp}
           localText={state.localText}
           isLocalAlive={isLocalAlive}
-          localUserId={userId ?? ''}
+          localUserId={localUserId ?? ''}
+          lastHit={state.lastHit}
+          lastWordHit={state.lastWordHit}
           onWordComplete={(wordIndex: number) =>
             send({ type: 'word_complete', wordIndex })
           }
+          onMistake={() => send({ type: 'mistake' })}
         />
       )}
       {isPhase('finished') && (
@@ -236,7 +317,7 @@ export default function RaidView() {
           result={state.result}
           stats={state.stats}
           players={state.players}
-          onPlayAgain={handleBackToLobby}
+          localUserId={localUserId ?? ''}
           onHome={() => setCurrentMode('daily')}
         />
       )}

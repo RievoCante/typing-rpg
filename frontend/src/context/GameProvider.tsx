@@ -95,7 +95,7 @@ export const GameProvider = ({
   // Monster attack system
   const [currentMonsterType, setCurrentMonsterType] =
     useState<MonsterTypeEnum>('normal');
-  const attackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const attackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Kill streak
   const [killStreak, setKillStreak] = useState<number>(0);

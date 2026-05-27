@@ -76,14 +76,14 @@ export const raidPlayers = sqliteTable(
     sessionId: integer('session_id')
       .notNull()
       .references(() => raidSessions.id),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.userId),
+    // Plain text — may be a `guest-xxx` id. No FK to users so guests can be persisted.
+    userId: text('user_id').notNull(),
     username: text('username').notNull(),
     damageDealt: integer('damage_dealt').notNull(),
     wordsTyped: integer('words_typed').notNull(),
     wordsCorrect: integer('words_correct').notNull(),
     survived: integer('survived', { mode: 'boolean' }).notNull(),
+    xpAwarded: integer('xp_awarded').default(0).notNull(),
   },
   table => [
     index('idx_raid_players_user').on(table.userId),
@@ -99,7 +99,8 @@ export const raidRooms = sqliteTable('raid_rooms', {
   hostId: text('host_id').notNull(),
   hostUsername: text('host_username').notNull(),
   status: text('status', { enum: ['waiting', 'active', 'ended'] }).default('waiting').notNull(),
-  maxPlayers: integer('max_players').default(4).notNull(),
+  playerCount: integer('player_count').default(1).notNull(),
+  maxPlayers: integer('max_players').default(3).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),

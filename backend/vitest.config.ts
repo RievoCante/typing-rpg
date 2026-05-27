@@ -8,16 +8,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-  },
-  plugins: [
-    {
-      name: "mock-cloudflare-workers",
-      enforce: "pre",
-      resolveId(source) {
-        if (source === "cloudflare:workers") {
-          return path.resolve(__dirname, "__mocks__/cloudflare-workers.ts");
-        }
-      },
+    include: ["src/**/*.test.ts"],
+    alias: {
+      "cloudflare:workers": path.resolve(__dirname, "__mocks__/cloudflare-workers.ts"),
     },
-  ],
+  },
 });
