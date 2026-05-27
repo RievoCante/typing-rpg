@@ -41,4 +41,4 @@ id = "f2854b63af57469b953be1881492ab9b"
 # Add DO migration entry
 [[migrations]]
 tag = "v1-add-raid-rooms"
-new_classes = ["RaidRoom"]
+new_sqlite_classes = ["RaidRoom"]
