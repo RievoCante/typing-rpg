@@ -42,6 +42,7 @@ const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 3;
 const BOSS_MAX_HP = 100;
 const WORD_DAMAGE = 1;
+const WORDS_PER_PLAYER = 75;
 const BOSS_ATTACK_INTERVAL_MS = 6000;
 const BOSS_ATTACK_DAMAGE = 10;
 const MISTAKE_DAMAGE_MIN = 5;
@@ -356,7 +357,7 @@ export class RaidRoom extends DurableObject {
     this.state.startedAt = Date.now();
 
     for (const [, p] of this.state.players) {
-      this.state.texts.set(p.userId, generateText(25));
+      this.state.texts.set(p.userId, generateText(WORDS_PER_PLAYER));
     }
 
     const texts: Record<string, string> = {};

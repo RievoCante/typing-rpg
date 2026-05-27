@@ -68,6 +68,18 @@ describe('RaidRoom', () => {
     expect((room as any).state.bossHp).toBe(100);
   });
 
+  it('generates WORDS_PER_PLAYER-length text (75 words) per player on game start', () => {
+    const ws1 = { send: vi.fn() } as any;
+    const ws2 = { send: vi.fn() } as any;
+    (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+    (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+    (room as any).handleStartGame(ws1);
+    const text1 = (room as any).state.texts.get('u1') as string;
+    const text2 = (room as any).state.texts.get('u2') as string;
+    expect(text1.split(' ').length).toBe(75);
+    expect(text2.split(' ').length).toBe(75);
+  });
+
   it('decreases boss HP by WORD_DAMAGE=1 on word_complete', () => {
     const ws = { send: vi.fn() } as any;
     const ws2 = { send: vi.fn() } as any;
