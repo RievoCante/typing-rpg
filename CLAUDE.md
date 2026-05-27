@@ -29,7 +29,7 @@ Keep responses short and concise. Save output tokens without sacrificing readabi
 - **Wordlist sync**: `backend/src/static/english_1k.json` MUST match `frontend/src/static/english/english_1k.json` — backend imports its own copy at module init for raid text.
 - **Locked words**: pressing space after a correct word locks it — locked chars can't be deleted.
 - **Daily**: 3 quotes, 1 attempt/day, 500 base XP (0.5–1.5× WPM multiplier).
-- **Raid**: min 2 / max 3 players, 25-word texts, cooperative boss battle.
+- **Raid**: min 2 / max 3 players, 75-word texts, cooperative boss battle.
 - **Middleware order** (`backend/src/index.ts`): Sentry → CORS → logger → Clerk auth → DB client → rate limiter.
 - **Routing**: all routes in `frontend/src/main.tsx` via `createBrowserRouter`. `App.tsx` renders only `<GameContent />`.
 - **Guest mode**: raid backend generates random `guest-xxx` ID and `Guest-XXX` username for unauthenticated players.
