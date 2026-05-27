@@ -36,4 +36,4 @@ Keep responses short and concise. Save output tokens without sacrificing readabi
 
 ## Deployment
 
-Backend CD (GitHub Actions, `main` only): `bunx wrangler d1 migrations apply typing-rpg-db --remote` → `bunx wrangler deploy`. Frontend auto-deploys via Cloudflare Pages on push to `main`.
+Backend CD (GitHub Actions, `main` only): `bunx wrangler d1 migrations apply typing-rpg-db --remote` → `bunx wrangler deploy`. Frontend is containerized (`docker-compose.yml`).
