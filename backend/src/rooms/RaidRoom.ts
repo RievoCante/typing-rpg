@@ -1,9 +1,9 @@
 import { DurableObject } from 'cloudflare:workers';
-import { verifyToken } from '@clerk/backend';
 import { createDbClient } from '../db';
 import { raidSessions, raidPlayers, raidRooms, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { calculateRaidXp, applyXp } from '../core/xp';
+import { isGuestId } from '../core/guestIdentity';
 import english1k from '../static/english_1k.json';
 
 type PlayerState = {
@@ -76,11 +76,17 @@ function randInt(min: number, max: number): number {
 
 export class RaidRoom extends DurableObject {
   state: RaidRoomState;
+  // Credentials extracted from the WebSocket upgrade URL. Worker.fetch has
+  // already validated these (Clerk token for authed users, accepted at face
+  // value for guests). The `join` message looks them up here instead of
+  // trusting whatever userId the client puts in the message body.
+  private wsCredentials: Map<WebSocket, { userId: string; username: string }>;
   private initialized: boolean;
 
   constructor(ctx: DurableObjectState, env: Record<string, unknown>) {
     super(ctx, env);
     this.initialized = false;
+    this.wsCredentials = new Map();
     this.state = {
       phase: 'lobby',
       players: new Map(),
@@ -157,7 +163,14 @@ export class RaidRoom extends DurableObject {
     await this.ensureInitialized();
 
     const url = new URL(request.url);
-    const token = url.searchParams.get('token');
+
+    // Worker.fetch has already validated userId/username (and any token).
+    // The DO trusts these values as the player's identity for this connection.
+    const userId = url.searchParams.get('userId');
+    const username = url.searchParams.get('username');
+    if (!userId || !username) {
+      return new Response('Missing credentials', { status: 400 });
+    }
 
     // Extract roomCode from URL path: /raid/XXXXXX
     const pathParts = url.pathname.split('/');
@@ -168,17 +181,6 @@ export class RaidRoom extends DurableObject {
       this.state.roomId = roomCode;
       await this.persistState();
     }
-
-    // Optional auth: if token provided, verify it. If invalid, still allow (guest mode)
-    if (token) {
-      try {
-        const env = this.env as { CLERK_SECRET_KEY: string };
-        await verifyToken(token, { secretKey: env.CLERK_SECRET_KEY });
-      } catch {
-        // Token invalid - allow as guest, connection proceeds
-      }
-    }
-    // No token - allow as guest
 
     if (this.state.players.size >= MAX_PLAYERS) {
       return new Response('Room full', { status: 403 });
@@ -193,6 +195,7 @@ export class RaidRoom extends DurableObject {
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server);
+    this.wsCredentials.set(server, { userId, username });
 
     // Arm the idle timer on first websocket open (lobby phase only).
     if (this.state.phase === 'lobby' && !this.state.idleTimer) {
@@ -211,9 +214,15 @@ export class RaidRoom extends DurableObject {
     }
 
     switch (data.type) {
-      case 'join':
-        this.handlePlayerJoin(ws, data as { userId: string; username: string });
+      case 'join': {
+        // Source credentials from the validated URL params, not the message
+        // body. A malicious client cannot impersonate another user by
+        // sending a different userId in the join payload.
+        const creds = this.wsCredentials.get(ws);
+        if (!creds) return;
+        this.handlePlayerJoin(ws, creds);
         break;
+      }
       case 'start_game':
         this.handleStartGame(ws);
         break;
@@ -541,7 +550,7 @@ export class RaidRoom extends DurableObject {
 
       // Compute XP awards: victory + authenticated only (non-guest userIds).
       for (const p of playerStates) {
-        const isAuthed = !p.userId.startsWith('guest-');
+        const isAuthed = !isGuestId(p.userId);
         if (status === 'victory' && isAuthed) {
           xpByUserId.set(p.userId, calculateRaidXp(p.damageDealt));
         } else {
@@ -664,6 +673,7 @@ export class RaidRoom extends DurableObject {
   webSocketClose(ws: WebSocket) {
     const player = this.state.players.get(ws);
     this.state.players.delete(ws);
+    this.wsCredentials.delete(ws);
 
     if (this.state.graceTimer) {
       clearTimeout(this.state.graceTimer);
