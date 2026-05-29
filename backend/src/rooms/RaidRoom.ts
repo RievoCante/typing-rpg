@@ -4,6 +4,7 @@ import { raidSessions, raidPlayers, raidRooms, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { calculateRaidXp, applyXp } from '../core/xp';
 import { isGuestId } from '../core/guestIdentity';
+import { parseCharacterConfig, type CharacterConfig } from '../core/character';
 import english1k from '../static/english_1k.json';
 
 type PlayerState = {
@@ -16,6 +17,7 @@ type PlayerState = {
   wordsTyped: number;
   wordsCorrect: number;
   damageDealt: number;
+  characterConfig: CharacterConfig | null;
 };
 
 type RoomPhase = 'lobby' | 'playing' | 'finished';
@@ -220,7 +222,8 @@ export class RaidRoom extends DurableObject {
         // sending a different userId in the join payload.
         const creds = this.wsCredentials.get(ws);
         if (!creds) return;
-        this.handlePlayerJoin(ws, creds);
+        const characterConfig = parseCharacterConfig(data.characterConfig);
+        this.handlePlayerJoin(ws, creds, characterConfig);
         break;
       }
       case 'start_game':
@@ -238,10 +241,15 @@ export class RaidRoom extends DurableObject {
     }
   }
 
-  handlePlayerJoin(ws: WebSocket, data: { userId: string; username: string }) {
+  handlePlayerJoin(
+    ws: WebSocket,
+    data: { userId: string; username: string },
+    characterConfig: CharacterConfig | null = null
+  ) {
     if (this.state.phase !== 'lobby') {
       return;
     }
+    const config = parseCharacterConfig(characterConfig);
     const isHost = this.state.players.size === 0;
     const player: PlayerState = {
       userId: data.userId,
@@ -253,6 +261,7 @@ export class RaidRoom extends DurableObject {
       wordsTyped: 0,
       wordsCorrect: 0,
       damageDealt: 0,
+      characterConfig: config,
     };
     this.state.players.set(ws, player);
 
@@ -265,7 +274,7 @@ export class RaidRoom extends DurableObject {
     }
 
     this.broadcastRoomState();
-    this.broadcast({ type: 'player_joined', userId: data.userId, username: data.username });
+    this.broadcast({ type: 'player_joined', userId: data.userId, username: data.username, characterConfig: config });
   }
 
   async createRoomInDb(hostId: string, hostUsername: string) {
@@ -638,6 +647,7 @@ export class RaidRoom extends DurableObject {
       wordsTyped: p.wordsTyped,
       wordsCorrect: p.wordsCorrect,
       damageDealt: p.damageDealt,
+      characterConfig: p.characterConfig,
     }));
 
     const state: Record<string, unknown> = {

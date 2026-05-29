@@ -358,4 +358,36 @@ describe('RaidRoom', () => {
     expect((room as any).state.players.has(ws1)).toBe(false);
     expect((room as any).state.players.get(ws2).isHost).toBe(true);
   });
+
+  it('stores a valid characterConfig on join and includes it in room_state', () => {
+    const ws = { send: vi.fn() } as any;
+    const cfg = {
+      bodyShape: 'round',
+      bodyColor: '#34d399',
+      eyeStyle: 'dot',
+      accessory: 'antenna',
+      accessoryColor: '#fde047',
+    };
+    (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' }, cfg);
+    const stored = (room as any).state.players.get(ws);
+    expect(stored.characterConfig).toEqual(cfg);
+
+    const sent = JSON.parse(ws.send.mock.calls.at(-2)[0]); // room_state precedes player_joined
+    const me = sent.players.find((p: any) => p.userId === 'u1');
+    expect(me.characterConfig).toEqual(cfg);
+  });
+
+  it('defaults characterConfig to null when absent or invalid', () => {
+    const ws = { send: vi.fn() } as any;
+    (room as any).handlePlayerJoin(ws, { userId: 'u2', username: 'Bob' });
+    expect((room as any).state.players.get(ws).characterConfig).toBeNull();
+
+    const ws2 = { send: vi.fn() } as any;
+    (room as any).handlePlayerJoin(
+      ws2,
+      { userId: 'u3', username: 'Cara' },
+      { bodyShape: 'triangle' }
+    );
+    expect((room as any).state.players.get(ws2).characterConfig).toBeNull();
+  });
 });
