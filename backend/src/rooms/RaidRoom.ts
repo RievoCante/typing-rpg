@@ -283,6 +283,12 @@ export class RaidRoom extends DurableObject {
 
     this.broadcastRoomState();
     this.broadcast({ type: 'player_joined', userId: data.userId, username: data.username, characterConfig: config });
+
+    // Auto-start: once the room fills to MAX_PLAYERS, kick off a countdown that
+    // fires beginRaid() — no host action needed.
+    if (this.state.phase === 'lobby' && this.state.players.size === MAX_PLAYERS) {
+      this.startCountdown();
+    }
   }
 
   async createRoomInDb(hostId: string, hostUsername: string) {
@@ -410,6 +416,14 @@ export class RaidRoom extends DurableObject {
     this.syncPlayerCountToDb(this.state.players.size, 'active');
 
     this.state.attackTimer = setInterval(() => this.bossAttack(), BOSS_ATTACK_INTERVAL_MS);
+  }
+
+  private startCountdown() {
+    this.state.phase = 'countdown';
+    this.state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
+    this.broadcast({ type: 'countdown_started', durationMs: COUNTDOWN_MS });
+    this.broadcastRoomState();
+    this.state.countdownTimer = setTimeout(() => this.beginRaid(), COUNTDOWN_MS);
   }
 
   handleWordComplete(ws: WebSocket, _data: { wordIndex: number }) {
@@ -677,6 +691,9 @@ export class RaidRoom extends DurableObject {
       bossHp: this.state.bossHp,
       bossMaxHp: this.state.bossMaxHp,
     };
+    if (this.state.phase === 'countdown' && this.state.countdownEndsAt != null) {
+      state.countdownEndsAt = this.state.countdownEndsAt;
+    }
     if (extra?.result) state.result = extra.result;
     if (extra?.stats) state.stats = extra.stats;
 

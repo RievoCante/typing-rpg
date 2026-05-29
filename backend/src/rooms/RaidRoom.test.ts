@@ -20,12 +20,11 @@ describe('RaidRoom', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     // Clear any pending timers from the room instance
-    if ((room as any).state?.attackTimer) {
-      clearInterval((room as any).state.attackTimer);
-    }
-    if ((room as any).state?.graceTimer) {
-      clearTimeout((room as any).state.graceTimer);
-    }
+    const s = (room as any).state;
+    if (s?.attackTimer) clearInterval(s.attackTimer);
+    if (s?.graceTimer) clearTimeout(s.graceTimer);
+    if (s?.countdownTimer) clearTimeout(s.countdownTimer);
+    vi.useRealTimers();
   });
 
   it('starts in lobby phase', () => {
@@ -182,7 +181,8 @@ describe('RaidRoom', () => {
     (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' });
     (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
     (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Charlie' });
-    (room as any).handleStartGame(ws);
+    // 3 players auto-enter countdown; start the raid directly for this unit test.
+    (room as any).beginRaid();
     // Kill Charlie so we can verify only alive players are hit
     (room as any).state.players.get(ws3).isAlive = false;
     (room as any).state.players.get(ws3).hp = 0;
@@ -339,6 +339,48 @@ describe('RaidRoom', () => {
     (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' });
     (room as any).webSocketClose(ws);
     expect((room as any).wsCredentials.has(ws)).toBe(false);
+  });
+
+  // ── Auto-start countdown ──
+
+  describe('auto-start countdown', () => {
+    it('enters countdown phase and broadcasts countdown_started when the 3rd player joins', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      expect((room as any).state.phase).toBe('lobby');
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+      expect(ws3.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"countdown_started"')
+      );
+    });
+
+    it('begins the raid automatically after COUNTDOWN_MS (5s)', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+      vi.advanceTimersByTime(5000);
+      expect((room as any).state.phase).toBe('playing');
+    });
+
+    it('manual 2-player start begins immediately with no countdown', () => {
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handleStartGame(ws1);
+      expect((room as any).state.phase).toBe('playing');
+      expect((room as any).state.countdownTimer).toBeNull();
+    });
   });
 
   // ── webSocketError regression test ──
