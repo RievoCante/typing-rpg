@@ -33,7 +33,9 @@ describe('avatarConfigFromSeed', () => {
     const shapes = new Set(seeds.map(s => avatarConfigFromSeed(s).bodyShape));
     const colors = new Set(seeds.map(s => avatarConfigFromSeed(s).bodyColor));
     const eyes = new Set(seeds.map(s => avatarConfigFromSeed(s).eyeStyle));
-    const accessories = new Set(seeds.map(s => avatarConfigFromSeed(s).accessory));
+    const accessories = new Set(
+      seeds.map(s => avatarConfigFromSeed(s).accessory)
+    );
     expect(shapes.size).toBeGreaterThan(1);
     expect(colors.size).toBeGreaterThan(1);
     expect(eyes.size).toBeGreaterThan(1);
