@@ -86,10 +86,16 @@ export const updateCharacter = async (c: AppContext) => {
   if (!config) return jsonError(c, 400, 'Invalid character config');
 
   const db = c.get('db');
-  await db
+  const updated = await db
     .update(users)
     .set({ character: JSON.stringify(config), updatedAt: new Date() })
-    .where(eq(users.userId, auth.userId));
+    .where(eq(users.userId, auth.userId))
+    .returning({ userId: users.userId });
+
+  // No row updated means the user has no profile yet (never called POST /me).
+  // Report 404 instead of a misleading success so the client doesn't believe
+  // the config was persisted when it wasn't.
+  if (updated.length === 0) return jsonError(c, 404, 'User not found');
 
   return c.json({ success: true, character: config });
 };

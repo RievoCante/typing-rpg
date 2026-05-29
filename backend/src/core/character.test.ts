@@ -21,4 +21,7 @@ describe('parseCharacterConfig', () => {
     const { eyeStyle: _o, ...partial } = valid;
     expect(parseCharacterConfig(partial)).toBeNull();
   });
+  it('rejects extra/unknown fields (.strict)', () => {
+    expect(parseCharacterConfig({ ...valid, hat: 'wizard' })).toBeNull();
+  });
 });
