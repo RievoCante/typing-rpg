@@ -294,6 +294,7 @@ describe('applyRaidMessage', () => {
       expect(next.phase).toBe('countdown');
       expect(next.countdownEndsAt).not.toBeNull();
       expect(next.countdownEndsAt!).toBeGreaterThanOrEqual(before + 5000);
+      expect(next.countdownEndsAt!).toBeLessThan(before + 5000 + 1000);
     });
 
     it('countdown_cancelled returns to lobby and clears countdownEndsAt', () => {

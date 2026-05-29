@@ -45,6 +45,7 @@ export type RaidServerMessage =
       players: RaidPlayer[];
       bossHp: number;
       bossMaxHp: number;
+      /** Present only when phase === 'countdown'. Server epoch ms. */
       countdownEndsAt?: number;
       result?: 'victory' | 'defeat';
       stats?: RaidStats;

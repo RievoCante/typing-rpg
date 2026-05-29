@@ -106,6 +106,8 @@ export function applyRaidMessage(
       return {
         ...prev,
         phase: 'countdown',
+        // Locally computed from durationMs; a subsequent room_state in 'countdown'
+        // phase overrides this with the authoritative server timestamp on reconnect.
         countdownEndsAt: Date.now() + msg.durationMs,
         error: null,
       };
@@ -114,6 +116,7 @@ export function applyRaidMessage(
         ...prev,
         phase: 'lobby',
         countdownEndsAt: null,
+        error: null,
       };
     case 'word_hit':
       return {
