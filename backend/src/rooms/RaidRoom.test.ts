@@ -383,6 +383,51 @@ describe('RaidRoom', () => {
     });
   });
 
+  // ── Countdown cancellation ──
+
+  describe('countdown cancellation', () => {
+    it('cancels the countdown and returns to lobby when a player drops below 3', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+
+      (room as any).webSocketClose(ws3);
+
+      expect((room as any).state.phase).toBe('lobby');
+      expect((room as any).state.countdownTimer).toBeNull();
+      expect((room as any).state.players.size).toBe(2);
+      expect(ws1.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"countdown_cancelled"')
+      );
+
+      // The cleared timer must not fire a late beginRaid.
+      vi.advanceTimersByTime(5000);
+      expect((room as any).state.phase).toBe('lobby');
+    });
+
+    it('reassigns host when the host leaves during the countdown', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.players.get(ws1).isHost).toBe(true);
+
+      (room as any).webSocketClose(ws1); // host leaves during countdown
+
+      expect((room as any).state.phase).toBe('lobby');
+      const remaining = Array.from((room as any).state.players.values()) as any[];
+      expect(remaining.some(p => p.isHost)).toBe(true);
+    });
+  });
+
   // ── webSocketError regression test ──
 
   it('removes player on webSocketError and transfers host in lobby', () => {

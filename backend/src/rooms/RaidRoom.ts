@@ -426,6 +426,16 @@ export class RaidRoom extends DurableObject {
     this.state.countdownTimer = setTimeout(() => this.beginRaid(), COUNTDOWN_MS);
   }
 
+  private cancelCountdown() {
+    if (this.state.countdownTimer) {
+      clearTimeout(this.state.countdownTimer);
+      this.state.countdownTimer = null;
+    }
+    this.state.countdownEndsAt = null;
+    this.state.phase = 'lobby';
+    this.broadcast({ type: 'countdown_cancelled' });
+  }
+
   handleWordComplete(ws: WebSocket, _data: { wordIndex: number }) {
     if (this.state.phase !== 'playing') return;
     const player = this.state.players.get(ws);
@@ -726,6 +736,15 @@ export class RaidRoom extends DurableObject {
       clearTimeout(this.state.graceTimer);
       this.state.graceTimer = null;
     }
+
+    // If a player drops during the auto-start countdown and we fall below the
+    // full-room threshold, cancel the countdown and return everyone to the
+    // lobby. Setting phase back to 'lobby' here also lets the existing
+    // host-reassignment block below run for a host who left mid-countdown.
+    if (this.state.phase === 'countdown' && this.state.players.size < MAX_PLAYERS) {
+      this.cancelCountdown();
+    }
+
     let newHostId: string | undefined;
     let newHostUsername: string | undefined;
 
