@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   avatarConfigFromSeed,
+  isValidAvatarConfig,
+  resolveAvatarConfig,
+  parseStoredAvatarConfig,
   BODY_SHAPES,
   EYE_STYLES,
   ACCESSORIES,
@@ -40,5 +43,63 @@ describe('avatarConfigFromSeed', () => {
     expect(colors.size).toBeGreaterThan(1);
     expect(eyes.size).toBeGreaterThan(1);
     expect(accessories.size).toBeGreaterThan(1);
+  });
+});
+
+const valid = {
+  bodyShape: 'round',
+  bodyColor: '#38bdf8',
+  eyeStyle: 'wide',
+  accessory: 'crown',
+  accessoryColor: '#fde047',
+};
+
+describe('isValidAvatarConfig', () => {
+  it('accepts a fully valid config', () => {
+    expect(isValidAvatarConfig(valid)).toBe(true);
+  });
+  it('rejects null/undefined/non-objects', () => {
+    expect(isValidAvatarConfig(null)).toBe(false);
+    expect(isValidAvatarConfig(undefined)).toBe(false);
+    expect(isValidAvatarConfig('x')).toBe(false);
+  });
+  it('rejects unknown knob values', () => {
+    expect(isValidAvatarConfig({ ...valid, bodyShape: 'triangle' })).toBe(
+      false
+    );
+    expect(isValidAvatarConfig({ ...valid, bodyColor: '#000000' })).toBe(false);
+  });
+  it('rejects configs missing a key', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { accessory: _omit, ...partial } = valid;
+    expect(isValidAvatarConfig(partial)).toBe(false);
+  });
+});
+
+describe('resolveAvatarConfig', () => {
+  it('returns the saved config when valid', () => {
+    expect(resolveAvatarConfig('user_x', valid)).toEqual(valid);
+  });
+  it('falls back to the seed when saved is null/invalid', () => {
+    expect(resolveAvatarConfig('user_2abc', null)).toEqual(
+      avatarConfigFromSeed('user_2abc')
+    );
+    expect(resolveAvatarConfig('user_2abc', { bad: true } as never)).toEqual(
+      avatarConfigFromSeed('user_2abc')
+    );
+  });
+});
+
+describe('parseStoredAvatarConfig', () => {
+  it('parses a valid JSON string', () => {
+    expect(parseStoredAvatarConfig(JSON.stringify(valid))).toEqual(valid);
+  });
+  it('returns null for null, empty, malformed, or invalid JSON', () => {
+    expect(parseStoredAvatarConfig(null)).toBeNull();
+    expect(parseStoredAvatarConfig('')).toBeNull();
+    expect(parseStoredAvatarConfig('{not json')).toBeNull();
+    expect(
+      parseStoredAvatarConfig(JSON.stringify({ bodyShape: 'round' }))
+    ).toBeNull();
   });
 });
