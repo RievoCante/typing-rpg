@@ -3,7 +3,9 @@ import { users } from '../db/schema';
 import { getAuth } from '@hono/clerk-auth';
 import { createClerkClient } from '@clerk/backend';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { jsonError } from '../core/errors';
+import { parseCharacterConfig } from '../core/character';
 
 const meCreateSchema = z
   .object({
@@ -67,4 +69,27 @@ export const getUser = async (c: AppContext) => {
   if (!user) return jsonError(c, 404, 'Not found');
 
   return c.json({ success: true, user });
+};
+
+// PATCH /me/character — persist the signed-in user's cosmetic avatar config.
+export const updateCharacter = async (c: AppContext) => {
+  const auth = getAuth(c);
+  if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return jsonError(c, 400, 'Invalid JSON body');
+  }
+  const config = parseCharacterConfig(body);
+  if (!config) return jsonError(c, 400, 'Invalid character config');
+
+  const db = c.get('db');
+  await db
+    .update(users)
+    .set({ character: JSON.stringify(config), updatedAt: new Date() })
+    .where(eq(users.userId, auth.userId));
+
+  return c.json({ success: true, character: config });
 };

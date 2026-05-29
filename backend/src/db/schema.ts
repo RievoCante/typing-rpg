@@ -17,6 +17,9 @@ export const users = sqliteTable('users', {
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
+  // JSON-encoded cosmetic avatar config (see core/character.ts). Null until the
+  // user customizes their character.
+  character: text('character'),
 });
 
 /**
