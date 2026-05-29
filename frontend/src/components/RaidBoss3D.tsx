@@ -26,6 +26,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
     if (!g) return;
     const t = state.clock.elapsedTime;
     const now = Date.now();
+    const hEl = now - hitTimeRef.current; // ms since last hit
 
     let posY = 0;
     let rotZ = 0;
@@ -37,7 +38,6 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
       scale = 0.9;
     } else {
       posY = Math.sin(t * 1.5) * 0.12; // heavy idle hover
-      const hEl = now - hitTimeRef.current;
       if (hitTimeRef.current > 0 && hEl < HIT_DURATION) {
         const k = 1 - hEl / HIT_DURATION;
         rotZ = Math.sin(now * 0.08) * 0.12 * k; // shudder
@@ -51,7 +51,6 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
 
     const mat = bodyMatRef.current;
     if (mat) {
-      const hEl = now - hitTimeRef.current;
       const hitting =
         !isDefeated && hitTimeRef.current > 0 && hEl < HIT_DURATION;
       if (isDefeated) {
