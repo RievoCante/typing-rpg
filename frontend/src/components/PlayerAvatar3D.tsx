@@ -2,13 +2,12 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Group, Color, MeshPhongMaterial } from 'three';
 import type { PlayerAvatarConfig } from '../utils/avatarConfig';
+import { isCriticalHp } from '../utils/raidHp';
 
 const HURT_COLOR = new Color('#ff4d4d');
 const GRAY = new Color('#6b7280');
 const HURT_DURATION = 220; // ms
 const ATTACK_DURATION = 220; // ms — matches RaidAvatar swing timing
-const CRITICAL_HP = 25;
-
 interface ModelProps {
   config: PlayerAvatarConfig;
   isAlive: boolean;
@@ -43,7 +42,7 @@ function PlayerAvatarModel({
     if (isHurt) hurtTimeRef.current = Date.now();
   }, [isHurt]);
 
-  const critical = isAlive && hpPercent < CRITICAL_HP;
+  const critical = isCriticalHp(hpPercent, isAlive);
 
   useFrame(state => {
     const g = groupRef.current;

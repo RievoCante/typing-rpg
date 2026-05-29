@@ -183,7 +183,7 @@ export default function RaidGame({
           ref={containerRef}
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          className={`p-6 bg-gray-800 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isLocalAlive ? 'opacity-50' : ''} ${localCritical ? 'ring-2 ring-red-500' : ''}`}
+          className={`p-6 bg-gray-800 rounded-lg shadow-xl focus:outline-none ${!isLocalAlive ? 'opacity-50' : ''} ${localCritical ? 'ring-2 ring-red-500' : 'focus:ring-2 focus:ring-blue-500'}`}
         >
           <TypingText
             text={localText}
