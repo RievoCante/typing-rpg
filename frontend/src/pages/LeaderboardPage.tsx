@@ -6,6 +6,7 @@ import { useApi } from '../hooks/useApi';
 import LeftSidebar from '../components/LeftSidebar';
 import SiteLogo from '../components/SiteLogo';
 import PixelArtBackground from '../components/PixelArtBackground';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type LevelRow = {
   rank: number;
@@ -22,6 +23,7 @@ type TodayWpmRow = {
 };
 
 export default function LeaderboardPage() {
+  useDocumentTitle('Leaderboard — Typing RPG');
   const { theme } = useThemeContext();
   const { getLeaderboardLevels, getLeaderboardTodayWpm } = useApi();
   const [tab, setTab] = useState<'levels' | 'todayWpm'>('levels');
