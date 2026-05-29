@@ -3,16 +3,17 @@ import type { KeyboardEvent } from 'react';
 import { useTypingMechanics } from '../hooks/useTypingMechanics';
 import TypingText from './TypingText';
 import RaidAvatar from './RaidAvatar';
+import RaidBoss3D from './RaidBoss3D';
 import type {
   RaidPlayer,
   RaidHitEvent,
   RaidWordHit,
 } from '../hooks/useRaidState';
 import {
-  avatarConfigFromSeed,
+  resolveAvatarConfig,
   type PlayerAvatarConfig,
 } from '../utils/avatarConfig';
-import { hpColorClass, isCriticalHp } from '../utils/raidHp';
+import { isCriticalHp } from '../utils/raidHp';
 
 interface Props {
   players: RaidPlayer[];
@@ -26,8 +27,6 @@ interface Props {
   onWordComplete: (wordIndex: number) => void;
   onMistake: () => void;
 }
-
-type LocalPopup = { id: number; damage: number; kind: 'mistake' | 'boss' };
 
 export default function RaidGame({
   players,
@@ -44,19 +43,15 @@ export default function RaidGame({
   const bossHpPercent = bossMaxHp > 0 ? (bossHp / bossMaxHp) * 100 : 0;
   const wordIndexRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [localPopups, setLocalPopups] = useState<LocalPopup[]>([]);
   const [bossShake, setBossShake] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
   const localPlayer = players.find(p => p.userId === localUserId);
-  const otherPlayers = useMemo(
-    () => players.filter(p => p.userId !== localUserId),
-    [players, localUserId]
-  );
 
   const avatarConfigs = useMemo(() => {
     const m = new Map<string, PlayerAvatarConfig>();
-    for (const p of players) m.set(p.userId, avatarConfigFromSeed(p.userId));
+    for (const p of players)
+      m.set(p.userId, resolveAvatarConfig(p.userId, p.characterConfig));
     return m;
   }, [players]);
 
@@ -111,23 +106,6 @@ export default function RaidGame({
     return () => clearTimeout(timer);
   }, [lastWordHit]);
 
-  // Local hit popups: pull from lastHit when local player is a target.
-  useEffect(() => {
-    if (!lastHit) return;
-    const target = lastHit.targets.find(t => t.playerId === localUserId);
-    if (!target) return;
-    const popup: LocalPopup = {
-      id: lastHit.id,
-      damage: target.damage,
-      kind: lastHit.kind,
-    };
-    setLocalPopups(prev => [...prev, popup]);
-    const timer = setTimeout(() => {
-      setLocalPopups(prev => prev.filter(p => p.id !== popup.id));
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [lastHit, localUserId]);
-
   const localHpPercent =
     localPlayer && localPlayer.maxHp > 0
       ? (localPlayer.hp / localPlayer.maxHp) * 100
@@ -136,7 +114,7 @@ export default function RaidGame({
 
   return (
     <div className="min-h-screen p-4 flex flex-col items-center">
-      {/* Boss + teammate cluster */}
+      {/* Boss */}
       <div className="w-full max-w-3xl mx-auto text-center">
         <h2 className="text-xl font-bold text-red-500 mb-2 tracking-wider">
           RAID BOSS
@@ -147,37 +125,33 @@ export default function RaidGame({
             style={{ width: `${bossHpPercent}%` }}
           />
         </div>
-        <p className="text-xs text-gray-400 mb-4">
-          {bossHp} / {bossMaxHp} HP
-        </p>
-
-        <div className="flex items-end justify-center gap-8 mb-6 min-h-[160px]">
-          {otherPlayers[0] && (
-            <RaidAvatar
-              player={otherPlayers[0]}
-              config={avatarConfigs.get(otherPlayers[0].userId)!}
-              lastHit={lastHit}
-              lastWordHit={lastWordHit}
-            />
-          )}
-          <div
-            className={`text-7xl select-none transition-transform ${bossShake ? 'animate-pixel-shake' : ''}`}
-            aria-hidden
-          >
-            👹
-          </div>
-          {otherPlayers[1] && (
-            <RaidAvatar
-              player={otherPlayers[1]}
-              config={avatarConfigs.get(otherPlayers[1].userId)!}
-              lastHit={lastHit}
-              lastWordHit={lastWordHit}
-            />
-          )}
+        <p className="text-xs text-gray-400 mb-2">{`${bossHp} / ${bossMaxHp} HP`}</p>
+        <div
+          className={`mx-auto h-56 w-56 sm:h-64 sm:w-64 ${bossShake ? 'animate-pixel-shake' : ''}`}
+        >
+          <RaidBoss3D
+            hpPercent={bossHpPercent}
+            isHit={bossShake}
+            isDefeated={bossHp <= 0}
+          />
         </div>
       </div>
 
-      {/* Local typing area (centered, full available width like Daily/Endless) */}
+      {/* Party row — all players, local highlighted */}
+      <div className="flex flex-wrap items-end justify-center gap-6 mb-6 min-h-[160px]">
+        {players.map(p => (
+          <RaidAvatar
+            key={p.userId}
+            player={p}
+            config={avatarConfigs.get(p.userId)!}
+            lastHit={lastHit}
+            lastWordHit={lastWordHit}
+            isLocal={p.userId === localUserId}
+          />
+        ))}
+      </div>
+
+      {/* Local typing area */}
       <div className="relative w-full max-w-3xl mx-auto">
         <div
           ref={containerRef}
@@ -194,22 +168,6 @@ export default function RaidGame({
           />
         </div>
 
-        {/* Local damage popups, centered over the typing area */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          {localPopups.map((p, idx) => (
-            <div
-              key={p.id}
-              className={`absolute text-3xl font-extrabold animate-raid-hit ${p.kind === 'boss' ? 'text-red-400' : 'text-orange-300'}`}
-              style={{
-                transform: `translateY(${-idx * 8}px)`,
-                textShadow: '0 0 6px rgba(0,0,0,0.7)',
-              }}
-            >
-              {p.kind === 'boss' ? 'ATTACK' : 'HIT'} -{p.damage}
-            </div>
-          ))}
-        </div>
-
         {/* Spectator overlay when local is dead */}
         {!isLocalAlive && (
           <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center pointer-events-none">
@@ -222,28 +180,6 @@ export default function RaidGame({
           </div>
         )}
       </div>
-
-      {/* Local status strip */}
-      {localPlayer && (
-        <div className="w-full max-w-3xl mx-auto mt-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-gray-200">
-              {localPlayer.username}{' '}
-              <span className="text-blue-400 text-xs">(you)</span>
-            </span>
-            <span className="text-gray-400">
-              {localPlayer.hp}/{localPlayer.maxHp} HP ·{' '}
-              {localPlayer.damageDealt} dmg
-            </span>
-          </div>
-          <div className="w-full mt-1 h-2 bg-gray-700 rounded overflow-hidden">
-            <div
-              className={`h-full transition-all duration-300 ${hpColorClass(localHpPercent, isLocalAlive)} ${localCritical ? 'animate-pulse' : ''}`}
-              style={{ width: `${localHpPercent}%` }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

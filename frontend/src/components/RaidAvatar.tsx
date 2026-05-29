@@ -13,11 +13,18 @@ interface Props {
   config: PlayerAvatarConfig;
   lastHit: RaidHitEvent | null;
   lastWordHit: RaidWordHit | null;
+  isLocal?: boolean;
 }
 
 type Popup = { id: number; damage: number; kind: 'mistake' | 'boss' };
 
-function RaidAvatar({ player, config, lastHit, lastWordHit }: Props) {
+function RaidAvatar({
+  player,
+  config,
+  lastHit,
+  lastWordHit,
+  isLocal = false,
+}: Props) {
   const [popups, setPopups] = useState<Popup[]>([]);
   const [swing, setSwing] = useState(false);
   const [hurt, setHurt] = useState(false);
@@ -55,7 +62,9 @@ function RaidAvatar({ player, config, lastHit, lastWordHit }: Props) {
 
   return (
     <div
-      className={`relative flex flex-col items-center w-32 ${!isAlive ? 'opacity-50' : ''}`}
+      className={`relative flex flex-col items-center w-32 rounded-lg ${
+        isLocal ? 'ring-2 ring-blue-400 bg-blue-500/5 px-1 py-1' : ''
+      } ${!isAlive ? 'opacity-50' : ''}`}
     >
       <div className="relative h-24 w-24">
         <PlayerAvatar3D
@@ -76,6 +85,7 @@ function RaidAvatar({ player, config, lastHit, lastWordHit }: Props) {
       </div>
       <p className="mt-1 text-xs font-semibold text-gray-200 truncate max-w-full">
         {player.username}
+        {isLocal && <span className="text-blue-400 text-[10px]"> (you)</span>}
       </p>
       <div className="w-full mt-1 h-1.5 bg-gray-700 rounded overflow-hidden">
         <div
