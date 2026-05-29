@@ -120,4 +120,31 @@ describe('RaidLobbyScreen', () => {
     );
     expect((html.match(/data-avatar/g) ?? []).length).toBe(2);
   });
+
+  it('still renders one avatar per player when configs are provided', () => {
+    const html = renderToString(
+      <RaidLobbyScreen
+        {...baseProps}
+        players={[
+          {
+            userId: 'u1',
+            username: 'Alice',
+            isHost: true,
+            characterConfig: {
+              bodyShape: 'round',
+              bodyColor: '#38bdf8',
+              eyeStyle: 'wide',
+              accessory: 'crown',
+              accessoryColor: '#fde047',
+            },
+          },
+          { userId: 'u2', username: 'Bob', isHost: false },
+        ]}
+        isHost={true}
+      />
+    );
+    expect((html.match(/data-avatar/g) ?? []).length).toBe(2);
+    expect(html).toContain('Alice');
+    expect(html).toContain('Bob');
+  });
 });

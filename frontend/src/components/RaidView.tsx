@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useRaidSocket } from '../hooks/useRaidSocket';
 import { useRaidState } from '../hooks/useRaidState';
 import { useGameContext } from '../hooks/useGameContext';
+import { useCharacter } from '../hooks/useCharacter';
 import RaidLobbyScreen from './RaidLobbyScreen';
 import RaidGame from './RaidGame';
 import RaidResultScreen from './RaidResultScreen';
@@ -41,6 +42,7 @@ export default function RaidView() {
 
   const { getToken } = useAuth();
   const { setCurrentMode } = useGameContext();
+  const { config: characterConfig } = useCharacter();
   const apiUrl = import.meta.env.VITE_API_URL;
 
   // Fetch room list when in room-list phase, poll every 5 seconds
@@ -89,9 +91,9 @@ export default function RaidView() {
   useEffect(() => {
     if (isConnected && username && localUserId && !hasJoined.current) {
       hasJoined.current = true;
-      send({ type: 'join' });
+      send({ type: 'join', characterConfig });
     }
-  }, [isConnected, username, localUserId, send]);
+  }, [isConnected, username, localUserId, send, characterConfig]);
 
   const handleCreateRoom = async () => {
     setCreating(true);
