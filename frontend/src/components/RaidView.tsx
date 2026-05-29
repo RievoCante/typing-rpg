@@ -5,6 +5,7 @@ import { useRaidState } from '../hooks/useRaidState';
 import { useGameContext } from '../hooks/useGameContext';
 import { useCharacter } from '../hooks/useCharacter';
 import RaidLobbyScreen from './RaidLobbyScreen';
+import RaidCountdownOverlay from './RaidCountdownOverlay';
 import RaidGame from './RaidGame';
 import RaidResultScreen from './RaidResultScreen';
 
@@ -301,7 +302,7 @@ export default function RaidView() {
 
   return (
     <div className="text-white">
-      {isPhase('lobby') && (
+      {(isPhase('lobby') || isPhase('countdown')) && (
         <RaidLobbyScreen
           roomCode={activeRoomId ?? ''}
           players={state.players}
@@ -310,6 +311,9 @@ export default function RaidView() {
           onLeaveRoom={handleBackToLobby}
           error={state.error}
         />
+      )}
+      {isPhase('countdown') && state.countdownEndsAt != null && (
+        <RaidCountdownOverlay endsAt={state.countdownEndsAt} />
       )}
       {isPhase('playing') && (
         <RaidGame
