@@ -41,14 +41,17 @@ export type RaidStats = {
 export type RaidServerMessage =
   | {
       type: 'room_state';
-      phase: 'lobby' | 'playing' | 'finished';
+      phase: 'lobby' | 'countdown' | 'playing' | 'finished';
       players: RaidPlayer[];
       bossHp: number;
       bossMaxHp: number;
+      countdownEndsAt?: number;
       result?: 'victory' | 'defeat';
       stats?: RaidStats;
     }
   | { type: 'game_started'; texts: Record<string, string> }
+  | { type: 'countdown_started'; durationMs: number }
+  | { type: 'countdown_cancelled' }
   | { type: 'player_died'; playerId: string }
   | { type: 'victory'; stats: RaidStats }
   | { type: 'defeat'; stats: RaidStats }

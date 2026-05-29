@@ -283,6 +283,62 @@ describe('applyRaidMessage', () => {
     });
   });
 
+  describe('countdown_started / countdown_cancelled', () => {
+    it('countdown_started enters countdown phase with a future countdownEndsAt', () => {
+      const before = Date.now();
+      const msg: RaidServerMessage = {
+        type: 'countdown_started',
+        durationMs: 5000,
+      };
+      const next = applyRaidMessage(initialRaidState, msg, LOCAL);
+      expect(next.phase).toBe('countdown');
+      expect(next.countdownEndsAt).not.toBeNull();
+      expect(next.countdownEndsAt!).toBeGreaterThanOrEqual(before + 5000);
+    });
+
+    it('countdown_cancelled returns to lobby and clears countdownEndsAt', () => {
+      const start: RaidState = {
+        ...initialRaidState,
+        phase: 'countdown',
+        countdownEndsAt: Date.now() + 5000,
+      };
+      const msg: RaidServerMessage = { type: 'countdown_cancelled' };
+      const next = applyRaidMessage(start, msg, LOCAL);
+      expect(next.phase).toBe('lobby');
+      expect(next.countdownEndsAt).toBeNull();
+    });
+
+    it('room_state carries countdownEndsAt while in countdown', () => {
+      const endsAt = Date.now() + 4000;
+      const msg: RaidServerMessage = {
+        type: 'room_state',
+        phase: 'countdown',
+        players: [mkPlayer()],
+        bossHp: 0,
+        bossMaxHp: 0,
+        countdownEndsAt: endsAt,
+      };
+      const next = applyRaidMessage(initialRaidState, msg, LOCAL);
+      expect(next.phase).toBe('countdown');
+      expect(next.countdownEndsAt).toBe(endsAt);
+    });
+
+    it('game_started clears countdownEndsAt', () => {
+      const start: RaidState = {
+        ...initialRaidState,
+        phase: 'countdown',
+        countdownEndsAt: Date.now() + 5000,
+      };
+      const msg: RaidServerMessage = {
+        type: 'game_started',
+        texts: { [LOCAL]: 'a b' },
+      };
+      const next = applyRaidMessage(start, msg, LOCAL);
+      expect(next.phase).toBe('playing');
+      expect(next.countdownEndsAt).toBeNull();
+    });
+  });
+
   describe('error', () => {
     it('records the error message without touching other state', () => {
       const start: RaidState = {
