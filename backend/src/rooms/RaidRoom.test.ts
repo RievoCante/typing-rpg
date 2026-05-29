@@ -372,9 +372,16 @@ describe('RaidRoom', () => {
     const stored = (room as any).state.players.get(ws);
     expect(stored.characterConfig).toEqual(cfg);
 
-    const sent = JSON.parse(ws.send.mock.calls.at(-2)[0]); // room_state precedes player_joined
-    const me = sent.players.find((p: any) => p.userId === 'u1');
+    // Assert by message type rather than call index so the test stays correct
+    // even if broadcast ordering changes.
+    const calls = ws.send.mock.calls.map((c: any) => JSON.parse(c[0]));
+    const roomState = calls.find((m: any) => m.type === 'room_state');
+    expect(roomState).toBeDefined();
+    const me = roomState.players.find((p: any) => p.userId === 'u1');
     expect(me.characterConfig).toEqual(cfg);
+
+    const joined = calls.find((m: any) => m.type === 'player_joined');
+    expect(joined.characterConfig).toEqual(cfg);
   });
 
   it('defaults characterConfig to null when absent or invalid', () => {

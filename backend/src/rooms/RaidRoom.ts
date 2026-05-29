@@ -249,6 +249,9 @@ export class RaidRoom extends DurableObject {
     if (this.state.phase !== 'lobby') {
       return;
     }
+    // Re-validate here so direct callers (tests, future internal calls) that
+    // pass a raw object still get a safe null on invalid input; the WS path
+    // already parsed it, where this is a cheap no-op.
     const config = parseCharacterConfig(characterConfig);
     const isHost = this.state.players.size === 0;
     const player: PlayerState = {
