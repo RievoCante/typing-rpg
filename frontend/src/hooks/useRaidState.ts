@@ -106,8 +106,9 @@ export function applyRaidMessage(
       return {
         ...prev,
         phase: 'countdown',
-        // Locally computed from durationMs; a subsequent room_state in 'countdown'
-        // phase overrides this with the authoritative server timestamp on reconnect.
+        // Locally computed from durationMs. The room_state broadcast that the
+        // server sends immediately after countdown_started carries the
+        // authoritative server countdownEndsAt and overrides this value.
         countdownEndsAt: Date.now() + msg.durationMs,
         error: null,
       };
