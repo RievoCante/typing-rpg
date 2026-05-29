@@ -66,9 +66,11 @@ export function avatarConfigFromSeed(seed: string): PlayerAvatarConfig {
 }
 
 // Runtime guard for configs arriving from storage, the network, or teammates.
-// IMPORTANT: keep the allowed values in sync with backend/src/core/character.ts.
+// IMPORTANT: keep the allowed values in sync with backend/src/core/character.ts
+// (added in this same feature). Colors are intentionally restricted to the
+// fixed palettes — custom hex is not offered by the customizer.
 export function isValidAvatarConfig(x: unknown): x is PlayerAvatarConfig {
-  if (!x || typeof x !== 'object') return false;
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return false;
   const c = x as Record<string, unknown>;
   return (
     typeof c.bodyShape === 'string' &&

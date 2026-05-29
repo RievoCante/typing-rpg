@@ -88,6 +88,16 @@ describe('resolveAvatarConfig', () => {
       avatarConfigFromSeed('user_2abc')
     );
   });
+  it('falls back to the seed when saved is omitted (undefined)', () => {
+    expect(resolveAvatarConfig('user_2abc')).toEqual(
+      avatarConfigFromSeed('user_2abc')
+    );
+  });
+  it('rejects array input (treated as invalid)', () => {
+    expect(resolveAvatarConfig('user_2abc', [] as never)).toEqual(
+      avatarConfigFromSeed('user_2abc')
+    );
+  });
 });
 
 describe('parseStoredAvatarConfig', () => {
