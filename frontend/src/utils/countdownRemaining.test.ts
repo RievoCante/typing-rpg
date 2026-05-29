@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countdownRemaining } from './RaidCountdownOverlay';
+import { countdownRemaining } from './countdownRemaining';
 
 describe('countdownRemaining', () => {
   it('rounds up to whole seconds remaining', () => {

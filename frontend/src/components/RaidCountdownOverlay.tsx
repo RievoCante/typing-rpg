@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react';
-
-// Whole seconds remaining until `endsAt`, clamped at 0. Pure so it can be
-// unit-tested without a DOM (frontend vitest runs in the node environment).
-export function countdownRemaining(endsAt: number, nowMs: number): number {
-  return Math.max(0, Math.ceil((endsAt - nowMs) / 1000));
-}
+import { countdownRemaining } from '../utils/countdownRemaining';
 
 interface RaidCountdownOverlayProps {
   endsAt: number;
@@ -33,7 +28,10 @@ export default function RaidCountdownOverlay({
       <p className="mb-4 text-lg uppercase tracking-widest text-gray-300">
         Room full — get ready
       </p>
-      <div className="text-8xl font-extrabold tabular-nums animate-pulse">
+      <div
+        aria-live="assertive"
+        className="text-8xl font-extrabold tabular-nums animate-pulse"
+      >
         {remaining > 0 ? remaining : 'Starting…'}
       </div>
     </div>
