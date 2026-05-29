@@ -8,6 +8,11 @@ import type {
   RaidHitEvent,
   RaidWordHit,
 } from '../hooks/useRaidState';
+import {
+  avatarConfigFromSeed,
+  type PlayerAvatarConfig,
+} from '../utils/avatarConfig';
+import { hpColorClass, isCriticalHp } from '../utils/raidHp';
 
 interface Props {
   players: RaidPlayer[];
@@ -20,16 +25,6 @@ interface Props {
   lastWordHit: RaidWordHit | null;
   onWordComplete: (wordIndex: number) => void;
   onMistake: () => void;
-}
-
-const AVATAR_EMOJIS = ['🧙', '🥷', '🤺'];
-
-function pickEmoji(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_EMOJIS[hash % AVATAR_EMOJIS.length];
 }
 
 type LocalPopup = { id: number; damage: number; kind: 'mistake' | 'boss' };
@@ -58,6 +53,12 @@ export default function RaidGame({
     () => players.filter(p => p.userId !== localUserId),
     [players, localUserId]
   );
+
+  const avatarConfigs = useMemo(() => {
+    const m = new Map<string, PlayerAvatarConfig>();
+    for (const p of players) m.set(p.userId, avatarConfigFromSeed(p.userId));
+    return m;
+  }, [players]);
 
   const typingMechanics = useTypingMechanics({
     text: localText,
@@ -131,6 +132,7 @@ export default function RaidGame({
     localPlayer && localPlayer.maxHp > 0
       ? (localPlayer.hp / localPlayer.maxHp) * 100
       : 0;
+  const localCritical = isCriticalHp(localHpPercent, isLocalAlive);
 
   return (
     <div className="min-h-screen p-4 flex flex-col items-center">
@@ -153,7 +155,7 @@ export default function RaidGame({
           {otherPlayers[0] && (
             <RaidAvatar
               player={otherPlayers[0]}
-              emoji={pickEmoji(otherPlayers[0].userId)}
+              config={avatarConfigs.get(otherPlayers[0].userId)!}
               lastHit={lastHit}
               lastWordHit={lastWordHit}
             />
@@ -167,7 +169,7 @@ export default function RaidGame({
           {otherPlayers[1] && (
             <RaidAvatar
               player={otherPlayers[1]}
-              emoji={pickEmoji(otherPlayers[1].userId)}
+              config={avatarConfigs.get(otherPlayers[1].userId)!}
               lastHit={lastHit}
               lastWordHit={lastWordHit}
             />
@@ -181,7 +183,7 @@ export default function RaidGame({
           ref={containerRef}
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          className={`p-6 bg-gray-800 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isLocalAlive ? 'opacity-50' : ''}`}
+          className={`p-6 bg-gray-800 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isLocalAlive ? 'opacity-50' : ''} ${localCritical ? 'ring-2 ring-red-500' : ''}`}
         >
           <TypingText
             text={localText}
@@ -236,7 +238,7 @@ export default function RaidGame({
           </div>
           <div className="w-full mt-1 h-2 bg-gray-700 rounded overflow-hidden">
             <div
-              className={`h-full transition-all duration-300 ${isLocalAlive ? 'bg-green-500' : 'bg-gray-500'}`}
+              className={`h-full transition-all duration-300 ${hpColorClass(localHpPercent, isLocalAlive)} ${localCritical ? 'animate-pulse' : ''}`}
               style={{ width: `${localHpPercent}%` }}
             />
           </div>
