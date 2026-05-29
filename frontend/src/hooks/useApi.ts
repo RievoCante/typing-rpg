@@ -22,6 +22,16 @@ export function useApi() {
     [authFetch]
   );
 
+  const updateCharacter = useCallback(
+    (config: import('../utils/avatarConfig').PlayerAvatarConfig) =>
+      authFetch('/me/character', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      }),
+    [authFetch]
+  );
+
   const createSession = useCallback(
     (body: {
       mode: 'daily' | 'endless';
@@ -67,6 +77,7 @@ export function useApi() {
   return {
     getMe,
     createMe,
+    updateCharacter,
     createSession,
     getRecentSessions,
     getDailyStatus,
