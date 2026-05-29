@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { avatarConfigFromSeed } from '../utils/avatarConfig';
+import PlayerAvatar3D from './PlayerAvatar3D';
 
 interface Props {
   roomCode: string;
@@ -54,11 +56,25 @@ export default function RaidLobbyScreen({
           ) : (
             <ul className="space-y-2">
               {players.map(p => (
-                <li key={p.userId} className="p-3 bg-gray-700 rounded">
-                  {p.username}{' '}
-                  {p.isHost && (
-                    <span className="text-yellow-400 text-sm ml-2">(Host)</span>
-                  )}
+                <li
+                  key={p.userId}
+                  className="p-3 bg-gray-700 rounded flex items-center gap-3"
+                >
+                  <div className="h-10 w-10 shrink-0">
+                    <PlayerAvatar3D
+                      config={avatarConfigFromSeed(p.userId)}
+                      isAlive
+                      hpPercent={100}
+                    />
+                  </div>
+                  <span>
+                    {p.username}
+                    {p.isHost && (
+                      <span className="text-yellow-400 text-sm ml-2">
+                        (Host)
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

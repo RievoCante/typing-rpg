@@ -1,5 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
+
+// The lobby renders a 3D <Canvas> avatar per player; @react-three/fiber cannot
+// server-render under the node test environment, so stub it with a marker we
+// can count. The stub emits no user id, preserving the userId-absence asserts.
+vi.mock('./PlayerAvatar3D', () => ({
+  default: () => <i data-avatar="true" />,
+}));
+
 import RaidLobbyScreen from './RaidLobbyScreen';
 
 // Server-rendered string assertions: cheaper than spinning up jsdom +
@@ -100,5 +108,16 @@ describe('RaidLobbyScreen', () => {
       <RaidLobbyScreen {...baseProps} players={[]} isHost={true} />
     );
     expect(html).not.toContain('bg-red-900');
+  });
+
+  it('renders one avatar per player', () => {
+    const html = renderToString(
+      <RaidLobbyScreen
+        {...baseProps}
+        players={[mkPlayer('u1', 'Alice'), mkPlayer('u2', 'Bob')]}
+        isHost={false}
+      />
+    );
+    expect((html.match(/data-avatar/g) ?? []).length).toBe(2);
   });
 });

@@ -1,27 +1,26 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type {
   RaidPlayer,
   RaidHitEvent,
   RaidWordHit,
 } from '../hooks/useRaidState';
+import type { PlayerAvatarConfig } from '../utils/avatarConfig';
+import { hpColorClass, isCriticalHp } from '../utils/raidHp';
+import PlayerAvatar3D from './PlayerAvatar3D';
 
 interface Props {
   player: RaidPlayer;
-  emoji: string;
+  config: PlayerAvatarConfig;
   lastHit: RaidHitEvent | null;
   lastWordHit: RaidWordHit | null;
 }
 
 type Popup = { id: number; damage: number; kind: 'mistake' | 'boss' };
 
-export default function RaidAvatar({
-  player,
-  emoji,
-  lastHit,
-  lastWordHit,
-}: Props) {
+function RaidAvatar({ player, config, lastHit, lastWordHit }: Props) {
   const [popups, setPopups] = useState<Popup[]>([]);
   const [swing, setSwing] = useState(false);
+  const [hurt, setHurt] = useState(false);
 
   useEffect(() => {
     if (!lastHit) return;
@@ -33,10 +32,15 @@ export default function RaidAvatar({
       kind: lastHit.kind,
     };
     setPopups(prev => [...prev, popup]);
-    const timer = setTimeout(() => {
+    setHurt(true);
+    const popupTimer = setTimeout(() => {
       setPopups(prev => prev.filter(p => p.id !== popup.id));
     }, 900);
-    return () => clearTimeout(timer);
+    const hurtTimer = setTimeout(() => setHurt(false), 300);
+    return () => {
+      clearTimeout(popupTimer);
+      clearTimeout(hurtTimer);
+    };
   }, [lastHit, player.userId]);
 
   useEffect(() => {
@@ -53,26 +57,29 @@ export default function RaidAvatar({
     <div
       className={`relative flex flex-col items-center w-32 ${!isAlive ? 'opacity-50' : ''}`}
     >
-      <div
-        className={`text-5xl select-none transition-transform duration-100 ${isAlive ? '' : 'grayscale'} ${swing ? '-translate-y-1 scale-110' : ''}`}
-        aria-hidden
-      >
-        {emoji}
+      <div className="relative h-24 w-24">
+        <PlayerAvatar3D
+          config={config}
+          isAlive={isAlive}
+          hpPercent={hpPercent}
+          isAttacking={swing}
+          isHurt={hurt}
+        />
+        {swing && (
+          <div
+            className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 text-2xl animate-raid-hit"
+            aria-hidden
+          >
+            ⚔️
+          </div>
+        )}
       </div>
-      {swing && (
-        <div
-          className="pointer-events-none absolute top-1 text-2xl animate-raid-hit"
-          aria-hidden
-        >
-          ⚔️
-        </div>
-      )}
       <p className="mt-1 text-xs font-semibold text-gray-200 truncate max-w-full">
         {player.username}
       </p>
       <div className="w-full mt-1 h-1.5 bg-gray-700 rounded overflow-hidden">
         <div
-          className={`h-full transition-all duration-300 ${isAlive ? 'bg-green-500' : 'bg-gray-500'}`}
+          className={`h-full transition-all duration-300 ${hpColorClass(hpPercent, isAlive)} ${isCriticalHp(hpPercent, isAlive) ? 'animate-pulse' : ''}`}
           style={{ width: `${hpPercent}%` }}
         />
       </div>
@@ -103,3 +110,5 @@ export default function RaidAvatar({
     </div>
   );
 }
+
+export default memo(RaidAvatar);
