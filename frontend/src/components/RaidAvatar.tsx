@@ -62,8 +62,8 @@ function RaidAvatar({
 
   return (
     <div
-      className={`relative flex flex-col items-center w-32 rounded-lg ${
-        isLocal ? 'ring-2 ring-blue-400 bg-blue-500/5 px-1 py-1' : ''
+      className={`relative flex flex-col items-center w-32 ${
+        isLocal ? 'rounded-lg ring-2 ring-blue-400 bg-blue-500/5 px-1 py-1' : ''
       } ${!isAlive ? 'opacity-50' : ''}`}
     >
       <div className="relative h-24 w-24">

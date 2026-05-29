@@ -52,11 +52,13 @@ describe('RaidGame layout', () => {
     const html = renderToString(
       <RaidGame {...baseProps} players={players} localUserId="me" />
     );
-    expect(html).toContain('data-boss');
+    expect((html.match(/data-boss/g) ?? []).length).toBe(1);
     expect((html.match(/data-avatar/g) ?? []).length).toBe(3);
     expect(html).toContain('Me');
     expect(html).toContain('Bob');
-    expect(html).toContain('(you)');
+    // Local player highlighted exactly once; emoji boss fully replaced.
+    expect((html.match(/\(you\)/g) ?? []).length).toBe(1);
+    expect(html).not.toContain('👹');
   });
 
   it('still renders the boss HP readout', () => {

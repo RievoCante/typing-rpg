@@ -110,7 +110,10 @@ export default function RaidGame({
     localPlayer && localPlayer.maxHp > 0
       ? (localPlayer.hp / localPlayer.maxHp) * 100
       : 0;
-  const localCritical = isCriticalHp(localHpPercent, isLocalAlive);
+  // Guard on localPlayer so the red critical ring never flashes before the
+  // first room_state populates the local player's HP.
+  const localCritical =
+    !!localPlayer && isCriticalHp(localHpPercent, isLocalAlive);
 
   return (
     <div className="min-h-screen p-4 flex flex-col items-center">
