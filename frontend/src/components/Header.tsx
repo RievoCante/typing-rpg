@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, User, X } from 'lucide-react';
+import { Sun, Moon, User, X, UserPen } from 'lucide-react';
 import {
   SignedIn,
   SignedOut,
@@ -8,10 +8,12 @@ import {
 } from '@clerk/clerk-react';
 
 import { useThemeContext } from '../hooks/useThemeContext';
+import CharacterCustomizer from './CharacterCustomizer';
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useThemeContext();
   const [showDialog, setShowDialog] = useState(false);
+  const [showCustomizer, setShowCustomizer] = useState(false);
 
   // Show dialog after a brief delay for smooth entrance
   useEffect(() => {
@@ -131,6 +133,19 @@ const Header: React.FC = () => {
           </SignedIn>
 
           <button
+            onClick={() => setShowCustomizer(true)}
+            className={`p-2 rounded-full transition-colors ${
+              theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}
+            aria-label="Customize character"
+          >
+            <UserPen
+              size={20}
+              className={theme === 'dark' ? 'text-white' : ''}
+            />
+          </button>
+
+          <button
             onClick={toggleTheme}
             className={`p-2 rounded-full transition-colors ${
               theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
@@ -147,6 +162,9 @@ const Header: React.FC = () => {
           </button>
         </div>
       </header>
+      {showCustomizer && (
+        <CharacterCustomizer onClose={() => setShowCustomizer(false)} />
+      )}
     </>
   );
 };
