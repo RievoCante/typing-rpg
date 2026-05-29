@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -25,17 +25,39 @@ export default function CharacterCustomizer({ onClose }: Props) {
     config ?? avatarConfigFromSeed('preview')
   );
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // If the modal opens before the saved config has loaded, adopt it once it
+  // arrives — but never clobber edits the user has already made.
+  const editedRef = useRef(false);
+  useEffect(() => {
+    if (config && !editedRef.current) setDraft(config);
+  }, [config]);
+
+  // Close on Escape, matching the click-outside affordance.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const set = <K extends keyof PlayerAvatarConfig>(
     key: K,
     value: PlayerAvatarConfig[K]
-  ) => setDraft(d => ({ ...d, [key]: value }));
+  ) => {
+    editedRef.current = true;
+    setDraft(d => ({ ...d, [key]: value }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
       await save(draft);
       onClose();
+    } catch {
+      setError('Could not save. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -124,7 +146,11 @@ export default function CharacterCustomizer({ onClose }: Props) {
           ))}
         </Knob>
 
-        <div className="mt-6 flex justify-end gap-3">
+        {error && (
+          <p className="mt-4 text-sm text-red-400 text-right">{error}</p>
+        )}
+
+        <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded bg-gray-500/20 hover:bg-gray-500/30"
@@ -193,7 +219,7 @@ function Swatch({
       aria-label={color}
       style={{ backgroundColor: color }}
       className={`h-7 w-7 rounded-full border-2 ${
-        active ? 'border-blue-500 scale-110' : 'border-transparent'
+        active ? 'border-blue-500 scale-110' : 'border-gray-400/40'
       } transition-transform`}
     />
   );
