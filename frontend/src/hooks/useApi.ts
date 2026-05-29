@@ -1,6 +1,7 @@
 // simple API client using Clerk token
 import { useAuth } from '@clerk/clerk-react';
 import { useCallback, useMemo } from 'react';
+import type { PlayerAvatarConfig } from '../utils/avatarConfig';
 
 export function useApi() {
   const { getToken } = useAuth();
@@ -23,7 +24,7 @@ export function useApi() {
   );
 
   const updateCharacter = useCallback(
-    (config: import('../utils/avatarConfig').PlayerAvatarConfig) =>
+    (config: PlayerAvatarConfig) =>
       authFetch('/me/character', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

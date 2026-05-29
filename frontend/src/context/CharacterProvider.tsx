@@ -13,11 +13,14 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
   const { getMe, updateCharacter } = useApi();
   const [config, setConfig] = useState<PlayerAvatarConfig | null>(null);
   const [ready, setReady] = useState(false);
-  const loadedRef = useRef(false);
+  // Track the auth state we last loaded for, so a mid-session transition
+  // (e.g. a guest signs in via the header) re-loads the correct config source.
+  const loadedForSignedIn = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (!isLoaded || loadedRef.current) return;
-    loadedRef.current = true;
+    if (!isLoaded) return;
+    if (loadedForSignedIn.current === (isSignedIn ?? false)) return;
+    loadedForSignedIn.current = isSignedIn ?? false;
     let cancelled = false;
     (async () => {
       try {
@@ -45,14 +48,22 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
 
   const save = useCallback(
     async (next: PlayerAvatarConfig) => {
+      // Optimistic update, rolled back if persistence fails so in-memory state
+      // never diverges from what was actually saved.
+      const prev = config;
       setConfig(next);
-      if (isSignedIn) {
-        await updateCharacter(next);
-      } else {
-        localStorage.setItem(CHARACTER_STORAGE_KEY, JSON.stringify(next));
+      try {
+        if (isSignedIn) {
+          await updateCharacter(next);
+        } else {
+          localStorage.setItem(CHARACTER_STORAGE_KEY, JSON.stringify(next));
+        }
+      } catch (e) {
+        setConfig(prev);
+        throw e;
       }
     },
-    [isSignedIn, updateCharacter]
+    [config, isSignedIn, updateCharacter]
   );
 
   return (
