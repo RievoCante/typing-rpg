@@ -297,4 +297,62 @@ describe('applyRaidMessage', () => {
       expect(next.players).toEqual(start.players);
     });
   });
+
+  it('carries characterConfig from room_state players', () => {
+    const cfg = {
+      bodyShape: 'round',
+      bodyColor: '#38bdf8',
+      eyeStyle: 'wide',
+      accessory: 'crown',
+      accessoryColor: '#fde047',
+    };
+    const next = applyRaidMessage(
+      initialRaidState,
+      {
+        type: 'room_state',
+        phase: 'lobby',
+        players: [
+          {
+            userId: 'u1',
+            username: 'Alice',
+            hp: 100,
+            maxHp: 100,
+            isHost: true,
+            isAlive: true,
+            wordsTyped: 0,
+            wordsCorrect: 0,
+            damageDealt: 0,
+            characterConfig: cfg,
+          },
+        ],
+        bossHp: 100,
+        bossMaxHp: 100,
+      } as never,
+      'u1'
+    );
+    expect(next.players[0].characterConfig).toEqual(cfg);
+  });
+
+  it('carries characterConfig on incremental player_joined', () => {
+    const cfg = {
+      bodyShape: 'square',
+      bodyColor: '#f472b6',
+      eyeStyle: 'sleepy',
+      accessory: 'none',
+      accessoryColor: '#f8fafc',
+    };
+    const next = applyRaidMessage(
+      initialRaidState,
+      {
+        type: 'player_joined',
+        userId: 'u9',
+        username: 'Zed',
+        characterConfig: cfg,
+      } as never,
+      'u1'
+    );
+    expect(next.players.find(p => p.userId === 'u9')?.characterConfig).toEqual(
+      cfg
+    );
+  });
 });

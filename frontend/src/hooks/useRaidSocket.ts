@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import type { PlayerAvatarConfig } from '../utils/avatarConfig';
 
 // Heartbeat under common proxy idle timeouts (Cloudflare ~100s, browsers
 // sometimes shorter). 15s leaves ample margin while avoiding chatter.
@@ -16,6 +17,7 @@ export type RaidPlayer = {
   wordsTyped: number;
   wordsCorrect: number;
   damageDealt: number;
+  characterConfig?: PlayerAvatarConfig | null;
 };
 
 export type RaidPlayerResult = {
@@ -62,7 +64,12 @@ export type RaidServerMessage =
       newHp: number;
     }
   | { type: 'word_hit'; playerId: string; newBossHp: number }
-  | { type: 'player_joined'; userId: string; username: string }
+  | {
+      type: 'player_joined';
+      userId: string;
+      username: string;
+      characterConfig?: PlayerAvatarConfig | null;
+    }
   | { type: 'player_left'; userId: string }
   | { type: 'error'; message: string };
 

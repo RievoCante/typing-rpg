@@ -158,6 +158,7 @@ export function applyRaidMessage(
             wordsTyped: 0,
             wordsCorrect: 0,
             damageDealt: 0,
+            characterConfig: msg.characterConfig ?? null,
           },
         ],
       };
