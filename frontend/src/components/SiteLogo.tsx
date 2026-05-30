@@ -13,8 +13,11 @@ export default function SiteLogo() {
       onClick={() => navigate('/')}
     >
       <img
-        src="/typing-rpg-logo.svg"
+        src="/typing-rpg-logo.png"
         alt="Typing RPG"
+        width={160}
+        height={160}
+        decoding="async"
         className="h-32 sm:h-40 w-auto drop-shadow transition-transform duration-200 ease-out group-hover:scale-105"
         style={{ filter: theme === 'dark' ? 'none' : 'none' }}
       />
