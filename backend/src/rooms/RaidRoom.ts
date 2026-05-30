@@ -20,7 +20,7 @@ type PlayerState = {
   characterConfig: CharacterConfig | null;
 };
 
-type RoomPhase = 'lobby' | 'playing' | 'finished';
+type RoomPhase = 'lobby' | 'countdown' | 'playing' | 'finished';
 
 type RaidRoomState = {
   phase: RoomPhase;
@@ -37,6 +37,8 @@ type RaidRoomState = {
   attackTimer: ReturnType<typeof setInterval> | null;
   graceTimer: ReturnType<typeof setTimeout> | null;
   idleTimer: ReturnType<typeof setTimeout> | null;
+  countdownTimer: ReturnType<typeof setTimeout> | null;
+  countdownEndsAt: number | null;
   dbRoomCreated: boolean;
 };
 
@@ -52,6 +54,7 @@ const MISTAKE_DAMAGE_MAX = 15;
 const PLAYER_MAX_HP = 100;
 const ROOM_IDLE_TIMEOUT_MS = 300_000;
 const GRACE_PERIOD_MS = 30_000;
+const COUNTDOWN_MS = 5_000;
 
 const WORDS: string[] = (english1k as { words: string[] }).words;
 
@@ -104,6 +107,8 @@ export class RaidRoom extends DurableObject {
       attackTimer: null,
       graceTimer: null,
       idleTimer: null,
+      countdownTimer: null,
+      countdownEndsAt: null,
       dbRoomCreated: false,
     };
   }
@@ -278,6 +283,12 @@ export class RaidRoom extends DurableObject {
 
     this.broadcastRoomState();
     this.broadcast({ type: 'player_joined', userId: data.userId, username: data.username, characterConfig: config });
+
+    // Auto-start: once the room fills to MAX_PLAYERS, kick off a countdown that
+    // fires beginRaid() — no host action needed.
+    if (this.state.phase === 'lobby' && this.state.players.size === MAX_PLAYERS) {
+      this.startCountdown();
+    }
   }
 
   async createRoomInDb(hostId: string, hostUsername: string) {
@@ -370,7 +381,19 @@ export class RaidRoom extends DurableObject {
       return;
     }
 
+    // Manual start (2-player path) begins immediately — no countdown.
+    this.beginRaid();
+  }
+
+  // The actual raid kickoff. Called by the host's manual start (2 players) and
+  // by the auto-start countdown timer when the room fills to MAX_PLAYERS.
+  private beginRaid() {
     this.clearIdleTimer();
+    if (this.state.countdownTimer) {
+      clearTimeout(this.state.countdownTimer);
+      this.state.countdownTimer = null;
+    }
+    this.state.countdownEndsAt = null;
 
     this.state.bossMaxHp = BOSS_MAX_HP;
     this.state.bossHp = BOSS_MAX_HP;
@@ -390,9 +413,27 @@ export class RaidRoom extends DurableObject {
     this.broadcastRoomState();
 
     // Sync final player count and mark room as active so it disappears from lobby
-    this.syncPlayerCountToDb(playerCount, 'active');
+    this.syncPlayerCountToDb(this.state.players.size, 'active');
 
     this.state.attackTimer = setInterval(() => this.bossAttack(), BOSS_ATTACK_INTERVAL_MS);
+  }
+
+  private startCountdown() {
+    this.state.phase = 'countdown';
+    this.state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
+    this.broadcast({ type: 'countdown_started', durationMs: COUNTDOWN_MS });
+    this.broadcastRoomState();
+    this.state.countdownTimer = setTimeout(() => this.beginRaid(), COUNTDOWN_MS);
+  }
+
+  private cancelCountdown() {
+    if (this.state.countdownTimer) {
+      clearTimeout(this.state.countdownTimer);
+      this.state.countdownTimer = null;
+    }
+    this.state.countdownEndsAt = null;
+    this.state.phase = 'lobby';
+    this.broadcast({ type: 'countdown_cancelled' });
   }
 
   handleWordComplete(ws: WebSocket, _data: { wordIndex: number }) {
@@ -660,6 +701,9 @@ export class RaidRoom extends DurableObject {
       bossHp: this.state.bossHp,
       bossMaxHp: this.state.bossMaxHp,
     };
+    if (this.state.phase === 'countdown' && this.state.countdownEndsAt != null) {
+      state.countdownEndsAt = this.state.countdownEndsAt;
+    }
     if (extra?.result) state.result = extra.result;
     if (extra?.stats) state.stats = extra.stats;
 
@@ -692,6 +736,15 @@ export class RaidRoom extends DurableObject {
       clearTimeout(this.state.graceTimer);
       this.state.graceTimer = null;
     }
+
+    // If a player drops during the auto-start countdown and we fall below the
+    // full-room threshold, cancel the countdown and return everyone to the
+    // lobby. Setting phase back to 'lobby' here also lets the existing
+    // host-reassignment block below run for a host who left mid-countdown.
+    if (this.state.phase === 'countdown' && this.state.players.size < MAX_PLAYERS) {
+      this.cancelCountdown();
+    }
+
     let newHostId: string | undefined;
     let newHostUsername: string | undefined;
 
