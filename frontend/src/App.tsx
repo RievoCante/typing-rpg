@@ -29,6 +29,7 @@ import LoadingScreen from './components/LoadingScreen';
 import VolumeControl from './components/VolumeControl';
 import SiteLogo from './components/SiteLogo';
 import LeftSidebar from './components/LeftSidebar';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -52,6 +53,8 @@ function GameContent() {
   const dailyProgress = useDailyProgress();
   const { markCompletedToday } = dailyProgress;
   const { bootstrapping } = useBootstrap(markCompletedToday);
+
+  useDocumentTitle(); // home page uses the default title
 
   // Use defeat state from context (tracks actual defeat moment, not derived health %)
   const isDefeated = isCurrentMonsterDefeated;
