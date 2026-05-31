@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { Mesh, Color, Group, MeshStandardMaterial } from 'three';
+import { Mesh, Color, Group, MeshStandardMaterial, Box3, Vector3 } from 'three';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 import { GOLEM_CONFIGS, GOLEM_ANIMATIONS } from '../types/GolemTypes';
 
@@ -58,6 +58,13 @@ export default function GolemModel({
         }
       });
     }
+
+    // Recenter the model on its bounding box so its visual center sits at the
+    // origin. The GLB pivot is at the golem's feet, which otherwise renders the
+    // model sunk below the canvas center.
+    const box = new Box3().setFromObject(cloned);
+    const center = box.getCenter(new Vector3());
+    cloned.position.sub(center);
 
     return cloned;
   }, [scene, customColor]);
