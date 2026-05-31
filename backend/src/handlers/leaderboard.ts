@@ -1,5 +1,5 @@
 // Handlers for public leaderboard endpoints
-import { and, desc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, max, min } from "drizzle-orm";
 import { AppContext } from "../core/types";
 import { users, gameSessions } from "../db/schema";
 
@@ -69,59 +69,33 @@ export const getTodayDailyWpmLeaderboard = async (c: AppContext) => {
 
   const db = c.get("db");
   try {
-    // Fetch today's daily sessions joined with users
+    const maxWpm = max(gameSessions.wpm).as("wpm");
+    const minCreatedAt = min(gameSessions.createdAt).as("createdAt");
+
     const rows = await db
       .select({
-        userId: gameSessions.userId,
         username: users.username,
-        wpm: gameSessions.wpm,
-        createdAt: gameSessions.createdAt,
+        wpm: maxWpm,
+        createdAt: minCreatedAt,
       })
       .from(gameSessions)
       .innerJoin(users, eq(users.userId, gameSessions.userId))
       .where(
         and(
           eq(gameSessions.mode, "daily"),
-          gte(gameSessions.createdAt, dayStart as any),
-          lt(gameSessions.createdAt, dayEnd as any)
+          gte(gameSessions.createdAt, dayStart),
+          lt(gameSessions.createdAt, dayEnd)
         )
       )
-      .orderBy(desc(gameSessions.createdAt));
+      .groupBy(gameSessions.userId, users.username)
+      .orderBy(desc(maxWpm), asc(minCreatedAt))
+      .limit(limit)
+      .offset(offset);
 
-    // Keep latest entry per user, then sort by WPM desc
-    const latestByUser = new Map<
-      string,
-      {
-        userId: string;
-        username: string;
-        wpm: number;
-        createdAt: Date | number;
-      }
-    >();
-    for (const r of rows) {
-      if (!latestByUser.has(r.userId)) {
-        latestByUser.set(r.userId, r);
-      }
-    }
-    const aggregated = Array.from(latestByUser.values()).sort((a, b) => {
-      if (b.wpm !== a.wpm) return b.wpm - a.wpm;
-      const at =
-        a.createdAt instanceof Date
-          ? a.createdAt.getTime()
-          : Number(a.createdAt) * 1000;
-      const bt =
-        b.createdAt instanceof Date
-          ? b.createdAt.getTime()
-          : Number(b.createdAt) * 1000;
-      return at - bt;
-    });
-
-    const paged = aggregated.slice(offset, offset + limit);
-    const items = paged.map((r, idx) => ({
+    const items = rows.map((r, idx) => ({
       rank: offset + idx + 1,
-      userId: r.userId,
       username: r.username,
-      wpm: r.wpm,
+      wpm: r.wpm ?? 0,
     }));
 
     return c.json({ success: true, items });

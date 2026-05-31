@@ -24,6 +24,10 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
   // Create audio element once
   useEffect(() => {
     if (typeof Audio === 'undefined') return;
+
+    // Guard: Prevent duplicate audio elements during React StrictMode remounts
+    if (audioRef.current) return;
+
     const el = new Audio(src);
     el.loop = true;
     el.preload = 'auto';
@@ -54,7 +58,7 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
 
   const ensurePlay = useCallback(async () => {
     const el = audioRef.current;
-    if (!el) return;
+    if (!el || !el.paused) return; // Don't play if already playing
     try {
       await el.play();
     } catch {
@@ -64,28 +68,8 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
 
   const toggleMute = useCallback(() => setMuted(m => !m), []);
 
-  // One-time unlock: start playback on first user gesture anywhere
-  useEffect(() => {
-    let unlocked = false;
-    const unlock = () => {
-      if (unlocked) return;
-      unlocked = true;
-      ensurePlay();
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('keydown', unlock);
-      document.removeEventListener('touchstart', unlock);
-    };
-    document.addEventListener('pointerdown', unlock);
-    document.addEventListener('keydown', unlock);
-    document.addEventListener('touchstart', unlock, {
-      passive: true,
-    } as AddEventListenerOptions);
-    return () => {
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('keydown', unlock);
-      document.removeEventListener('touchstart', unlock);
-    };
-  }, [ensurePlay]);
+  // Audio only starts via VolumeControl interaction - no global auto-unlock
+  // This ensures keyboard has zero effect on audio
 
   return { volume, setVolume, muted, toggleMute, ensurePlay };
 }

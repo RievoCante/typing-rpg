@@ -67,15 +67,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "game_sessions_user_id_users_id_fk": {
-          "name": "game_sessions_user_id_users_id_fk",
+        "game_sessions_user_id_users_user_id_fk": {
+          "name": "game_sessions_user_id_users_user_id_fk",
           "tableFrom": "game_sessions",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
           "columnsTo": [
-            "id"
+            "user_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -88,13 +88,6 @@
     "users": {
       "name": "users",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
         "username": {
           "name": "username",
           "type": "text",
@@ -131,6 +124,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
           "autoincrement": false
         }
       },

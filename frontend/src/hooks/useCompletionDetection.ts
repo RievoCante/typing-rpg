@@ -40,7 +40,11 @@ export const useCompletionDetection = ({
   // Check if session was already completed (for duplicate prevention)
   const isSessionAlreadyCompleted = hasCompletedCurrentSession;
 
-  // Reset completion processing flag when text changes
+  // Reset completion processing flag when text changes.
+  // hasProcessedCompletion is intentionally excluded from deps — adding it
+  // would cause the effect to fire (and call onTextChange) when completion
+  // is marked, not just when the text actually changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setHasProcessedCompletion(false);
     onTextChange?.();
