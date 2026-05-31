@@ -1,6 +1,7 @@
 // simple API client using Clerk token
 import { useAuth } from '@clerk/clerk-react';
 import { useCallback, useMemo } from 'react';
+import type { PlayerAvatarConfig } from '../utils/avatarConfig';
 
 export function useApi() {
   const { getToken } = useAuth();
@@ -19,6 +20,16 @@ export function useApi() {
   const getMe = useCallback(() => authFetch('/me'), [authFetch]);
   const createMe = useCallback(
     () => authFetch('/me', { method: 'POST' }),
+    [authFetch]
+  );
+
+  const updateCharacter = useCallback(
+    (config: PlayerAvatarConfig) =>
+      authFetch('/me/character', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      }),
     [authFetch]
   );
 
@@ -67,6 +78,7 @@ export function useApi() {
   return {
     getMe,
     createMe,
+    updateCharacter,
     createSession,
     getRecentSessions,
     getDailyStatus,

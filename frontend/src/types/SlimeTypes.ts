@@ -1,11 +1,13 @@
 // Slime type definitions and constants
 
 export type SlimeTypeEnum = 'normal' | 'mini-boss' | 'boss';
+export type SlimeShapeEnum = 'round' | 'square';
 
 export interface SlimeType {
   type: SlimeTypeEnum;
   color: string;
   scale: number;
+  shape: SlimeShapeEnum;
 }
 
 export interface SlimeState {
@@ -20,16 +22,19 @@ export const SLIME_CONFIGS: Record<SlimeTypeEnum, SlimeType> = {
     type: 'normal',
     color: '#87CEEB', // Light blue
     scale: 0.8,
+    shape: 'round',
   },
   'mini-boss': {
     type: 'mini-boss',
     color: '#ef4444', // Red
     scale: 1.0,
+    shape: 'round',
   },
   boss: {
     type: 'boss',
     color: '#8b5cf6', // Purple
     scale: 1.3,
+    shape: 'round',
   },
 };
 
@@ -40,3 +45,19 @@ export const SLIME_ANIMATIONS = {
   FLASH_DURATION: 120, // Duration of red flash in ms (snappier)
   DISAPPEAR_DURATION: 500, // Duration of disappear animation in ms
 };
+
+export const SLIME_COLORS = [
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#22c55e', // Green
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#a855f7', // Purple
+];
+
+export const SLIME_SIZES = [
+  0.6, // Small
+  0.8, // Medium (Normal)
+  1.1, // Large
+];

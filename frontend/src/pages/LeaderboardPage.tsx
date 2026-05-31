@@ -1,10 +1,12 @@
 // Leaderboard page with two tabs: All-time Level and Today WPM (Daily)
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useApi } from '../hooks/useApi';
 import LeftSidebar from '../components/LeftSidebar';
 import SiteLogo from '../components/SiteLogo';
+import PixelArtBackground from '../components/PixelArtBackground';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type LevelRow = {
   rank: number;
@@ -21,6 +23,7 @@ type TodayWpmRow = {
 };
 
 export default function LeaderboardPage() {
+  useDocumentTitle('Leaderboard — Typing RPG');
   const { theme } = useThemeContext();
   const { getLeaderboardLevels, getLeaderboardTodayWpm } = useApi();
   const [tab, setTab] = useState<'levels' | 'todayWpm'>('levels');
@@ -30,14 +33,6 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 50;
-
-  const bgClass = useMemo(
-    () =>
-      theme === 'dark'
-        ? 'bg-[#303446] text-white'
-        : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-gray-900',
-    [theme]
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -200,13 +195,23 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div className={`min-h-screen ${bgClass}`}>
-      <SiteLogo />
-      <LeftSidebar />
-      <Header />
-      <div className="pt-4 pb-12">
-        <h1 className="text-center text-2xl font-bold mb-4">Leaderboard</h1>
-        {table}
+    <div className="min-h-screen relative">
+      {/* Retro pixel art background - Slime Kingdom theme */}
+      <PixelArtBackground />
+
+      {/* Content layered on top */}
+      <div className="relative z-10">
+        <SiteLogo />
+        <LeftSidebar />
+        <Header />
+        <div className="pt-4 pb-12">
+          <h1
+            className={`text-center text-2xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+          >
+            Leaderboard
+          </h1>
+          {table}
+        </div>
       </div>
     </div>
   );

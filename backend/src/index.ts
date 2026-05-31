@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/node";
 import { sentry } from "@hono/sentry";
 
 import { createDbClient } from "./db";
-import { getUser, createUser } from "./handlers/user";
+import { getUser, createUser, updateCharacter } from "./handlers/user";
 import {
   createSession,
   getSessions,
@@ -19,25 +19,30 @@ import { Bindings, Variables } from "./core/types";
 import { authMiddleware } from "./core/auth";
 import { kvRateLimit } from "./core/rateLimit";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
+import { validateRaidWsAuth } from "./core/raidAuth";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().basePath(
   "/api"
 );
 
 // MIDDLEWARE
-// Note: Sentry DSN is hardcoded for Cloudflare Workers deployment
-// This is acceptable since: 1) DSN is server-side only, 2) Cloudflare Workers
-// don't easily support build-time env vars, 3) DSN is safe to expose (it's for sending, not reading data)
-// For production best practice, consider using Cloudflare Workers secrets
-app.use(
-  "*",
-  sentry({
-    dsn: "https://fc88096eb65c14e942c6098e5271b73a@o4510185802629120.ingest.us.sentry.io/4510220039028736",
-    environment: "production",
-    tracesSampleRate: 0.1,
-  })
-);
-app.use("*", cors());
+// Sentry DSN from Cloudflare Workers secret (SENTRY_DSN)
+// For local dev, add SENTRY_DSN to backend/.dev.vars
+app.use("*", async (c, next) => {
+  if (c.env.SENTRY_DSN) {
+    const sentryMiddleware = sentry({
+      dsn: c.env.SENTRY_DSN,
+      environment: c.env.MODE ?? "production",
+      tracesSampleRate: 0.1,
+    });
+    await sentryMiddleware(c, next);
+  } else {
+    await next();
+  }
+});
+app.use("*", cors({
+  origin: ["https://typingrpg.com", "http://localhost:5173"],
+}));
 app.use("*", logger());
 // Populate auth context for all requests (even public) so getAuth works
 app.use("*", clerkMiddleware());
@@ -64,6 +69,7 @@ app.get("/", (c) => c.text("Welcome to the Typing RPG API!"));
 // user routes
 app.get("/me", authMiddleware, limiter, getUser);
 app.post("/me", authMiddleware, limiter, createUser);
+app.patch("/me/character", authMiddleware, limiter, updateCharacter);
 
 // session routes
 app.post("/sessions", authMiddleware, limiter, createSession);
@@ -74,4 +80,36 @@ app.get("/daily/status", authMiddleware, limiter, getDailyStatus);
 app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
 app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
 
-export default app;
+import raidRoutes from "./handlers/raid";
+app.use("/raid/*", limiter);
+app.route("/raid", raidRoutes);
+
+const worker = {
+  async fetch(req: Request, env: Bindings, ctx: any) {
+    const url = new URL(req.url);
+    // Route WebSocket upgrade requests to Durable Object at /raid/:roomCode
+    // Path pattern: /raid/XXXXXX (6 char room code).
+    // Auth is validated HERE — the DO trusts the credentials it sees in the
+    // URL because we have already verified them.
+    if (
+      url.pathname.startsWith('/raid/') &&
+      url.pathname.length === 12 &&
+      req.headers.get('Upgrade') === 'websocket'
+    ) {
+      const authResult = await validateRaidWsAuth(url, env as { CLERK_SECRET_KEY?: string });
+      if (!authResult.ok) {
+        return new Response(authResult.error, { status: authResult.status });
+      }
+      const roomCode = url.pathname.slice(6); // /raid/XXXXXX = 6 chars
+      const doId = env.RAID_ROOMS.idFromName(roomCode);
+      const room = env.RAID_ROOMS.get(doId);
+      return room.fetch(req);
+    }
+    // Everything else goes through Hono
+    return app.fetch(req, env, ctx);
+  },
+};
+
+export default worker;
+
+export { RaidRoom } from "./rooms/RaidRoom";
