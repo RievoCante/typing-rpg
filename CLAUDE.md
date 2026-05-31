@@ -18,6 +18,14 @@ Read those for product/feature-level questions. This file holds engineering rule
 
 Keep responses short and concise. Save output tokens without sacrificing readability.
 
+## Git Workflow
+
+- **Branch per feature off `dev`.** For any new feature/fix, create a branch from `dev` (e.g. `feature/raid-emotes`), never commit directly to `dev` or `main`.
+- **Use a git worktree per feature.** This project runs many parallel AI agents, so each feature branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy. Agents: call `EnterWorktree` before editing; humans: `git worktree add`.
+- **Merge feature → `dev`** when the feature is complete and CI passes (see Verification below).
+- **`dev` is the integration branch; `main` is production.** After testing on `dev`, open a PR `dev → main`. Merging to `main` triggers backend CD (see Deployment).
+- **Re-sync after release.** PRs are squash-merged, so after a `dev → main` merge, merge `origin/main` back into `dev` to keep history clean and avoid phantom commits in the next PR.
+
 ## Verification (CI order)
 
 - **Frontend**: install → lint → format:check → typecheck → test → build
