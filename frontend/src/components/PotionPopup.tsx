@@ -27,6 +27,19 @@ export default function PotionPopup() {
     drinkPotion();
   }, [drinkPotion]);
 
+  // Allow pressing Enter to drink the potion while the popup is showing
+  useEffect(() => {
+    if (!hasPotion) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleUsePotion();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hasPotion, handleUsePotion]);
+
   if (!isVisible) return null;
 
   return (
@@ -91,6 +104,23 @@ export default function PotionPopup() {
         >
           Drink Potion
         </button>
+
+        <p
+          className={`mt-2 text-center text-xs ${
+            theme === 'dark' ? 'text-purple-300' : 'text-purple-600'
+          }`}
+        >
+          or press{' '}
+          <kbd
+            className={`px-1.5 py-0.5 rounded border font-mono text-[0.7rem] font-semibold ${
+              theme === 'dark'
+                ? 'bg-purple-800 border-purple-500 text-purple-100'
+                : 'bg-purple-200 border-purple-400 text-purple-800'
+            }`}
+          >
+            Enter
+          </kbd>
+        </p>
       </div>
     </div>
   );
