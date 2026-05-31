@@ -7,6 +7,7 @@ import './index.css';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { ThemeProvider } from './context/ThemeProvider';
 import { GameProvider } from './context/GameProvider';
+import { CharacterProvider } from './context/CharacterProvider';
 import * as Sentry from '@sentry/react';
 
 // Initialize Sentry
@@ -40,7 +41,9 @@ createRoot(document.getElementById('root')!).render(
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
       <ThemeProvider>
         <GameProvider>
-          <RouterProvider router={router} />
+          <CharacterProvider>
+            <RouterProvider router={router} />
+          </CharacterProvider>
         </GameProvider>
       </ThemeProvider>
     </ClerkProvider>

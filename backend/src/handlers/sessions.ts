@@ -8,10 +8,10 @@ import { applyXp, calculateXpDelta } from '../core/xp';
 
 const sessionSchema = z.object({
   mode: z.enum(['daily', 'endless']),
-  wpm: z.number().int().nonnegative(),
-  totalWords: z.number().int().nonnegative(),
-  correctWords: z.number().int().nonnegative(),
-  incorrectWords: z.number().int().nonnegative(),
+  wpm: z.number().int().nonnegative().max(300),
+  totalWords: z.number().int().nonnegative().max(2000),
+  correctWords: z.number().int().nonnegative().max(2000),
+  incorrectWords: z.number().int().nonnegative().max(2000),
 });
 
 // POST /api/sessions
@@ -55,8 +55,8 @@ export const createSession = async (c: AppContext) => {
       }
     }
 
-    // Save session
-    const inserted = await db
+    // Insert session
+    const [inserted] = await db
       .insert(gameSessions)
       .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
       .returning();
@@ -68,7 +68,7 @@ export const createSession = async (c: AppContext) => {
       user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.userId, userId) });
     }
 
-    // Compute XP and update user
+    // Compute and apply XP
     let xpDelta = 0;
     if (user) {
       xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
@@ -78,13 +78,12 @@ export const createSession = async (c: AppContext) => {
           .update(users)
           .set({ level: updated.level, xp: updated.xp, updatedAt: new Date() })
           .where(eq(users.userId, userId));
-        user.level = updated.level;
-        user.xp = updated.xp;
+        user = { ...user, level: updated.level, xp: updated.xp };
       }
     }
 
     // Include xpDelta in session payload so UI can display earned XP
-    const sessionWithXp = { ...inserted[0], xpDelta } as any;
+    const sessionWithXp = { ...inserted, xpDelta } as any;
 
     return c.json({ success: true, session: sessionWithXp, user }, 201);
   } catch (e) {

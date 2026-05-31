@@ -2,12 +2,140 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/typing-rpg-logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Typing RPG</title>
+
+    <!-- Primary SEO -->
+    <title>Typing RPG — Free Typing Game to Battle Monsters</title>
+    <meta
+      name="description"
+      content="Battle monsters by typing fast in Typing RPG, a free typing game. Practice WPM across Daily, Endless and co-op Raid modes, level up, and climb the leaderboard."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#303446" />
+    <link rel="canonical" href="https://typingrpg.com/" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="/typing-rpg-logo.png"
+    />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Typing RPG" />
+    <meta
+      property="og:title"
+      content="Typing RPG — Free Typing Game to Battle Monsters"
+    />
+    <meta
+      property="og:description"
+      content="Battle monsters by typing fast. Practice your WPM across Daily, Endless and co-op Raid modes, level up, and climb the global leaderboard."
+    />
+    <meta property="og:url" content="https://typingrpg.com/" />
+    <meta property="og:image" content="https://typingrpg.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Typing RPG — Free Typing Game to Battle Monsters"
+    />
+    <meta
+      name="twitter:description"
+      content="Battle monsters by typing fast. Practice WPM across Daily, Endless and co-op Raid modes, level up, and climb the leaderboard."
+    />
+    <meta name="twitter:image" content="https://typingrpg.com/og-image.png" />
+
+    <!-- Performance: warm up the API connection early -->
+    <link
+      rel="preconnect"
+      href="https://typing-rpg-backend.putter-ravit.workers.dev"
+      crossorigin
+    />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Typing RPG",
+        "url": "https://typingrpg.com/",
+        "description": "A free browser typing game where you battle monsters by typing words correctly. Practice typing speed (WPM) and accuracy across Daily, Endless and co-op Raid modes, level up and climb the global leaderboard.",
+        "image": "https://typingrpg.com/og-image.png",
+        "applicationCategory": "Game",
+        "genre": ["Typing Game", "Educational Game", "RPG"],
+        "gamePlatform": "Web Browser",
+        "operatingSystem": "Any",
+        "playMode": ["SinglePlayer", "CoOp"],
+        "inLanguage": "en",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Typing RPG",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://typingrpg.com/typing-rpg-logo.png"
+          }
+        }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- SEO + first-paint splash. The React app replaces this once JS loads.
+           Keep this content accurate to what the app renders (no cloaking). -->
+      <main
+        style="
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: 2rem;
+          text-align: center;
+          background: #303446;
+          color: #c6d0f5;
+          font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo,
+            monospace;
+        "
+      >
+        <img
+          src="/typing-rpg-logo.png"
+          alt="Typing RPG logo"
+          width="160"
+          height="160"
+          style="width: 160px; height: 160px"
+          fetchpriority="high"
+        />
+        <h1 style="font-size: 1.75rem; margin: 0">
+          Typing RPG — Type to Battle Monsters
+        </h1>
+        <p style="max-width: 34rem; margin: 0; line-height: 1.6">
+          Typing RPG is a free typing game that turns typing practice into an
+          RPG adventure. Defeat monsters by typing words correctly, improve your
+          WPM and accuracy, level up, and climb the global leaderboard.
+        </p>
+        <p style="max-width: 34rem; margin: 0; line-height: 1.6; opacity: 0.85">
+          Play <strong>Daily</strong> mode for a fresh challenge each day,
+          <strong>Endless</strong> mode to grind XP, or team up in co-op
+          <strong>Raid</strong> battles with 2–3 players.
+        </p>
+        <p style="opacity: 0.7; margin-top: 0.5rem">Loading the game…</p>
+        <noscript>Typing RPG needs JavaScript enabled to play.</noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

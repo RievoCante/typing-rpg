@@ -1,63 +1,114 @@
-Todo:
-  ✔ Set up git repo @done(25-06-02 14:09) 
-  ✔ Set up frontend and backend folder and under stand the structure @30m @started(25-06-02 14:09) @done(25-06-02 14:59) @lasted(50m1s)
-    // I followed bun doc.
-  ✔ Create simple working frontend @2h @started(25-06-02 15:00) @done(25-08-01 12:32) @lasted(8w3d21h32m34s)
-    ✔ Header @done(25-06-05 18:16)
+Raid Boss — reach desired state (see docs/raid-boss.md):
 
-    ✔ Mode system @done(25-06-24 11:47)
-      ✔ Button @done(25-06-10 14:49)
-      ✔ Daily mode @started(25-06-16 15:46) @done(25-06-22 13:46) @lasted(5d22h56s)
-        ✔ Quote display @done(25-06-16 15:46)
-        ✔ A set of 3 quotes for each day of the week @done(25-06-22 13:43)
-        ✔ Milestone tracking on left side of the screen @done(25-06-22 13:47)
+  Backend — game constants & loop:
+    ✔ Change BASE_HP_PER_PLAYER scaling → flat BOSS_MAX_HP = 100 in RaidRoom.ts
+    ✔ WORD_DAMAGE: 6 → 1
+    ✔ BOSS_ATTACK_INTERVAL_MS: 5000 → 6000
+    ✔ BOSS_ATTACK_DAMAGE: 12 → 10
+    ✔ Rewrite bossAttack(): hit ALL alive players, emit boss_attacked with full per-player hp array
+    ✔ MAX_PLAYERS stays 3; verify no leftover references to 4
 
-      ✔ Endless mode @done(25-06-16 15:46)
+  Backend — mistake mechanic:
+    ✔ Add `mistake` WS message handler in RaidRoom.webSocketMessage
+    ✔ Server-side damage roll: randInt(MISTAKE_DAMAGE_MIN=5, MISTAKE_DAMAGE_MAX=15)
+    ✔ Apply damage, mark dead if hp=0, broadcast `player_hit { playerId, damage, newHp }`
+    ✔ Add unit tests in RaidRoom.test.ts for mistake roll + dead-on-mistake edge case
 
-    ✔ Monster UI with ThreeJS @started(25-06-22 13:49) @done(25-06-24 11:47) @lasted(1d21h58m19s)
-      ✔ Monster graphic @done(25-06-24 11:47)
-      ✔ HP bar @done(25-06-23 13:26)
+  Backend — text source:
+    ✔ Copy frontend/src/static/english/english_1k.json → backend/src/static/english_1k.json
+    ✔ Replace hardcoded 28-word array in RaidRoom.generateText() with import from the 1k list
+    ✔ Add CLAUDE.md critical rule: english_1k.json must stay in sync between frontend and backend
 
-    ✔ Typing Area @done(25-06-10 14:57)
+  Backend — XP rewards:
+    ✔ Add raid path in backend/src/core/xp.ts: RAID_BASE_XP=300, RAID_DAMAGE_MULTIPLIER=5
+    ✔ Award XP only on victory, only to authenticated (non-guest) players
+    ✔ Update raid_players persistence to include xp_awarded column
+    ✔ Update users.xp row in same transaction as raid_players insert
 
-    ✔ Level system @started(25-06-10 15:19) @done(25-06-10 16:05) @lasted(46m48s)
-      ✔ Level calculation @done(25-06-10 16:05)
-      ✔ Level display @done(25-06-10 16:05)
+  Backend — schema + migration:
+    ✔ raid_rooms.max_players default: 4 → 3 (new migration)
+    ✔ Drop FK from raid_players.user_id → users.user_id (allow guest IDs)
+    ✔ Add raid_players.xp_awarded INTEGER NOT NULL DEFAULT 0
+    ✔ Run bun run db:gen, verify drizzle migration applies cleanly
 
-    ✔ WPM @started(25-06-11 16:35) @done(25-06-13 14:51) @lasted(1d22h16m46s)
-      ✔ WPM calculation @done(25-06-13 14:51)
-      ✔ WPM display @done(25-06-13 14:51)
-    
-  ✔ Create simple backend API @started(25-08-01 12:32) @done(25-08-10 16:11) @lasted(1w2d3h39m29s)
-  ✔ Login system @done(25-08-10 16:11)
-    ✔ Login page @done(25-08-10 11:37)
-    ✔ Register page @done(25-08-10 11:37)
-    ✔ User data storage @done(25-08-10 16:11)
-  ✔ Deploy backend to cloudflare workers and D1 database @done(25-08-11 12:42)
-  ✔ Deploy frontend to cloudflare pages @done(25-08-01 12:33)
-  ✔ Save user session to D1 database @done(25-08-14 10:39)
-  ✔ Save user data to D1 database @done(25-08-14 10:39)
-  ✔ Recent sessions in profile icon @done(25-09-24 17:52)
-  ✔ Gameplay bug at the start fo Daily mode when you type too fast @done(25-08-15 11:12)
+  Backend — room timeout:
+    ✔ Add 5-min idle timer (ROOM_IDLE_TIMEOUT_MS=300000) on lobby creation
+    ✔ On timeout while phase=lobby: close sockets, delete raid_rooms row, clear DO state
+    ✔ Clear idle timer on start_game and on last-player-leaves cleanup
+
+  Backend — stats:
+    ✔ Replace hardcoded avgWpm=0 with real calc from startedAt → ended timestamps
+    ✔ Per-player WPM in stats payload (wordsCorrect × 5) / durationMinutes
+
+  Frontend — lobby:
+    ✔ Add "Join by code" input next to room list in RaidView (6-char, uppercased)
+    ✔ Wire to POST /api/raid/rooms/:code/join, handle 404/400 errors
+
+  Frontend — gameplay UI:
+    ✔ Wire mistake detection in RaidPlayerLane: on wrong char (and word not locked), send {type:'mistake'}
+    ✔ Per-lane HIT popup on `player_hit` for the affected lane
+    ✔ Per-lane ATTACK popup on `boss_attacked` for every alive lane
+    ✔ Visual death state on lanes when isAlive=false (dim + DEAD badge)
+
+  Frontend — XP mirror:
+    ✔ Add raid formula to frontend/src/utils/calculateXP.ts (mirror of backend)
+    ✔ Show XP earned on RaidResultScreen for the local player
+
+  Frontend — state hook:
+    ✔ Add `error` clearing when room_state arrives (avoid stale errors)
+    ✔ Surface per-player WPM from stats in RaidResultScreen
+
+  Verification (end-to-end):
+    ☐ Two browser tabs (one logged-in, one guest): create + join + start + win path
+    ☐ Verify boss_attacked hits both lanes simultaneously
+    ☐ Verify mistakes only damage the typing player
+    ☐ Verify 5-min idle timeout destroys an abandoned lobby
+    ☐ Verify XP appears on user profile after victory (logged-in only)
+    ☐ Verify raid_players row written for guest with no FK error
+    ✔ cd frontend && bun run lint && bunx tsc --noEmit && bun run test
+    ✔ cd backend && bunx tsc --noEmit && bun test
+
+
+General (open):
   ☐ Clerk dark mode?
-  ✔ Lock daily mode after finished and show the countdown timer, and allow player to play daily mode once a day. @done(25-08-14 16:16)
-  ✔ Damage visual effect @done(25-08-14 20:33)
-  ✔ XP gained visual effect @done(25-08-14 16:33)
-  ✔ Show when the typing area is focused and when it is not focused @done(25-08-14 20:33)
   ☐ Share the specific quote that user typed in Daily mode after completion.
-  ✔ Logo @done(25-09-24 16:51)
+  ☐ Remove vestigial /raid and /raid/:roomCode routes + RaidGamePage/RaidLobbyPage/RaidResults/useRaidWebSocket — superseded by inline RaidView mode
 
 Future features:
   ☐ Theme selection
   ☐ Consistent quotes for every user for Daily mode
-  ☐ Music and sound effects @started(25-08-15 11:25)
-  ✔ User History @done(25-08-15 11:12)
   ☐ Guide
-  ☐ Leaderboard @started(25-09-24 17:51)
   ☐ Monster explode effect
 
-
 Thoughts:
-  ☐ May be add countdown timer. Different types of monster have different timer depend difficulty.
-    - easy -> one set of monster, normal -> another set of monster.
-  ☐ use gold that drop from monster to buy new theme or weapon skin.
+  ☐ Maybe add countdown timer. Different types of monster have different timer depending on difficulty.
+    - easy → one set of monster, normal → another set of monster.
+  ☐ Use gold that drops from monster to buy new theme or weapon skin.
+
+
+Done (historical record):
+  ✔ Set up git repo @done(25-06-02 14:09)
+  ✔ Set up frontend and backend folder structure @done(25-06-02 14:59)
+  ✔ Create simple working frontend @done(25-08-01 12:32)
+    ✔ Header @done(25-06-05 18:16)
+    ✔ Mode system (Daily, Endless, Buttons, Quote display, Milestones) @done(25-06-24 11:47)
+    ✔ Monster UI with ThreeJS (graphic + HP bar) @done(25-06-24 11:47)
+    ✔ Typing Area @done(25-06-10 14:57)
+    ✔ Level system (calculation + display) @done(25-06-10 16:05)
+    ✔ WPM (calculation + display) @done(25-06-13 14:51)
+  ✔ Create simple backend API @done(25-08-10 16:11)
+  ✔ Login system (login/register/user data storage) @done(25-08-10 16:11)
+  ✔ Deploy backend to Cloudflare Workers and D1 @done(25-08-11 12:42)
+  ✔ Deploy frontend to Cloudflare Pages @done(25-08-01 12:33)
+  ✔ Save user session and data to D1 @done(25-08-14 10:39)
+  ✔ Recent sessions in profile icon @done(25-09-24 17:52)
+  ✔ Gameplay bug at start of Daily mode when typing too fast @done(25-08-15 11:12)
+  ✔ Lock daily mode after finished + countdown + once-per-day @done(25-08-14 16:16)
+  ✔ Damage visual effect @done(25-08-14 20:33)
+  ✔ XP gained visual effect @done(25-08-14 16:33)
+  ✔ Typing area focus/unfocus indicator @done(25-08-14 20:33)
+  ✔ Logo @done(25-09-24 16:51)
+  ✔ Music and sound effects @done(26-01-20 10:41)
+  ✔ User History @done(25-08-15 11:12)
+  ✔ Leaderboard @done(26-01-20 10:37)
+  ✔ Raid Boss feature: server-authoritative co-op typing, 100 HP boss, all-alive boss tick, mistake damage, guest persistence, raid XP, idle timeout, join-by-code @done(26-05-26 23:08)

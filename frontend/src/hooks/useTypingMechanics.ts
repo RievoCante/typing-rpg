@@ -5,12 +5,19 @@ interface UseTypingMechanicsProps {
   text: string;
   onCharacterInput?: (key: string) => void;
   onWordCompleted?: () => void;
+  onWordMistake?: () => void;
+  // Fires once when a character key is typed that does not match the expected
+  // character — for raid mode, used to signal a mistake to the server. Only
+  // fires when the cursor is not inside an already-locked region.
+  onCharacterMistake?: () => void;
 }
 
 export const useTypingMechanics = ({
   text,
   onCharacterInput,
   onWordCompleted,
+  onWordMistake,
+  onCharacterMistake,
 }: UseTypingMechanicsProps) => {
   const [charStatus, setCharStatus] = useState<CharStatus[]>([]);
   const [typedChars, setTypedChars] = useState<(string | null)[]>([]);
@@ -40,6 +47,10 @@ export const useTypingMechanics = ({
         newCharStatus[cursorPosition] = 'correct';
       } else {
         newCharStatus[cursorPosition] = 'incorrect';
+        // Signal a mistake to consumers (e.g. raid mode reports to the server).
+        // The locked-word mechanic already prevents the cursor from advancing
+        // into a locked region, so anything reaching here is a fresh mistake.
+        onCharacterMistake?.();
       }
 
       newTypedChars[cursorPosition] = key;
@@ -47,7 +58,14 @@ export const useTypingMechanics = ({
       setTypedChars(newTypedChars);
       setCursorPosition(prev => prev + 1);
     },
-    [cursorPosition, text, charStatus, typedChars, onCharacterInput]
+    [
+      cursorPosition,
+      text,
+      charStatus,
+      typedChars,
+      onCharacterInput,
+      onCharacterMistake,
+    ]
   );
 
   // Handle backspace
@@ -116,10 +134,26 @@ export const useTypingMechanics = ({
 
   // Handle space bar (with word locking and skipping)
   const handleSpaceBar = useCallback(() => {
-    // If we're not at a space in the text, this is a word skip.
-    // For now, we'll prevent this to keep logic simple. A more advanced
-    // implementation could handle skipping to the next word.
-    if (cursorPosition >= text.length || text[cursorPosition] !== ' ') {
+    if (cursorPosition >= text.length) return;
+
+    // Mid-word space: skip the rest of the current word and count it as a
+    // word mistake. Lock the boundary space so the player can't backspace
+    // into the skipped chars.
+    if (text[cursorPosition] !== ' ') {
+      let nextSpace = cursorPosition;
+      while (nextSpace < text.length && text[nextSpace] !== ' ') {
+        nextSpace++;
+      }
+      if (nextSpace >= text.length) return; // No following word — nothing to skip to.
+
+      const newCharStatus = [...charStatus];
+      const newTypedChars = [...typedChars];
+      newCharStatus[nextSpace] = 'locked';
+      newTypedChars[nextSpace] = ' ';
+      setCharStatus(newCharStatus);
+      setTypedChars(newTypedChars);
+      setCursorPosition(nextSpace + 1);
+      onWordMistake?.();
       return;
     }
 
@@ -164,8 +198,9 @@ export const useTypingMechanics = ({
       // Move cursor forward.
       setCursorPosition(prev => prev + 1);
     } else {
-      // If the word is incorrect, treat the space as an incorrect character.
-      // This provides feedback without locking.
+      // If the word is incorrect, monster attacks!
+      onWordMistake?.();
+      // Treat the space as an incorrect character for visual feedback.
       handleCharacterInput(' ');
     }
   }, [
@@ -174,6 +209,7 @@ export const useTypingMechanics = ({
     charStatus,
     typedChars,
     onWordCompleted,
+    onWordMistake,
     handleCharacterInput,
   ]);
 
