@@ -3,7 +3,9 @@ import { useAuth } from '@clerk/clerk-react';
 import { useRaidSocket } from '../hooks/useRaidSocket';
 import { useRaidState } from '../hooks/useRaidState';
 import { useGameContext } from '../hooks/useGameContext';
+import { useCharacter } from '../hooks/useCharacter';
 import RaidLobbyScreen from './RaidLobbyScreen';
+import RaidCountdownOverlay from './RaidCountdownOverlay';
 import RaidGame from './RaidGame';
 import RaidResultScreen from './RaidResultScreen';
 
@@ -41,6 +43,7 @@ export default function RaidView() {
 
   const { getToken } = useAuth();
   const { setCurrentMode } = useGameContext();
+  const { config: characterConfig, ready: characterReady } = useCharacter();
   const apiUrl = import.meta.env.VITE_API_URL;
 
   // Fetch room list when in room-list phase, poll every 5 seconds
@@ -85,13 +88,29 @@ export default function RaidView() {
 
   // Auto-join once connected. Identity is established by the WS upgrade URL
   // params (validated server-side); the join message is just the "I'm ready"
-  // signal — the DO ignores any userId/username in the body.
+  // signal — the DO ignores any userId/username in the body. We also wait for
+  // the character config to finish loading (`characterReady`) so teammates get
+  // the saved look on first join rather than the seed; join fires exactly once
+  // (guarded by `hasJoined`), so a later config change does not re-send.
   useEffect(() => {
-    if (isConnected && username && localUserId && !hasJoined.current) {
+    if (
+      isConnected &&
+      username &&
+      localUserId &&
+      characterReady &&
+      !hasJoined.current
+    ) {
       hasJoined.current = true;
-      send({ type: 'join' });
+      send({ type: 'join', characterConfig });
     }
-  }, [isConnected, username, localUserId, send]);
+  }, [
+    isConnected,
+    username,
+    localUserId,
+    characterReady,
+    send,
+    characterConfig,
+  ]);
 
   const handleCreateRoom = async () => {
     setCreating(true);
@@ -283,7 +302,7 @@ export default function RaidView() {
 
   return (
     <div className="text-white">
-      {isPhase('lobby') && (
+      {(isPhase('lobby') || isPhase('countdown')) && (
         <RaidLobbyScreen
           roomCode={activeRoomId ?? ''}
           players={state.players}
@@ -292,6 +311,9 @@ export default function RaidView() {
           onLeaveRoom={handleBackToLobby}
           error={state.error}
         />
+      )}
+      {isPhase('countdown') && state.countdownEndsAt != null && (
+        <RaidCountdownOverlay endsAt={state.countdownEndsAt} />
       )}
       {isPhase('playing') && (
         <RaidGame

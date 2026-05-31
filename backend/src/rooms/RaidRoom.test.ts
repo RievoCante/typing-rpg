@@ -20,12 +20,11 @@ describe('RaidRoom', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     // Clear any pending timers from the room instance
-    if ((room as any).state?.attackTimer) {
-      clearInterval((room as any).state.attackTimer);
-    }
-    if ((room as any).state?.graceTimer) {
-      clearTimeout((room as any).state.graceTimer);
-    }
+    const s = (room as any).state;
+    if (s?.attackTimer) clearInterval(s.attackTimer);
+    if (s?.graceTimer) clearTimeout(s.graceTimer);
+    if (s?.countdownTimer) clearTimeout(s.countdownTimer);
+    vi.useRealTimers();
   });
 
   it('starts in lobby phase', () => {
@@ -182,7 +181,8 @@ describe('RaidRoom', () => {
     (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' });
     (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
     (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Charlie' });
-    (room as any).handleStartGame(ws);
+    // 3 players auto-enter countdown; start the raid directly for this unit test.
+    (room as any).beginRaid();
     // Kill Charlie so we can verify only alive players are hit
     (room as any).state.players.get(ws3).isAlive = false;
     (room as any).state.players.get(ws3).hp = 0;
@@ -341,6 +341,93 @@ describe('RaidRoom', () => {
     expect((room as any).wsCredentials.has(ws)).toBe(false);
   });
 
+  // ── Auto-start countdown ──
+
+  describe('auto-start countdown', () => {
+    it('enters countdown phase and broadcasts countdown_started when the 3rd player joins', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      expect((room as any).state.phase).toBe('lobby');
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+      expect(ws3.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"countdown_started"')
+      );
+    });
+
+    it('begins the raid automatically after COUNTDOWN_MS (5s)', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+      vi.advanceTimersByTime(5000);
+      expect((room as any).state.phase).toBe('playing');
+    });
+
+    it('manual 2-player start begins immediately with no countdown', () => {
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handleStartGame(ws1);
+      expect((room as any).state.phase).toBe('playing');
+      expect((room as any).state.countdownTimer).toBeNull();
+    });
+  });
+
+  // ── Countdown cancellation ──
+
+  describe('countdown cancellation', () => {
+    it('cancels the countdown and returns to lobby when a player drops below 3', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.phase).toBe('countdown');
+
+      (room as any).webSocketClose(ws3);
+
+      expect((room as any).state.phase).toBe('lobby');
+      expect((room as any).state.countdownTimer).toBeNull();
+      expect((room as any).state.players.size).toBe(2);
+      expect(ws1.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"countdown_cancelled"')
+      );
+
+      // The cleared timer must not fire a late beginRaid.
+      vi.advanceTimersByTime(5000);
+      expect((room as any).state.phase).toBe('lobby');
+    });
+
+    it('reassigns host when the host leaves during the countdown', () => {
+      vi.useFakeTimers();
+      const ws1 = { send: vi.fn() } as any;
+      const ws2 = { send: vi.fn() } as any;
+      const ws3 = { send: vi.fn() } as any;
+      (room as any).handlePlayerJoin(ws1, { userId: 'u1', username: 'Alice' });
+      (room as any).handlePlayerJoin(ws2, { userId: 'u2', username: 'Bob' });
+      (room as any).handlePlayerJoin(ws3, { userId: 'u3', username: 'Cara' });
+      expect((room as any).state.players.get(ws1).isHost).toBe(true);
+
+      (room as any).webSocketClose(ws1); // host leaves during countdown
+
+      expect((room as any).state.phase).toBe('lobby');
+      const remaining = Array.from((room as any).state.players.values()) as any[];
+      expect(remaining.some(p => p.isHost)).toBe(true);
+    });
+  });
+
   // ── webSocketError regression test ──
 
   it('removes player on webSocketError and transfers host in lobby', () => {
@@ -357,5 +444,44 @@ describe('RaidRoom', () => {
 
     expect((room as any).state.players.has(ws1)).toBe(false);
     expect((room as any).state.players.get(ws2).isHost).toBe(true);
+  });
+
+  it('stores a valid characterConfig on join and includes it in room_state', () => {
+    const ws = { send: vi.fn() } as any;
+    const cfg = {
+      bodyShape: 'round',
+      bodyColor: '#34d399',
+      eyeStyle: 'dot',
+      accessory: 'antenna',
+      accessoryColor: '#fde047',
+    };
+    (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' }, cfg);
+    const stored = (room as any).state.players.get(ws);
+    expect(stored.characterConfig).toEqual(cfg);
+
+    // Assert by message type rather than call index so the test stays correct
+    // even if broadcast ordering changes.
+    const calls = ws.send.mock.calls.map((c: any) => JSON.parse(c[0]));
+    const roomState = calls.find((m: any) => m.type === 'room_state');
+    expect(roomState).toBeDefined();
+    const me = roomState.players.find((p: any) => p.userId === 'u1');
+    expect(me.characterConfig).toEqual(cfg);
+
+    const joined = calls.find((m: any) => m.type === 'player_joined');
+    expect(joined.characterConfig).toEqual(cfg);
+  });
+
+  it('defaults characterConfig to null when absent or invalid', () => {
+    const ws = { send: vi.fn() } as any;
+    (room as any).handlePlayerJoin(ws, { userId: 'u2', username: 'Bob' });
+    expect((room as any).state.players.get(ws).characterConfig).toBeNull();
+
+    const ws2 = { send: vi.fn() } as any;
+    (room as any).handlePlayerJoin(
+      ws2,
+      { userId: 'u3', username: 'Cara' },
+      { bodyShape: 'triangle' }
+    );
+    expect((room as any).state.players.get(ws2).characterConfig).toBeNull();
   });
 });

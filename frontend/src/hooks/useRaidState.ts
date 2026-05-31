@@ -3,7 +3,7 @@ import type { RaidServerMessage, RaidPlayer, RaidStats } from './useRaidSocket';
 
 export type { RaidPlayer } from './useRaidSocket';
 
-export type RaidPhase = 'lobby' | 'playing' | 'finished';
+export type RaidPhase = 'lobby' | 'countdown' | 'playing' | 'finished';
 
 // Per-player hit events for animated popups. Each carries a fresh `id` so
 // consumers can key animations even when the same player is hit multiple
@@ -24,6 +24,7 @@ export type RaidWordHit = {
 
 export type RaidState = {
   phase: RaidPhase;
+  countdownEndsAt: number | null;
   players: RaidPlayer[];
   bossHp: number;
   bossMaxHp: number;
@@ -41,6 +42,7 @@ let wordHitIdSeq = 0;
 
 export const initialRaidState: RaidState = {
   phase: 'lobby',
+  countdownEndsAt: null,
   players: [],
   bossHp: 0,
   bossMaxHp: 0,
@@ -78,6 +80,10 @@ export function applyRaidMessage(
         // render still populates the result screen.
         result: msg.result ?? prev.result,
         stats: msg.stats ?? prev.stats,
+        countdownEndsAt:
+          msg.phase === 'countdown'
+            ? (msg.countdownEndsAt ?? prev.countdownEndsAt)
+            : null,
         // Stale errors should not linger across phases.
         error: null,
       };
@@ -88,12 +94,30 @@ export function applyRaidMessage(
       return {
         ...prev,
         phase: 'playing',
+        countdownEndsAt: null,
         localText: msg.texts?.[localUserId] ?? '',
         result: null,
         stats: null,
         error: null,
         lastHit: null,
         lastWordHit: null,
+      };
+    case 'countdown_started':
+      return {
+        ...prev,
+        phase: 'countdown',
+        // Locally computed from durationMs. The room_state broadcast that the
+        // server sends immediately after countdown_started carries the
+        // authoritative server countdownEndsAt and overrides this value.
+        countdownEndsAt: Date.now() + msg.durationMs,
+        error: null,
+      };
+    case 'countdown_cancelled':
+      return {
+        ...prev,
+        phase: 'lobby',
+        countdownEndsAt: null,
+        error: null,
       };
     case 'word_hit':
       return {
@@ -158,6 +182,7 @@ export function applyRaidMessage(
             wordsTyped: 0,
             wordsCorrect: 0,
             damageDealt: 0,
+            characterConfig: msg.characterConfig ?? null,
           },
         ],
       };

@@ -3,7 +3,9 @@ import { users } from '../db/schema';
 import { getAuth } from '@hono/clerk-auth';
 import { createClerkClient } from '@clerk/backend';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { jsonError } from '../core/errors';
+import { parseCharacterConfig } from '../core/character';
 
 const meCreateSchema = z
   .object({
@@ -67,4 +69,33 @@ export const getUser = async (c: AppContext) => {
   if (!user) return jsonError(c, 404, 'Not found');
 
   return c.json({ success: true, user });
+};
+
+// PATCH /me/character — persist the signed-in user's cosmetic avatar config.
+export const updateCharacter = async (c: AppContext) => {
+  const auth = getAuth(c);
+  if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return jsonError(c, 400, 'Invalid JSON body');
+  }
+  const config = parseCharacterConfig(body);
+  if (!config) return jsonError(c, 400, 'Invalid character config');
+
+  const db = c.get('db');
+  const updated = await db
+    .update(users)
+    .set({ character: JSON.stringify(config), updatedAt: new Date() })
+    .where(eq(users.userId, auth.userId))
+    .returning({ userId: users.userId });
+
+  // No row updated means the user has no profile yet (never called POST /me).
+  // Report 404 instead of a misleading success so the client doesn't believe
+  // the config was persisted when it wasn't.
+  if (updated.length === 0) return jsonError(c, 404, 'User not found');
+
+  return c.json({ success: true, character: config });
 };

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "prevId": "df1364f4-b8bb-4972-a765-2f42ec7456b9",
+  "id": "0bad6e99-4aed-48b6-a8fd-56079980ca4a",
+  "prevId": "1ba09ebb-c9b5-4736-bc7c-ee484fa94c04",
   "tables": {
     "game_sessions": {
       "name": "game_sessions",
@@ -154,6 +154,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "xp_awarded": {
+          "name": "xp_awarded",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         }
       },
       "indexes": {
@@ -182,19 +190,6 @@
           ],
           "columnsTo": [
             "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "raid_players_user_id_users_user_id_fk": {
-          "name": "raid_players_user_id_users_user_id_fk",
-          "tableFrom": "raid_players",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "user_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -250,7 +245,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 4
+          "default": 3
         },
         "created_at": {
           "name": "created_at",
@@ -400,6 +395,13 @@
         "updated_at": {
           "name": "updated_at",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "character": {
+          "name": "character",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

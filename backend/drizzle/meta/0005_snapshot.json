@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "1ba09ebb-c9b5-4736-bc7c-ee484fa94c04",
-  "prevId": "df1364f4-b8bb-4972-a765-2f42ec7456b9",
+  "prevId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "tables": {
     "game_sessions": {
       "name": "game_sessions",

@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/node";
 import { sentry } from "@hono/sentry";
 
 import { createDbClient } from "./db";
-import { getUser, createUser } from "./handlers/user";
+import { getUser, createUser, updateCharacter } from "./handlers/user";
 import {
   createSession,
   getSessions,
@@ -69,6 +69,7 @@ app.get("/", (c) => c.text("Welcome to the Typing RPG API!"));
 // user routes
 app.get("/me", authMiddleware, limiter, getUser);
 app.post("/me", authMiddleware, limiter, createUser);
+app.patch("/me/character", authMiddleware, limiter, updateCharacter);
 
 // session routes
 app.post("/sessions", authMiddleware, limiter, createSession);

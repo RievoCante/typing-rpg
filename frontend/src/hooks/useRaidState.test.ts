@@ -283,6 +283,63 @@ describe('applyRaidMessage', () => {
     });
   });
 
+  describe('countdown_started / countdown_cancelled', () => {
+    it('countdown_started enters countdown phase with a future countdownEndsAt', () => {
+      const before = Date.now();
+      const msg: RaidServerMessage = {
+        type: 'countdown_started',
+        durationMs: 5000,
+      };
+      const next = applyRaidMessage(initialRaidState, msg, LOCAL);
+      expect(next.phase).toBe('countdown');
+      expect(next.countdownEndsAt).not.toBeNull();
+      expect(next.countdownEndsAt!).toBeGreaterThanOrEqual(before + 5000);
+      expect(next.countdownEndsAt!).toBeLessThan(before + 5000 + 1000);
+    });
+
+    it('countdown_cancelled returns to lobby and clears countdownEndsAt', () => {
+      const start: RaidState = {
+        ...initialRaidState,
+        phase: 'countdown',
+        countdownEndsAt: Date.now() + 5000,
+      };
+      const msg: RaidServerMessage = { type: 'countdown_cancelled' };
+      const next = applyRaidMessage(start, msg, LOCAL);
+      expect(next.phase).toBe('lobby');
+      expect(next.countdownEndsAt).toBeNull();
+    });
+
+    it('room_state carries countdownEndsAt while in countdown', () => {
+      const endsAt = Date.now() + 4000;
+      const msg: RaidServerMessage = {
+        type: 'room_state',
+        phase: 'countdown',
+        players: [mkPlayer()],
+        bossHp: 0,
+        bossMaxHp: 0,
+        countdownEndsAt: endsAt,
+      };
+      const next = applyRaidMessage(initialRaidState, msg, LOCAL);
+      expect(next.phase).toBe('countdown');
+      expect(next.countdownEndsAt).toBe(endsAt);
+    });
+
+    it('game_started clears countdownEndsAt', () => {
+      const start: RaidState = {
+        ...initialRaidState,
+        phase: 'countdown',
+        countdownEndsAt: Date.now() + 5000,
+      };
+      const msg: RaidServerMessage = {
+        type: 'game_started',
+        texts: { [LOCAL]: 'a b' },
+      };
+      const next = applyRaidMessage(start, msg, LOCAL);
+      expect(next.phase).toBe('playing');
+      expect(next.countdownEndsAt).toBeNull();
+    });
+  });
+
   describe('error', () => {
     it('records the error message without touching other state', () => {
       const start: RaidState = {
@@ -296,5 +353,63 @@ describe('applyRaidMessage', () => {
       expect(next.phase).toBe('playing');
       expect(next.players).toEqual(start.players);
     });
+  });
+
+  it('carries characterConfig from room_state players', () => {
+    const cfg = {
+      bodyShape: 'round',
+      bodyColor: '#38bdf8',
+      eyeStyle: 'wide',
+      accessory: 'crown',
+      accessoryColor: '#fde047',
+    };
+    const next = applyRaidMessage(
+      initialRaidState,
+      {
+        type: 'room_state',
+        phase: 'lobby',
+        players: [
+          {
+            userId: 'u1',
+            username: 'Alice',
+            hp: 100,
+            maxHp: 100,
+            isHost: true,
+            isAlive: true,
+            wordsTyped: 0,
+            wordsCorrect: 0,
+            damageDealt: 0,
+            characterConfig: cfg,
+          },
+        ],
+        bossHp: 100,
+        bossMaxHp: 100,
+      } as never,
+      'u1'
+    );
+    expect(next.players[0].characterConfig).toEqual(cfg);
+  });
+
+  it('carries characterConfig on incremental player_joined', () => {
+    const cfg = {
+      bodyShape: 'square',
+      bodyColor: '#f472b6',
+      eyeStyle: 'sleepy',
+      accessory: 'none',
+      accessoryColor: '#f8fafc',
+    };
+    const next = applyRaidMessage(
+      initialRaidState,
+      {
+        type: 'player_joined',
+        userId: 'u9',
+        username: 'Zed',
+        characterConfig: cfg,
+      } as never,
+      'u1'
+    );
+    expect(next.players.find(p => p.userId === 'u9')?.characterConfig).toEqual(
+      cfg
+    );
   });
 });

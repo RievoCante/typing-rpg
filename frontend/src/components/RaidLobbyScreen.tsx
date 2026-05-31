@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { avatarConfigFromSeed } from '../utils/avatarConfig';
+import {
+  resolveAvatarConfig,
+  type PlayerAvatarConfig,
+} from '../utils/avatarConfig';
 import PlayerAvatar3D from './PlayerAvatar3D';
 
 interface Props {
   roomCode: string;
-  players: { userId: string; username: string; isHost: boolean }[];
+  players: {
+    userId: string;
+    username: string;
+    isHost: boolean;
+    characterConfig?: PlayerAvatarConfig | null;
+  }[];
   isHost: boolean;
   onStartGame: () => void;
   onLeaveRoom: () => void;
@@ -62,7 +70,7 @@ export default function RaidLobbyScreen({
                 >
                   <div className="h-10 w-10 shrink-0">
                     <PlayerAvatar3D
-                      config={avatarConfigFromSeed(p.userId)}
+                      config={resolveAvatarConfig(p.userId, p.characterConfig)}
                       isAlive
                       hpPercent={100}
                     />

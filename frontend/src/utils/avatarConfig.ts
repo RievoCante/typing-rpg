@@ -64,3 +64,49 @@ export function avatarConfigFromSeed(seed: string): PlayerAvatarConfig {
     accessoryColor: pick(ACCESSORY_COLORS, h, 5),
   };
 }
+
+// Runtime guard for configs arriving from storage, the network, or teammates.
+// IMPORTANT: keep the allowed values in sync with backend/src/core/character.ts
+// (added in this same feature). Colors are intentionally restricted to the
+// fixed palettes — custom hex is not offered by the customizer.
+export function isValidAvatarConfig(x: unknown): x is PlayerAvatarConfig {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return false;
+  const c = x as Record<string, unknown>;
+  return (
+    typeof c.bodyShape === 'string' &&
+    (BODY_SHAPES as string[]).includes(c.bodyShape) &&
+    typeof c.bodyColor === 'string' &&
+    BODY_COLORS.includes(c.bodyColor) &&
+    typeof c.eyeStyle === 'string' &&
+    (EYE_STYLES as string[]).includes(c.eyeStyle) &&
+    typeof c.accessory === 'string' &&
+    (ACCESSORIES as string[]).includes(c.accessory) &&
+    typeof c.accessoryColor === 'string' &&
+    ACCESSORY_COLORS.includes(c.accessoryColor)
+  );
+}
+
+// Resolve the config to render for a player: prefer a valid saved/received
+// config, else fall back to the deterministic per-user seed.
+export function resolveAvatarConfig(
+  userId: string,
+  saved?: PlayerAvatarConfig | null
+): PlayerAvatarConfig {
+  return saved && isValidAvatarConfig(saved)
+    ? saved
+    : avatarConfigFromSeed(userId);
+}
+
+// Parse + validate a JSON string from storage or an API field. Null on any
+// failure so callers can treat "no custom config" uniformly.
+export function parseStoredAvatarConfig(
+  raw: string | null | undefined
+): PlayerAvatarConfig | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return isValidAvatarConfig(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
