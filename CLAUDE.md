@@ -20,11 +20,10 @@ Keep responses short and concise. Save output tokens without sacrificing readabi
 
 ## Git Workflow
 
-- **Branch per feature off `dev`.** For any new feature/fix, create a branch from `dev` (e.g. `feature/raid-emotes`), never commit directly to `dev` or `main`.
-- **Use a git worktree per feature.** This project runs many parallel AI agents, so each feature branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy. Agents: call `EnterWorktree` before editing; humans: `git worktree add`.
-- **Merge feature → `dev`** when the feature is complete and CI passes (see Verification below).
-- **`dev` is the integration branch; `main` is production.** After testing on `dev`, open a PR `dev → main`. Merging to `main` triggers backend CD (see Deployment).
-- **Re-sync after release.** PRs are squash-merged, so after a `dev → main` merge, merge `origin/main` back into `dev` to keep history clean and avoid phantom commits in the next PR.
+- **One short-lived feature branch per change, off `main`.** Branch from `main` (e.g. `feature/raid-emotes`), never commit directly to `main`. No long-lived `dev` integration branch.
+- **One worktree per feature branch.** This project runs many parallel AI agents, so each branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy. Agents: call `EnterWorktree` before editing; humans: `git worktree add`.
+- **PR straight to `main`** once the feature is complete and CI passes (see Verification below). Merging to `main` triggers backend CD (see Deployment).
+- **Squash-merge, then delete the branch + worktree.** Feature branches are disposable, so squash is fine and there is no re-sync step.
 
 ## Verification (CI order)
 
