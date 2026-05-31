@@ -1,7 +1,14 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { Mesh, Color, Group, MeshStandardMaterial } from 'three';
+import {
+  Mesh,
+  Color,
+  Group,
+  MeshStandardMaterial,
+  Vector3,
+  Euler,
+} from 'three';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 import { GOLEM_CONFIGS, GOLEM_ANIMATIONS } from '../types/GolemTypes';
 
@@ -59,6 +66,17 @@ export default function GolemModel({
       });
     }
 
+    // Remember each mesh's original transform so we can restore it after the
+    // crumble (defeat) animation mutates rotation/position. A freshly spawned
+    // monster can briefly mount while still flagged defeated, so without this
+    // the model stays toppled on the ground for the rest of its life.
+    cloned.traverse(child => {
+      if ((child as Mesh).isMesh) {
+        child.userData.origPosition = child.position.clone();
+        child.userData.origRotation = child.rotation.clone();
+      }
+    });
+
     return cloned;
   }, [scene, customColor]);
 
@@ -76,20 +94,32 @@ export default function GolemModel({
     }
   }, [isHit]);
 
-  // Reset opacity when monster spawns (not defeated)
+  // Reset transforms + opacity when the monster is alive (not defeated).
+  // The crumble animation mutates each mesh's rotation/position cumulatively
+  // and never undoes it; restore the originals here so a respawned golem
+  // stands upright instead of staying toppled from the previous defeat.
   useEffect(() => {
-    if (!isDefeated && groupRef.current) {
-      groupRef.current.traverse(child => {
-        if ((child as Mesh).isMesh) {
-          const mesh = child as Mesh;
-          const mat = mesh.material as MeshStandardMaterial;
-          if (mat && mat.transparent) {
-            mat.opacity = 1.0;
-          }
+    const group = groupRef.current;
+    if (isDefeated || !group) return;
+
+    group.position.set(0, 0, 0);
+    group.rotation.set(0, 0, 0);
+    group.scale.setScalar(activeScale);
+
+    group.traverse(child => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh;
+        const origPos = mesh.userData.origPosition as Vector3 | undefined;
+        const origRot = mesh.userData.origRotation as Euler | undefined;
+        if (origPos) mesh.position.copy(origPos);
+        if (origRot) mesh.rotation.copy(origRot);
+        const mat = mesh.material as MeshStandardMaterial;
+        if (mat && mat.transparent) {
+          mat.opacity = 1.0;
         }
-      });
-    }
-  }, [isDefeated]);
+      }
+    });
+  }, [isDefeated, activeScale]);
 
   // Flash on global 'word-hit' event
   useEffect(() => {
