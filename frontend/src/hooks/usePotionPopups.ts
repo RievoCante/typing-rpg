@@ -7,8 +7,9 @@ export interface PotionPopupItem {
   leftPct: number;
   show: boolean;
   text: string;
-  // Drives the text colour: a drop is purple/pink, a heal is green.
-  kind: 'drop' | 'heal';
+  // Drives the text colour: a drop is purple/pink, a heal is green, a warn
+  // (e.g. drinking at full HP) is amber.
+  kind: 'drop' | 'heal' | 'warn';
 }
 
 interface PotionHealDetail {
@@ -29,7 +30,7 @@ export function usePotionPopups() {
   useEffect(() => {
     const spawn = (
       text: string,
-      kind: 'drop' | 'heal',
+      kind: 'drop' | 'heal' | 'warn',
       leftPct: number,
       topBase: number,
       holdMs: number
@@ -75,11 +76,19 @@ export function usePotionPopups() {
       spawn(`+${amount} HP`, 'heal', 16, 38, 900);
     };
 
+    const onFull = () => {
+      // Player tried to drink at full HP — nothing was consumed. Warn near the
+      // health bar (same anchor as a heal) so it's clear why nothing happened.
+      spawn('HP already full', 'warn', 16, 38, 1200);
+    };
+
     window.addEventListener('potion-drop', onDrop as EventListener);
     window.addEventListener('potion-heal', onHeal as EventListener);
+    window.addEventListener('potion-full', onFull as EventListener);
     return () => {
       window.removeEventListener('potion-drop', onDrop as EventListener);
       window.removeEventListener('potion-heal', onHeal as EventListener);
+      window.removeEventListener('potion-full', onFull as EventListener);
     };
   }, []);
 

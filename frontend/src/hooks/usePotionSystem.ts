@@ -39,10 +39,15 @@ export function usePotionSystem(
   // Consume one potion to heal. No-op (and does not consume) when the inventory
   // is empty or the player is already at full HP, so a potion is never wasted.
   // Fires `potion-heal` with the amount actually restored (capped at max HP) so
-  // the floating "+N HP" popup matches the health bar.
+  // the floating "+N HP" popup matches the health bar. When the player tries to
+  // drink at full HP, we keep the no-op but fire `potion-full` so the UI can
+  // warn them instead of swallowing the click silently.
   const drinkPotion = useCallback(() => {
     if (potionCountRef.current <= 0) return;
-    if (healthRef.current >= maxPlayerHealth) return;
+    if (healthRef.current >= maxPlayerHealth) {
+      window.dispatchEvent(new Event('potion-full'));
+      return;
+    }
     const rolled = rollHealAmount();
     const healed = Math.min(rolled, maxPlayerHealth - healthRef.current);
     healPlayer(rolled);
