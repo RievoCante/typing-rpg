@@ -3,6 +3,7 @@ import type {
   CompletionResult,
   SessionPayload,
 } from '../types/completion';
+import { calculateEndlessXp } from '../utils/calculateXP';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
 
@@ -22,13 +23,18 @@ export class EndlessCompletionHandler {
     };
 
     // Fire save in background with retries — don't block UI.
-    // xpDelta not shown for endless; stats update via reloadPlayerStats.
+    // The authoritative XP is awarded server-side; we preview the same amount
+    // client-side (mirrors backend formula) so the "+N XP" reward can show
+    // immediately without waiting on the network. reloadPlayerStats then syncs
+    // the real total.
     void this.saveWithRetry(payload);
+
+    const xpDelta = calculateEndlessXp(payload.incorrectWords, payload.wpm);
 
     return {
       action: 'loadNewText',
       message: 'Session completed!',
-      xpDelta: 0,
+      xpDelta,
     };
   }
 
