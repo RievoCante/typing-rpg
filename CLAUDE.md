@@ -26,16 +26,9 @@ Keep responses short and concise. Save output tokens without sacrificing readabi
 - **`dev` is the integration + test branch; `main` is production.** The user keeps their main checkout on `dev` and runs the local server there to test merged features — no need to enter agent worktrees. After testing, open a PR `dev → main`. Merging to `main` triggers backend CD (see Deployment).
 - **Squash-merge `dev → main`, then re-sync.** Because the PR is squash-merged, merge `origin/main` back into `dev` afterward to keep history clean and avoid phantom commits in the next PR.
 
-## Vault Sync (mandatory after merge → `dev`)
+## Vault Sync (after merge → `dev`)
 
-After merging a feature → `dev`, keep the product vault (`~/Workspace/ai-brain/business/typing-rpg/`, a separate git repo) current — but only when the change is **vault-worthy**.
-
-- **Vault-worthy** = a new feature, OR a change to *documented product behavior* (game rules, modes, XP, user flow). **Skip** styling/layout, perf, refactors, and bug fixes — those are already captured in git + claude-mem and must NOT clutter the vault.
-- **Owned spec files — edit directly** (one agent owns the file, so no parallel conflict):
-  - `canonical/features/<feature>.md` — update the feature's spec, or add a new file for a brand-new feature.
-  - `canonical/prd.md` — only if documented product behavior changed.
-- **Shared files — NEVER edit directly.** `log.md` and `index.md` are append-at-top and conflict when parallel agents touch them. Instead **drop one inbox fragment**: `log-inbox/YYYY-MM-DD-<feature>.md` (see `log-inbox/_TEMPLATE.md`). Unique filename → zero conflicts. The fragment states what shipped and any `index.md` row to add. A later consolidation pass folds fragments into `log.md`/`index.md` and deletes them.
-- **Commit + push the vault repo** after writing (it is separate from this repo; commit there too).
+After merging a **vault-worthy** change into `dev` (a new feature, or a change to documented product behavior — *not* styling/perf/refactor/bugfix), **use the `vault-update` skill** to keep the product vault (`~/Workspace/ai-brain/business/typing-rpg/`) in sync. The skill has the full procedure (owned-file edits, conflict-safe `log-inbox/` fragments, commit+push). Don't hand-edit `log.md`/`index.md` — the skill explains why.
 
 ## Verification (CI order)
 
