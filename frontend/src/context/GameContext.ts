@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
 
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
@@ -17,10 +18,8 @@ interface GameContextType {
   resetDefeatState: () => void;
   endlessWordCount: number;
   setEndlessWordCount: (count: number) => void;
-  endlessDifficulty: 'beginner' | 'intermediate' | 'advanced';
-  setEndlessDifficulty: (
-    difficulty: 'beginner' | 'intermediate' | 'advanced'
-  ) => void;
+  endlessDifficulty: EndlessDifficulty;
+  setEndlessDifficulty: (difficulty: EndlessDifficulty) => void;
   // Player typing state
   hasStartedTyping: boolean;
   setHasStartedTyping: (value: boolean) => void;
