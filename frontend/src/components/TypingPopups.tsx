@@ -63,7 +63,11 @@ export function PotionPopups({ popups }: { popups: PotionPopupItem[] }) {
           >
             <span
               className={`font-extrabold text-xl select-none drop-shadow ${
-                popup.kind === 'heal' ? 'text-green-400' : 'text-pink-400'
+                popup.kind === 'heal'
+                  ? 'text-green-400'
+                  : popup.kind === 'warn'
+                    ? 'text-amber-400'
+                    : 'text-pink-400'
               }`}
             >
               {popup.text}

@@ -5,7 +5,7 @@
 // word count) and stays in step with the time-based damage the monster deals.
 // The player banks a small number and spends them manually.
 
-export const POTION_DROP_CHANCE = 0.15; // chance per drop check
+export const POTION_DROP_CHANCE = 0.1; // chance per drop check
 export const POTION_MIN_HEAL = 25;
 export const POTION_MAX_HEAL = 50;
 export const MAX_POTIONS = 3;
