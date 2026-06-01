@@ -4,10 +4,17 @@ const WORD_COUNT_KEY = 'endless_word_count';
 const DEFAULT_WORD_COUNT = 25;
 const VALID_WORD_COUNTS = [10, 25, 50, 100];
 
+export type EndlessDifficulty =
+  | 'beginner'
+  | 'common'
+  | 'intermediate'
+  | 'advanced';
+
 const DIFFICULTY_KEY = 'endless_difficulty';
-const DEFAULT_DIFFICULTY: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
-const VALID_DIFFICULTIES: ('beginner' | 'intermediate' | 'advanced')[] = [
+const DEFAULT_DIFFICULTY: EndlessDifficulty = 'beginner';
+const VALID_DIFFICULTIES: EndlessDifficulty[] = [
   'beginner',
+  'common',
   'intermediate',
   'advanced',
 ];
@@ -25,16 +32,11 @@ const getStoredWordCount = (): number => {
   return DEFAULT_WORD_COUNT;
 };
 
-const getStoredDifficulty = (): 'beginner' | 'intermediate' | 'advanced' => {
+const getStoredDifficulty = (): EndlessDifficulty => {
   try {
     const stored = localStorage.getItem(DIFFICULTY_KEY);
-    if (
-      stored &&
-      VALID_DIFFICULTIES.includes(
-        stored as 'beginner' | 'intermediate' | 'advanced'
-      )
-    ) {
-      return stored as 'beginner' | 'intermediate' | 'advanced';
+    if (stored && VALID_DIFFICULTIES.includes(stored as EndlessDifficulty)) {
+      return stored as EndlessDifficulty;
     }
   } catch {
     // localStorage not available
@@ -45,9 +47,8 @@ const getStoredDifficulty = (): 'beginner' | 'intermediate' | 'advanced' => {
 export function useEndlessSettings() {
   const [endlessWordCount, setEndlessWordCountState] =
     useState<number>(getStoredWordCount);
-  const [endlessDifficulty, setEndlessDifficultyState] = useState<
-    'beginner' | 'intermediate' | 'advanced'
-  >(getStoredDifficulty);
+  const [endlessDifficulty, setEndlessDifficultyState] =
+    useState<EndlessDifficulty>(getStoredDifficulty);
 
   const setEndlessWordCount = useCallback((count: number) => {
     if (!VALID_WORD_COUNTS.includes(count)) return;
@@ -59,18 +60,15 @@ export function useEndlessSettings() {
     }
   }, []);
 
-  const setEndlessDifficulty = useCallback(
-    (difficulty: 'beginner' | 'intermediate' | 'advanced') => {
-      if (!VALID_DIFFICULTIES.includes(difficulty)) return;
-      setEndlessDifficultyState(difficulty);
-      try {
-        localStorage.setItem(DIFFICULTY_KEY, difficulty);
-      } catch {
-        // localStorage not available
-      }
-    },
-    []
-  );
+  const setEndlessDifficulty = useCallback((difficulty: EndlessDifficulty) => {
+    if (!VALID_DIFFICULTIES.includes(difficulty)) return;
+    setEndlessDifficultyState(difficulty);
+    try {
+      localStorage.setItem(DIFFICULTY_KEY, difficulty);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
 
   return {
     endlessWordCount,
