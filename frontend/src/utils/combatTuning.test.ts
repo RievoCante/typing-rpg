@@ -23,10 +23,16 @@ describe('combatTuning', () => {
   });
 
   it('rollDamage returns crit damage when rng is below crit chance', () => {
-    expect(rollDamage(50, () => 0.1)).toEqual({ damage: BASE_DMG * CRIT_MULT, crit: true });
+    expect(rollDamage(50, () => 0.1)).toEqual({
+      damage: BASE_DMG * CRIT_MULT,
+      crit: true,
+    });
   });
 
   it('rollDamage returns base damage when rng is above crit chance', () => {
-    expect(rollDamage(50, () => 0.9)).toEqual({ damage: BASE_DMG, crit: false });
+    expect(rollDamage(50, () => 0.9)).toEqual({
+      damage: BASE_DMG,
+      crit: false,
+    });
   });
 });

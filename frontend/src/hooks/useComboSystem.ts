@@ -1,5 +1,9 @@
 import { useCallback, useReducer } from 'react';
-import { critChanceForStreak, rollDamage, type DamageRoll } from '../utils/combatTuning';
+import {
+  critChanceForStreak,
+  rollDamage,
+  type DamageRoll,
+} from '../utils/combatTuning';
 
 // --- Pure reducer (exported for tests, following useRaidState.ts convention) ---
 
@@ -12,7 +16,10 @@ export type ComboAction =
   | { type: 'WRONG_WORD' }
   | { type: 'RESET' };
 
-export function comboReducer(state: ComboState, action: ComboAction): ComboState {
+export function comboReducer(
+  state: ComboState,
+  action: ComboAction
+): ComboState {
   switch (action.type) {
     case 'CORRECT_WORD':
       return { streak: state.streak + 1 };
@@ -47,7 +54,10 @@ export function useComboSystem() {
     [state.streak]
   );
 
-  const registerWrongWord = useCallback(() => dispatch({ type: 'WRONG_WORD' }), []);
+  const registerWrongWord = useCallback(
+    () => dispatch({ type: 'WRONG_WORD' }),
+    []
+  );
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   return {

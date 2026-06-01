@@ -4,11 +4,7 @@
 // via comboReducer rather than renderHook.
 
 import { describe, it, expect } from 'vitest';
-import {
-  comboReducer,
-  type ComboState,
-  type ComboAction,
-} from './useComboSystem';
+import { comboReducer, type ComboState } from './useComboSystem';
 
 const initial: ComboState = { streak: 0 };
 
