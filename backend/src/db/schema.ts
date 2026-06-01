@@ -95,6 +95,27 @@ export const raidPlayers = sqliteTable(
 );
 
 /**
+ * The `analytics_events` table logs lightweight funnel beacons fired from the
+ * client (`reached_game`, `started_typing`). Public + anonymous-friendly: keyed
+ * by a client-generated `anon_id`; `user_id` is captured opportunistically only
+ * when a Clerk token rides along. See handlers/events.ts.
+ */
+export const analyticsEvents = sqliteTable(
+  'analytics_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    event: text('event', { enum: ['reached_game', 'started_typing'] }).notNull(),
+    anonId: text('anon_id').notNull(),
+    userId: text('user_id'),
+    mode: text('mode', { enum: ['daily', 'endless', 'raid'] }),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(strftime('%s', 'now'))`)
+      .notNull(),
+  },
+  table => [index('idx_analytics_events').on(table.event, table.createdAt)]
+);
+
+/**
  * Raid room registry for matchmaking.
  */
 export const raidRooms = sqliteTable('raid_rooms', {
