@@ -12,11 +12,15 @@ export interface WordAnalysisResult {
  *
  * @param text - The original text to analyze
  * @param charStatus - Array of character statuses corresponding to each character
+ * @param overflow - Optional map of word-boundary index -> extra typed letters.
+ *   A word that carries overflow is scored as incorrect (Monkeytype-style), so
+ *   it never adds WPM/correct-char credit.
  * @returns Object containing word analysis results
  */
 export const analyzeWords = (
   text: string,
-  charStatus: CharStatus[]
+  charStatus: CharStatus[],
+  overflow: Record<number, string[]> = {}
 ): WordAnalysisResult => {
   let correctWords = 0;
   let incorrectWords = 0;
@@ -30,10 +34,12 @@ export const analyzeWords = (
     const wordStartIndex = match.index!;
     const wordEndIndex = wordStartIndex + word.length;
 
-    let isWordCorrect = true;
+    // A word with extra (overflow) characters at its trailing boundary is
+    // always incorrect, regardless of its base characters.
+    let isWordCorrect = (overflow[wordEndIndex]?.length ?? 0) === 0;
 
     // Check if all characters in this word are correct or locked
-    for (let i = wordStartIndex; i < wordEndIndex; i++) {
+    for (let i = wordStartIndex; isWordCorrect && i < wordEndIndex; i++) {
       const status = charStatus[i];
       if (status !== 'correct' && status !== 'locked') {
         isWordCorrect = false;
