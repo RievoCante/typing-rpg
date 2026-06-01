@@ -187,6 +187,7 @@ export default function RaidGame({
             typedChars={typingMechanics.typedChars}
             cursorPosition={typingMechanics.cursorPosition}
             hasStartedTyping={hasStarted}
+            overflow={typingMechanics.overflow}
           />
         </div>
 

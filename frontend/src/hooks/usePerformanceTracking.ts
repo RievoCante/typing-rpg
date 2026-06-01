@@ -15,6 +15,9 @@ interface UsePerformanceTrackingProps {
   charStatus: CharStatus[];
   hasStartedTyping: boolean;
   cursorPosition: number;
+  // Extra letters typed past a word's end, keyed by boundary space index.
+  // Words carrying overflow are scored as incorrect (no WPM credit).
+  overflow?: Record<number, string[]>;
 }
 
 export const usePerformanceTracking = ({
@@ -22,6 +25,7 @@ export const usePerformanceTracking = ({
   charStatus,
   hasStartedTyping,
   cursorPosition,
+  overflow = {},
 }: UsePerformanceTrackingProps) => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [wpm, setWpm] = useState<number>(0);
@@ -45,7 +49,7 @@ export const usePerformanceTracking = ({
 
     const elapsedMinutes = (Date.now() - startTime) / 60000;
     const { correctWords, incorrectWords, totalCharsIncludingSpaces } =
-      analyzeWords(text, charStatus);
+      analyzeWords(text, charStatus, overflow);
     const calculatedWpm =
       elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
     const finalWpm = Math.round(calculatedWpm);
@@ -60,7 +64,7 @@ export const usePerformanceTracking = ({
       finalWpm,
       elapsedMinutes,
     };
-  }, [text, charStatus, hasStartedTyping, startTime]);
+  }, [text, charStatus, overflow, hasStartedTyping, startTime]);
 
   // Calculate current WPM in real-time
   const calculateCurrentWpm = useCallback((): number => {
@@ -75,10 +79,14 @@ export const usePerformanceTracking = ({
     // means a fully-typed-but-not-yet-spaced word (incl. the last word, which
     // never gets a trailing space) is credited immediately instead of jumping
     // up only on completion.
-    const { totalCharsIncludingSpaces } = analyzeWords(text, charStatus);
+    const { totalCharsIncludingSpaces } = analyzeWords(
+      text,
+      charStatus,
+      overflow
+    );
 
     return Math.round(totalCharsIncludingSpaces / 5 / elapsedMinutes);
-  }, [text, charStatus, hasStartedTyping, startTime]);
+  }, [text, charStatus, overflow, hasStartedTyping, startTime]);
 
   // Update WPM in real-time (only during active typing, not after completion)
   useEffect(() => {

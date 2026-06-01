@@ -138,6 +138,7 @@ export default function TypingInterface({
     charStatus: typingMechanics.charStatus,
     hasStartedTyping,
     cursorPosition: typingMechanics.cursorPosition,
+    overflow: typingMechanics.overflow,
   });
 
   const completion = useCompletionDetection({
@@ -349,6 +350,7 @@ export default function TypingInterface({
               typedChars={typingMechanics.typedChars}
               cursorPosition={typingMechanics.cursorPosition}
               hasStartedTyping={hasStartedTyping}
+              overflow={typingMechanics.overflow}
             />
 
             <div className="flex justify-between items-center pt-4">

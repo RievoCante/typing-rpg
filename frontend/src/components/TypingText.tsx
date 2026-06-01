@@ -1,4 +1,5 @@
 import { useThemeContext } from '../hooks/useThemeContext';
+import { buildTypingLines } from '../utils/typingLines';
 
 export type CharStatus =
   | 'pending'
@@ -13,6 +14,8 @@ interface TypingTextProps {
   typedChars: (string | null)[];
   cursorPosition: number;
   hasStartedTyping: boolean;
+  /** Extra letters typed past a word's end, keyed by boundary space index. */
+  overflow?: Record<number, string[]>;
 }
 
 export default function TypingText({
@@ -21,6 +24,7 @@ export default function TypingText({
   typedChars,
   cursorPosition,
   hasStartedTyping,
+  overflow = {},
 }: TypingTextProps) {
   const { theme } = useThemeContext();
 
@@ -65,23 +69,25 @@ export default function TypingText({
     return originalChar;
   };
 
-  // Helper function to check if a character is part of a word with errors
+  // Helper function to check if a character is part of a word with errors.
+  // A word is an error word if any of its characters are incorrect/skipped, or
+  // it carries overflow (extra) characters at its trailing boundary.
   const isInErrorWord = (index: number): boolean => {
-    // Find word boundaries
     let wordStart = index;
     let wordEnd = index;
 
-    // Find start of word
     while (wordStart > 0 && !/\s/.test(text[wordStart - 1])) {
       wordStart--;
     }
-
-    // Find end of word
     while (wordEnd < text.length - 1 && !/\s/.test(text[wordEnd + 1])) {
       wordEnd++;
     }
 
-    // Check if any character in this word has errors
+    // Overflow lives at the space right after the word.
+    if ((overflow[wordEnd + 1]?.length ?? 0) > 0) {
+      return true;
+    }
+
     for (let i = wordStart; i <= wordEnd; i++) {
       const status = charStatus[i];
       if (status === 'incorrect' || status === 'skipped') {
@@ -92,59 +98,13 @@ export default function TypingText({
     return false;
   };
 
-  // Split text into fixed lines based on character limit (word-aware)
-  const createFixedLines = () => {
-    const lines: { chars: string[]; startIndex: number }[] = [];
-    const words = text.split(/(\s+)/); // Split by spaces but keep the spaces
-
-    let currentLineChars: string[] = [];
-    let currentLineStartIndex = 0;
-    let currentCharIndex = 0;
-
-    for (const word of words) {
-      // Check if adding this word would exceed the line limit
-      const wouldExceed =
-        currentLineChars.length + word.length > MAX_CHARS_PER_LINE;
-
-      if (wouldExceed && currentLineChars.length > 0) {
-        // Start a new line with this word
-        lines.push({
-          chars: [...currentLineChars],
-          startIndex: currentLineStartIndex,
-        });
-
-        // Start new line
-        currentLineChars = [];
-        currentLineStartIndex = currentCharIndex;
-      }
-
-      // Add the word to current line
-      for (const char of word) {
-        currentLineChars.push(char);
-      }
-
-      currentCharIndex += word.length;
-    }
-
-    // Add the last line if it has content
-    if (currentLineChars.length > 0) {
-      lines.push({
-        chars: currentLineChars,
-        startIndex: currentLineStartIndex,
-      });
-    }
-
-    return lines;
-  };
-
-  const textLines = createFixedLines();
+  const textLines = buildTypingLines(text, overflow, MAX_CHARS_PER_LINE);
 
   // Find which line contains the cursor position
   const getCursorLineIndex = () => {
     for (let i = 0; i < textLines.length; i++) {
       const line = textLines[i];
-      const lineEndIndex = line.startIndex + line.chars.length;
-      if (cursorPosition >= line.startIndex && cursorPosition < lineEndIndex) {
+      if (cursorPosition >= line.origStart && cursorPosition < line.origEnd) {
         return i;
       }
     }
@@ -183,14 +143,26 @@ export default function TypingText({
             {' '}
             {/* Each line is exactly 1.75em tall */}
             {line ? (
-              line.chars.map((char, charIndexInLine) => {
-                const absoluteIndex = line.startIndex + charIndexInLine;
+              line.tokens.map(token => {
+                if (token.kind === 'overflow') {
+                  // Extra (overflow) letter: always rendered as an error.
+                  return (
+                    <span
+                      key={`overflow-${token.boundary}-${token.ordinal}`}
+                      className="text-red-500 underline decoration-red-500 decoration-2 underline-offset-2 relative"
+                    >
+                      {token.char}
+                    </span>
+                  );
+                }
+
+                const absoluteIndex = token.origIndex;
                 const charStyle = getCharStyle(
                   charStatus[absoluteIndex] || 'pending'
                 );
-                const displayChar = getDisplayChar(char, absoluteIndex);
+                const displayChar = getDisplayChar(token.char, absoluteIndex);
                 const isInError =
-                  !/\s/.test(char) && isInErrorWord(absoluteIndex);
+                  !/\s/.test(token.char) && isInErrorWord(absoluteIndex);
                 const underlineClass = isInError
                   ? 'underline decoration-red-500 decoration-2 underline-offset-2'
                   : '';
