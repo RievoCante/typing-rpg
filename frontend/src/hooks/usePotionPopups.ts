@@ -15,10 +15,13 @@ interface PotionHealDetail {
   amount: number;
 }
 
+// Fade transition length; must match the `duration-500` on the popup element.
+const FADE_MS = 500;
+
 // Listens for the `potion-drop` and `potion-heal` window events (dispatched by
-// usePotionSystem) and emits transient floating popups, while also playing the
-// matching sound effect. Mirrors useAttackPopups' lifecycle: spawn hidden →
-// fade in → fade out → remove (~900ms total).
+// usePotionSystem) and emits floating popups, while also playing the matching
+// sound effect. Lifecycle: spawn hidden → fade in → hold visible (`holdMs`) →
+// fade out → remove.
 export function usePotionPopups() {
   const [popups, setPopups] = useState<PotionPopupItem[]>([]);
   const idRef = useRef(0);
@@ -28,7 +31,8 @@ export function usePotionPopups() {
       text: string,
       kind: 'drop' | 'heal',
       leftPct: number,
-      topBase: number
+      topBase: number,
+      holdMs: number
     ) => {
       const left = leftPct + (Math.random() * 8 - 4);
       const top = topBase + (Math.random() * 12 - 6);
@@ -46,16 +50,20 @@ export function usePotionPopups() {
         setPopups(prev =>
           prev.map(p => (p.id === id ? { ...p, show: false } : p))
         );
-      }, 900);
-      setTimeout(() => {
-        setPopups(prev => prev.filter(p => p.id !== id));
-      }, 1200);
+      }, 10 + holdMs);
+      setTimeout(
+        () => {
+          setPopups(prev => prev.filter(p => p.id !== id));
+        },
+        10 + holdMs + FADE_MS
+      );
     };
 
     const onDrop = () => {
       playPotionDrop();
       // Near the potion column on the right so the gain reads next to the slots.
-      spawn('+1 Potion', 'drop', 85, 40);
+      // Holds ~2.5s before fading so the player clearly notices the drop.
+      spawn('+1 Potion', 'drop', 85, 40, 2500);
     };
 
     const onHeal = (e: Event) => {
@@ -64,7 +72,7 @@ export function usePotionPopups() {
       if (amount <= 0) return;
       playPotionHeal();
       // Near the player health bar on the left.
-      spawn(`+${amount} HP`, 'heal', 16, 38);
+      spawn(`+${amount} HP`, 'heal', 16, 38, 900);
     };
 
     window.addEventListener('potion-drop', onDrop as EventListener);
