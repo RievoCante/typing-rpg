@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
 import ParticleBurst from './ParticleBurst';
+import { useSfx } from '../hooks/useSfx';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 
@@ -33,11 +34,13 @@ export default function Monster({
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
   const [showBurst, setShowBurst] = useState(false);
   const hasBurstedRef = useRef(false);
+  const { playExplosion } = useSfx();
 
   // Trigger particle burst when slime is defeated
   useEffect(() => {
     if (isDefeated && !hasBurstedRef.current) {
       hasBurstedRef.current = true;
+      playExplosion();
 
       // Calculate the slime's position on screen
       if (containerRef.current) {
@@ -55,7 +58,7 @@ export default function Monster({
       hasBurstedRef.current = false;
       setShowBurst(false);
     }
-  }, [isDefeated]);
+  }, [isDefeated, playExplosion]);
 
   const handleBurstComplete = () => {
     setShowBurst(false);
