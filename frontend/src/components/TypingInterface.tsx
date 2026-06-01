@@ -17,7 +17,12 @@ import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import PotionSlot from './PotionSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
-import { HitPopups, AttackPopups, SaveErrorBanner } from './TypingPopups';
+import {
+  HitPopups,
+  AttackPopups,
+  PotionPopups,
+  SaveErrorBanner,
+} from './TypingPopups';
 
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useTypingMechanics } from '../hooks/useTypingMechanics';
@@ -26,6 +31,7 @@ import { useCompletionDetection } from '../hooks/useCompletionDetection';
 import { useCompletionHandler } from '../hooks/useCompletionHandler';
 import { useHitPopups } from '../hooks/useHitPopups';
 import { useAttackPopups } from '../hooks/useAttackPopups';
+import { usePotionPopups } from '../hooks/usePotionPopups';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
 import type { CompletionResult } from '../types/completion';
@@ -103,6 +109,7 @@ export default function TypingInterface({
 
   const { hits, triggerHit } = useHitPopups();
   const attacks = useAttackPopups();
+  const potionPopups = usePotionPopups();
 
   // Surface the kill reward as a big "+N XP" under the Player Level card.
   useEffect(() => {
@@ -421,6 +428,7 @@ export default function TypingInterface({
 
       <HitPopups hits={hits} />
       <AttackPopups attacks={attacks} />
+      <PotionPopups popups={potionPopups} />
     </>
   );
 }

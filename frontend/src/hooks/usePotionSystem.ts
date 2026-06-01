@@ -25,19 +25,30 @@ export function usePotionSystem(
   healthRef.current = playerHealth;
 
   // Call once per correct word (endless only). Every few words it rolls for a
-  // drop; a successful roll adds a potion up to the cap.
+  // drop; a successful roll adds a potion up to the cap. We fire `potion-drop`
+  // only when a potion is actually banked (not when already at the cap) so the
+  // popup/SFX never lie about a gain. usePotionPopups listens for the event.
   const registerCorrectWord = useCallback(() => {
     correctWordCount.current += 1;
     if (!shouldDropPotion(correctWordCount.current)) return;
+    if (potionCountRef.current >= MAX_POTIONS) return;
+    window.dispatchEvent(new Event('potion-drop'));
     setPotionCount(prev => Math.min(MAX_POTIONS, prev + 1));
   }, []);
 
   // Consume one potion to heal. No-op (and does not consume) when the inventory
   // is empty or the player is already at full HP, so a potion is never wasted.
+  // Fires `potion-heal` with the amount actually restored (capped at max HP) so
+  // the floating "+N HP" popup matches the health bar.
   const drinkPotion = useCallback(() => {
     if (potionCountRef.current <= 0) return;
     if (healthRef.current >= maxPlayerHealth) return;
-    healPlayer(rollHealAmount());
+    const rolled = rollHealAmount();
+    const healed = Math.min(rolled, maxPlayerHealth - healthRef.current);
+    healPlayer(rolled);
+    window.dispatchEvent(
+      new CustomEvent('potion-heal', { detail: { amount: healed } })
+    );
     setPotionCount(prev => Math.max(0, prev - 1));
   }, [healPlayer, maxPlayerHealth]);
 
