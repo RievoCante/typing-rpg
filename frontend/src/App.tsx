@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SignedIn } from '@clerk/clerk-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -98,12 +98,19 @@ function GameContent() {
     setCurrentMonsterType(newMonsterType);
   };
 
-  // Re-randomize visuals when a monster is defeated (monstersDefeated increments)
+  // Spawn the next monster only AFTER the death animation finishes, i.e. when
+  // the defeat flag falls true -> false (end of the ~1.2s defeat window set in
+  // GameProvider). Keeping the visuals stable through the window lets the dying
+  // monster fade out and its particle burst play on a single persistent canvas,
+  // instead of the next model flashing in mid-explosion.
+  const wasDefeatedRef = useRef(false);
   useEffect(() => {
-    if (monstersDefeated === 0) return; // skip initial mount
-    generateNewMonster();
+    if (wasDefeatedRef.current && !isDefeated && monstersDefeated > 0) {
+      generateNewMonster();
+    }
+    wasDefeatedRef.current = isDefeated;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monstersDefeated]);
+  }, [isDefeated, monstersDefeated]);
 
   // Handle player death - reset everything while preserving current mode
   const handleDeathRestart = () => {
@@ -139,7 +146,6 @@ function GameContent() {
           <>
             <HealthBar />
             <Monster
-              key={monstersDefeated}
               monsterFamily={monsterFamily}
               monsterType={monsterType}
               isDefeated={isDefeated}
