@@ -59,7 +59,7 @@ export const GOLEM_COLORS = [
 
 // Size variations
 export const GOLEM_SIZES = [
-  0.8, // Small
-  1.0, // Medium (Normal)
-  1.2, // Large
+  1.3, // Small
+  1.6, // Medium (Normal)
+  1.9, // Large
 ];
