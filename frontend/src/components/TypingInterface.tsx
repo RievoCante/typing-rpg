@@ -56,6 +56,9 @@ export default function TypingInterface({
     endlessWordCount,
     endlessDifficulty,
     damagePlayerFromMistake,
+    damageMonster,
+    registerComboCorrect,
+    registerComboWrong,
     isPlayerDead,
     hasStartedTyping,
     setHasStartedTyping,
@@ -117,22 +120,50 @@ export default function TypingInterface({
   }, [earnedXp, onXpGain]);
 
   const handleWordCompleted = useCallback(() => {
-    decrementRemainingWords();
     triggerHit();
-    // Endless potions drop on a word clock; each correct word is a drop check.
-    if (currentMode === 'endless') registerCorrectWord();
+    if (currentMode === 'endless') {
+      // Combo-driven damage to the monster's HP. Endless HP is decoupled from
+      // the word pool, so we no longer decrement remainingWords here.
+      const { damage, crit } = registerComboCorrect();
+      damageMonster(damage);
+      window.dispatchEvent(
+        new CustomEvent('combat-hit', { detail: { damage, crit } })
+      );
+      // Potions still drop on the per-correct-word clock.
+      registerCorrectWord();
+    } else {
+      // Daily/raid: words drive the HP bar, so each correct word drains one.
+      decrementRemainingWords();
+    }
     // Also notify slime model to flash red
     try {
       window.dispatchEvent(new Event('word-hit'));
     } catch {
       /* ignore */
     }
-  }, [decrementRemainingWords, triggerHit, currentMode, registerCorrectWord]);
+  }, [
+    triggerHit,
+    currentMode,
+    registerComboCorrect,
+    damageMonster,
+    registerCorrectWord,
+    decrementRemainingWords,
+  ]);
+
+  // Wrong word: always damages the player; in endless it also breaks the combo
+  // streak (0 damage dealt) and signals a subtle combo-break cue.
+  const handleWordMistake = useCallback(() => {
+    damagePlayerFromMistake();
+    if (currentMode === 'endless') {
+      registerComboWrong();
+      window.dispatchEvent(new Event('combo-break'));
+    }
+  }, [damagePlayerFromMistake, currentMode, registerComboWrong]);
 
   const typingMechanics = useTypingMechanics({
     text,
     onWordCompleted: handleWordCompleted,
-    onWordMistake: damagePlayerFromMistake,
+    onWordMistake: handleWordMistake,
   });
 
   const charStatusRef = useRef(typingMechanics.charStatus);
