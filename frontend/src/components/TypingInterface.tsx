@@ -25,6 +25,7 @@ import {
 } from './TypingPopups';
 
 import { useThemeContext } from '../hooks/useThemeContext';
+import ComboMeter from './ComboMeter';
 import { useTypingMechanics } from '../hooks/useTypingMechanics';
 import { usePerformanceTracking } from '../hooks/usePerformanceTracking';
 import { useCompletionDetection } from '../hooks/useCompletionDetection';
@@ -370,6 +371,7 @@ export default function TypingInterface({
 
   return (
     <>
+      {currentMode === 'endless' && <ComboMeter />}
       <div className="relative max-w-4xl mx-auto mt-4 flex items-stretch gap-4">
         <div className="flex-shrink-0 flex items-center">
           <VerticalPlayerHealthBar />
