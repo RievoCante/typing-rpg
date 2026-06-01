@@ -98,13 +98,17 @@ export const GameProvider = ({
 
   // Endless: defeat the instant monster HP hits zero, so the UI fires its defeat
   // animation before the next monster spawns. One-shot via defeatHandledRef.
+  // The HP kill is THE kill event in endless: it counts the defeat (which then
+  // drives the 1.2s defeat window + App respawn). Block/text completion is just
+  // a buffer refill and must NOT count a kill (see useTypingCompletion).
   useEffect(() => {
     if (currentMode !== 'endless') return;
     if (monsterHp <= 0 && monsterMaxHp > 0 && !defeatHandledRef.current) {
       defeatHandledRef.current = true;
       setIsCurrentMonsterDefeated(true);
+      incrementMonstersDefeated();
     }
-  }, [currentMode, monsterHp, monsterMaxHp]);
+  }, [currentMode, monsterHp, monsterMaxHp, incrementMonstersDefeated]);
 
   // Daily/raid: defeat the instant remaining words hit zero (unchanged). Endless
   // no longer uses the word pool for defeat — its HP effect above owns that.
@@ -125,10 +129,14 @@ export const GameProvider = ({
   }, [monstersDefeated]);
 
   // Each new monster session restarts the "started typing" gate so attacks
-  // pause until the user actually begins typing.
+  // pause until the user actually begins typing. Endless is a continuous stream
+  // where monstersDefeated increments mid-typing on every HP kill, so resetting
+  // the gate there would stutter the flow — endless re-gates per text block via
+  // TypingInterface's text-change effect instead.
   useEffect(() => {
+    if (currentMode === 'endless') return;
     setHasStartedTyping(false);
-  }, [monstersDefeated]);
+  }, [currentMode, monstersDefeated]);
 
   const resetKillStreak = useCallback(() => setKillStreak(0), []);
 

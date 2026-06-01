@@ -42,6 +42,11 @@ interface TypingInterfaceProps {
   onXpGain?: (xp: number) => void;
 }
 
+// Endless is a continuous word stream: fixed-size blocks are regenerated when
+// the player finishes one (the monster's HP — not the word pool — decides death,
+// so a block boundary is just a seamless text refill, never a monster kill).
+const ENDLESS_BLOCK_WORDS = 50;
+
 export default function TypingInterface({
   dailyProgress,
   reloadPlayerStats,
@@ -53,7 +58,6 @@ export default function TypingInterface({
     setRemainingWords,
     decrementRemainingWords,
     incrementMonstersDefeated,
-    endlessWordCount,
     endlessDifficulty,
     damagePlayerFromMistake,
     damageMonster,
@@ -198,7 +202,7 @@ export default function TypingInterface({
           : generateText(
               currentMode,
               undefined,
-              endlessWordCount,
+              ENDLESS_BLOCK_WORDS,
               endlessDifficulty
             );
       setText(newText);
@@ -213,7 +217,6 @@ export default function TypingInterface({
     currentDifficulty,
     setTotalWords,
     setRemainingWords,
-    endlessWordCount,
     endlessDifficulty,
     restartKey,
   ]);
@@ -240,7 +243,6 @@ export default function TypingInterface({
     resetTypingState,
     resetSession,
     resetForNewSession,
-    endlessWordCount,
     setHasStartedTyping,
   ]);
 

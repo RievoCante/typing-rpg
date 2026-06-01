@@ -144,7 +144,10 @@ export function useTypingCompletion({
       }
 
       if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
-      incrementMonstersDefeated();
+      // Endless kills are HP-based (GameProvider), so a block/text completion is
+      // only a buffer refill — it must not count a monster defeat. Daily/raid
+      // still defeat the monster by finishing the text.
+      if (currentMode !== 'endless') incrementMonstersDefeated();
       reloadPlayerStats();
 
       switch (result.action) {
