@@ -1,9 +1,5 @@
 import { useCallback, useState } from 'react';
 
-const WORD_COUNT_KEY = 'endless_word_count';
-const DEFAULT_WORD_COUNT = 25;
-const VALID_WORD_COUNTS = [10, 25, 50, 100];
-
 export type EndlessDifficulty =
   | 'beginner'
   | 'common'
@@ -19,19 +15,6 @@ const VALID_DIFFICULTIES: EndlessDifficulty[] = [
   'advanced',
 ];
 
-const getStoredWordCount = (): number => {
-  try {
-    const stored = localStorage.getItem(WORD_COUNT_KEY);
-    if (stored) {
-      const parsed = parseInt(stored, 10);
-      if (VALID_WORD_COUNTS.includes(parsed)) return parsed;
-    }
-  } catch {
-    // localStorage not available
-  }
-  return DEFAULT_WORD_COUNT;
-};
-
 const getStoredDifficulty = (): EndlessDifficulty => {
   try {
     const stored = localStorage.getItem(DIFFICULTY_KEY);
@@ -45,20 +28,8 @@ const getStoredDifficulty = (): EndlessDifficulty => {
 };
 
 export function useEndlessSettings() {
-  const [endlessWordCount, setEndlessWordCountState] =
-    useState<number>(getStoredWordCount);
   const [endlessDifficulty, setEndlessDifficultyState] =
     useState<EndlessDifficulty>(getStoredDifficulty);
-
-  const setEndlessWordCount = useCallback((count: number) => {
-    if (!VALID_WORD_COUNTS.includes(count)) return;
-    setEndlessWordCountState(count);
-    try {
-      localStorage.setItem(WORD_COUNT_KEY, count.toString());
-    } catch {
-      // localStorage not available
-    }
-  }, []);
 
   const setEndlessDifficulty = useCallback((difficulty: EndlessDifficulty) => {
     if (!VALID_DIFFICULTIES.includes(difficulty)) return;
@@ -71,8 +42,6 @@ export function useEndlessSettings() {
   }, []);
 
   return {
-    endlessWordCount,
-    setEndlessWordCount,
     endlessDifficulty,
     setEndlessDifficulty,
   };

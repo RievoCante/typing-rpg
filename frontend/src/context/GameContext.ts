@@ -30,8 +30,6 @@ interface GameContextType {
     crit: boolean;
   };
   registerComboWrong: () => void;
-  endlessWordCount: number;
-  setEndlessWordCount: (count: number) => void;
   endlessDifficulty: EndlessDifficulty;
   setEndlessDifficulty: (difficulty: EndlessDifficulty) => void;
   // Player typing state
@@ -68,8 +66,6 @@ export const GameContext = createContext<GameContextType>({
   comboCritChance: 0,
   registerComboCorrect: () => ({ damage: 1, crit: false }),
   registerComboWrong: () => {},
-  endlessWordCount: 25,
-  setEndlessWordCount: () => {},
   endlessDifficulty: 'beginner',
   setEndlessDifficulty: () => {},
   // Player typing state
