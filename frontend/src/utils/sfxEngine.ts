@@ -163,3 +163,15 @@ export function playPotionDrop() {
 export function playPotionHeal() {
   playArpeggio([523, 659, 784, 1047], 0.09, 0.28);
 }
+
+// Short, bright punchy cue for a critical hit — two quick high notes with a
+// short decay so it punches without drowning out the gameplay.
+export function playCrit() {
+  playArpeggio([1047, 1568], 0.06, 0.35);
+}
+
+// Soft, low, descending cue for a broken combo — subtle so it informs without
+// punishing the player too harshly.
+export function playComboBreak() {
+  playArpeggio([330, 220, 165], 0.08, 0.18);
+}

@@ -1,6 +1,7 @@
 import type { HitItem } from '../hooks/useHitPopups';
 import type { AttackItem } from '../hooks/useAttackPopups';
 import type { PotionPopupItem } from '../hooks/usePotionPopups';
+import type { CombatPopupItem } from '../hooks/useCombatPopups';
 
 export function HitPopups({ hits }: { hits: HitItem[] }) {
   return (
@@ -68,6 +69,35 @@ export function PotionPopups({ popups }: { popups: PotionPopupItem[] }) {
                   : popup.kind === 'warn'
                     ? 'text-amber-400'
                     : 'text-pink-400'
+              }`}
+            >
+              {popup.text}
+            </span>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function CombatPopups({ popups }: { popups: CombatPopupItem[] }) {
+  return (
+    <>
+      {popups.map(popup => (
+        <div key={popup.id} className="fixed inset-0 pointer-events-none z-40">
+          <div
+            className={`absolute transition-all ${popup.show ? 'opacity-100 -translate-y-3 scale-125' : 'opacity-0 translate-y-0 scale-95'} duration-500 ease-out`}
+            style={{
+              top: `${popup.topPct}%`,
+              left: `${popup.leftPct}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <span
+              className={`font-extrabold select-none drop-shadow ${
+                popup.kind === 'crit'
+                  ? 'text-pink-400 text-2xl'
+                  : 'text-gray-400 text-base'
               }`}
             >
               {popup.text}
