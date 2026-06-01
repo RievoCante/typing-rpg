@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SignedIn } from '@clerk/clerk-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -132,6 +132,16 @@ function GameContent() {
     resetGameState();
   };
 
+  // Big "+N XP" reward under the Player Level card on monster kill.
+  // Nonce bumps every award so equal back-to-back amounts still animate.
+  const [xpGain, setXpGain] = useState(0);
+  const [xpGainNonce, setXpGainNonce] = useState(0);
+  const handleXpGain = useCallback((xp: number) => {
+    if (xp <= 0) return;
+    setXpGain(xp);
+    setXpGainNonce(n => n + 1);
+  }, []);
+
   if (bootstrapping) return <LoadingScreen />;
 
   return (
@@ -164,11 +174,14 @@ function GameContent() {
                 level={level}
                 currentXp={currentXp}
                 xpToNextLevel={xpToNextLevel}
+                xpGain={xpGain}
+                xpGainKey={xpGainNonce}
               />
             </SignedIn>
             <TypingInterface
               dailyProgress={dailyProgress}
               reloadPlayerStats={reloadPlayerStats}
+              onXpGain={handleXpGain}
             />
             {currentMode === 'daily' && (
               <MilestoneProgress

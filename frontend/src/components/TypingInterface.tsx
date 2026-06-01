@@ -37,11 +37,13 @@ import type { CompletionResult } from '../types/completion';
 interface TypingInterfaceProps {
   dailyProgress: DailyProgressType;
   reloadPlayerStats: () => Promise<void> | void;
+  onXpGain?: (xp: number) => void;
 }
 
 export default function TypingInterface({
   dailyProgress,
   reloadPlayerStats,
+  onXpGain,
 }: TypingInterfaceProps) {
   const {
     currentMode,
@@ -104,6 +106,11 @@ export default function TypingInterface({
   const { hits, triggerHit } = useHitPopups();
   const attacks = useAttackPopups();
   const xpPopup = useXpPopup(earnedXp);
+
+  // Surface the kill reward as a big "+N XP" under the Player Level card.
+  useEffect(() => {
+    if (earnedXp > 0) onXpGain?.(earnedXp);
+  }, [earnedXp, onXpGain]);
 
   const handleWordCompleted = useCallback(() => {
     decrementRemainingWords();
