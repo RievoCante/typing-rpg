@@ -325,7 +325,7 @@ export default function TypingInterface({
               setIsPaused(true);
             }}
             tabIndex={0}
-            className={`p-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
+            className={`px-12 py-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
               theme === 'dark'
                 ? 'bg-[#2A2C3C] text-white border border-gray-700'
                 : 'bg-white text-gray-900 border border-gray-200'
