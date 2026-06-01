@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Sun, Moon, User, X, UserPen } from 'lucide-react';
 import {
   SignedIn,
@@ -8,7 +8,10 @@ import {
 } from '@clerk/clerk-react';
 
 import { useThemeContext } from '../hooks/useThemeContext';
-import CharacterCustomizer from './CharacterCustomizer';
+
+// Lazy-loaded: CharacterCustomizer renders PlayerAvatar3D (three-vendor). The
+// modal only mounts on demand, so defer its bundle until the user opens it.
+const CharacterCustomizer = lazy(() => import('./CharacterCustomizer'));
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useThemeContext();
@@ -163,7 +166,9 @@ const Header: React.FC = () => {
         </div>
       </header>
       {showCustomizer && (
-        <CharacterCustomizer onClose={() => setShowCustomizer(false)} />
+        <Suspense fallback={null}>
+          <CharacterCustomizer onClose={() => setShowCustomizer(false)} />
+        </Suspense>
       )}
     </>
   );

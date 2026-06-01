@@ -5,6 +5,8 @@ import {
   useRef,
   useCallback,
   useMemo,
+  lazy,
+  Suspense,
 } from 'react';
 import { useGameContext } from '../hooks/useGameContext';
 import TypingText from './TypingText';
@@ -15,7 +17,6 @@ import OverlayBanner from './OverlayBanner';
 import KillResultOverlay, { type KillResult } from './KillResultOverlay';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
-import BattleAvatar from './BattleAvatar';
 import PotionSlot from './PotionSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
@@ -37,6 +38,10 @@ import { usePotionPopups } from '../hooks/usePotionPopups';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
 import type { CompletionResult } from '../types/completion';
+
+// Lazy-loaded: BattleAvatar pulls in three-vendor via PlayerAvatar3D. Deferring
+// it keeps the 3D bundle off the critical path.
+const BattleAvatar = lazy(() => import('./BattleAvatar'));
 
 interface TypingInterfaceProps {
   dailyProgress: DailyProgressType;
@@ -368,7 +373,9 @@ export default function TypingInterface({
         </div>
 
         <div className="flex-shrink-0 flex items-center">
-          <BattleAvatar />
+          <Suspense fallback={<div className="h-44 w-28" />}>
+            <BattleAvatar />
+          </Suspense>
         </div>
 
         <div className="flex-1 relative">
