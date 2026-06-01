@@ -1,6 +1,5 @@
 import type { HitItem } from '../hooks/useHitPopups';
 import type { AttackItem } from '../hooks/useAttackPopups';
-import type { XpPopupState } from '../hooks/useXpPopup';
 
 export function HitPopups({ hits }: { hits: HitItem[] }) {
   return (
@@ -45,32 +44,6 @@ export function AttackPopups({ attacks }: { attacks: AttackItem[] }) {
         </div>
       ))}
     </>
-  );
-}
-
-export function XpPopup({
-  state,
-  earnedXp,
-}: {
-  state: XpPopupState;
-  earnedXp: number;
-}) {
-  if (!state.visible || earnedXp <= 0) return null;
-  return (
-    <div className="fixed inset-0 pointer-events-none z-50">
-      <div
-        className={`absolute transition-all ${state.show ? 'opacity-100 -translate-y-2' : 'opacity-0 translate-y-1'} duration-300 ease-out`}
-        style={{
-          top: `${state.topPct}%`,
-          left: `${state.leftPct}%`,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        <span className="text-yellow-400 font-bold text-xl select-none drop-shadow">
-          +{earnedXp} XP
-        </span>
-      </div>
-    </div>
   );
 }
 

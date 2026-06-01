@@ -16,12 +16,7 @@ import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
-import {
-  HitPopups,
-  AttackPopups,
-  XpPopup,
-  SaveErrorBanner,
-} from './TypingPopups';
+import { HitPopups, AttackPopups, SaveErrorBanner } from './TypingPopups';
 
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useTypingMechanics } from '../hooks/useTypingMechanics';
@@ -30,7 +25,6 @@ import { useCompletionDetection } from '../hooks/useCompletionDetection';
 import { useCompletionHandler } from '../hooks/useCompletionHandler';
 import { useHitPopups } from '../hooks/useHitPopups';
 import { useAttackPopups } from '../hooks/useAttackPopups';
-import { useXpPopup } from '../hooks/useXpPopup';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
 import type { CompletionResult } from '../types/completion';
@@ -106,7 +100,6 @@ export default function TypingInterface({
 
   const { hits, triggerHit } = useHitPopups();
   const attacks = useAttackPopups();
-  const xpPopup = useXpPopup(earnedXp);
 
   // Surface the kill reward as a big "+N XP" under the Player Level card.
   useEffect(() => {
@@ -398,8 +391,6 @@ export default function TypingInterface({
         quoteStats={quoteStats}
         onContinue={() => setShowCongratsModal(false)}
       />
-
-      <XpPopup state={xpPopup} earnedXp={earnedXp} />
 
       {saveError && (
         <SaveErrorBanner message={saveError} onRetry={handleRetrySave} />
