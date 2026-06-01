@@ -15,6 +15,7 @@ import {
 } from '../utils/avatarConfig';
 import { isCriticalHp } from '../utils/raidHp';
 import { trackEvent } from '../utils/trackEvent';
+import { useSfx } from '../hooks/useSfx';
 
 interface Props {
   players: RaidPlayer[];
@@ -46,6 +47,18 @@ export default function RaidGame({
   const containerRef = useRef<HTMLDivElement>(null);
   const [bossShake, setBossShake] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const { playExplosion } = useSfx();
+  const bossDefeatedRef = useRef(false);
+
+  // Play explosion once when the boss is defeated
+  useEffect(() => {
+    if (bossHp <= 0 && !bossDefeatedRef.current) {
+      bossDefeatedRef.current = true;
+      playExplosion();
+    } else if (bossHp > 0) {
+      bossDefeatedRef.current = false;
+    }
+  }, [bossHp, playExplosion]);
 
   const localPlayer = players.find(p => p.userId === localUserId);
 
