@@ -1,38 +1,55 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { MAX_POTIONS, rollHealAmount, shouldDropPotion } from '../utils/potion';
 
-const POTION_CHANCE = 0.3; // 30% chance per defeat
-const POTION_MIN_HEAL = 25;
-const POTION_MAX_HEAL = 50;
+// Endless potion inventory.
+//
+// Potions drop on a *word* clock (a chance every few correct words) so heal
+// frequency scales with fight length, decoupled from monster size. The player
+// banks up to MAX_POTIONS and spends them manually, which keeps long fights
+// survivable without making short ones trivial. Inventory is per-run and is
+// cleared on death/restart via resetPotionState (called from resetGameState).
+export function usePotionSystem(
+  healPlayer: (amount: number) => void,
+  playerHealth: number,
+  maxPlayerHealth: number
+) {
+  const [potionCount, setPotionCount] = useState<number>(0);
 
-export function usePotionSystem(healPlayer: (amount: number) => void) {
-  const [hasPotion, setHasPotion] = useState<boolean>(false);
-  const [potionHealAmount, setPotionHealAmount] = useState<number>(0);
+  // Refs mirror the latest values so the callbacks can read fresh state without
+  // changing identity, and without running side effects inside a setState
+  // updater (which StrictMode would double-invoke).
+  const correctWordCount = useRef<number>(0);
+  const potionCountRef = useRef<number>(0);
+  potionCountRef.current = potionCount;
+  const healthRef = useRef<number>(playerHealth);
+  healthRef.current = playerHealth;
 
-  const givePotion = useCallback(() => {
-    if (Math.random() >= POTION_CHANCE) return;
-    const healAmount =
-      Math.floor(Math.random() * (POTION_MAX_HEAL - POTION_MIN_HEAL + 1)) +
-      POTION_MIN_HEAL;
-    setPotionHealAmount(healAmount);
-    setHasPotion(true);
+  // Call once per correct word (endless only). Every few words it rolls for a
+  // drop; a successful roll adds a potion up to the cap.
+  const registerCorrectWord = useCallback(() => {
+    correctWordCount.current += 1;
+    if (!shouldDropPotion(correctWordCount.current)) return;
+    setPotionCount(prev => Math.min(MAX_POTIONS, prev + 1));
   }, []);
 
+  // Consume one potion to heal. No-op (and does not consume) when the inventory
+  // is empty or the player is already at full HP, so a potion is never wasted.
   const drinkPotion = useCallback(() => {
-    if (!hasPotion || potionHealAmount <= 0) return;
-    healPlayer(potionHealAmount);
-    setHasPotion(false);
-    setPotionHealAmount(0);
-  }, [hasPotion, potionHealAmount, healPlayer]);
+    if (potionCountRef.current <= 0) return;
+    if (healthRef.current >= maxPlayerHealth) return;
+    healPlayer(rollHealAmount());
+    setPotionCount(prev => Math.max(0, prev - 1));
+  }, [healPlayer, maxPlayerHealth]);
 
   const resetPotionState = useCallback(() => {
-    setHasPotion(false);
-    setPotionHealAmount(0);
+    setPotionCount(0);
+    correctWordCount.current = 0;
   }, []);
 
   return {
-    hasPotion,
-    potionHealAmount,
-    givePotion,
+    potionCount,
+    maxPotions: MAX_POTIONS,
+    registerCorrectWord,
     drinkPotion,
     resetPotionState,
   };

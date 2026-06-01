@@ -26,6 +26,11 @@ interface GameContextType {
   // Pause state (typing unfocused)
   isPaused: boolean;
   setIsPaused: (value: boolean) => void;
+  // Endless potion inventory
+  potionCount: number;
+  maxPotions: number;
+  registerCorrectWord: () => void;
+  drinkPotion: () => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -51,4 +56,9 @@ export const GameContext = createContext<GameContextType>({
   // Pause state
   isPaused: false,
   setIsPaused: () => {},
+  // Endless potion inventory
+  potionCount: 0,
+  maxPotions: 3,
+  registerCorrectWord: () => {},
+  drinkPotion: () => {},
 });

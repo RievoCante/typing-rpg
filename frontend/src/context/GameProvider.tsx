@@ -33,7 +33,11 @@ export const GameProvider = ({
 
   const endlessSettings = useEndlessSettings();
   const health = usePlayerHealth();
-  const potion = usePotionSystem(health.healPlayer);
+  const potion = usePotionSystem(
+    health.healPlayer,
+    health.playerHealth,
+    health.maxPlayerHealth
+  );
 
   useMonsterAttackLoop({
     currentMode,
@@ -120,10 +124,10 @@ export const GameProvider = ({
       damagePlayerFromMistake: health.damagePlayerFromMistake,
       killStreak,
       resetKillStreak,
-      hasPotion: potion.hasPotion,
-      potionHealAmount: potion.potionHealAmount,
+      potionCount: potion.potionCount,
+      maxPotions: potion.maxPotions,
+      registerCorrectWord: potion.registerCorrectWord,
       drinkPotion: potion.drinkPotion,
-      givePotion: potion.givePotion,
       hasStartedTyping,
       setHasStartedTyping,
       isPaused,

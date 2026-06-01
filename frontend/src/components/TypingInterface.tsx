@@ -14,6 +14,7 @@ import CongratsModal from './CongratsModal';
 import OverlayBanner from './OverlayBanner';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
+import PotionSlot from './PotionSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
 import { HitPopups, AttackPopups, SaveErrorBanner } from './TypingPopups';
@@ -53,6 +54,8 @@ export default function TypingInterface({
     hasStartedTyping,
     setHasStartedTyping,
     setIsPaused,
+    registerCorrectWord,
+    drinkPotion,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -109,13 +112,15 @@ export default function TypingInterface({
   const handleWordCompleted = useCallback(() => {
     decrementRemainingWords();
     triggerHit();
+    // Endless potions drop on a word clock; each correct word is a drop check.
+    if (currentMode === 'endless') registerCorrectWord();
     // Also notify slime model to flash red
     try {
       window.dispatchEvent(new Event('word-hit'));
     } catch {
       /* ignore */
     }
-  }, [decrementRemainingWords, triggerHit]);
+  }, [decrementRemainingWords, triggerHit, currentMode, registerCorrectWord]);
 
   const typingMechanics = useTypingMechanics({
     text,
@@ -270,6 +275,17 @@ export default function TypingInterface({
     if (isPlayerDead) return;
     const { key } = e;
     if (key === 'Tab') return;
+    // Ctrl+H drinks a potion (endless only). preventDefault stops the browser
+    // from opening its history panel. Other modes keep native behaviour.
+    if (
+      currentMode === 'endless' &&
+      e.ctrlKey &&
+      (key === 'h' || key === 'H')
+    ) {
+      e.preventDefault();
+      drinkPotion();
+      return;
+    }
     if (key === ' ') {
       e.preventDefault();
       typingMechanics.handleSpaceBar();
@@ -381,6 +397,12 @@ export default function TypingInterface({
             <DailyCompletedOverlay resetTimeLeft={resetTimeLeft} />
           )}
         </div>
+
+        {currentMode === 'endless' && (
+          <div className="flex-shrink-0 flex items-center">
+            <PotionSlot />
+          </div>
+        )}
       </div>
 
       <CongratsModal
