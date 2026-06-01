@@ -1,0 +1,51 @@
+// NOTE: @testing-library/react is not installed in this project (no jsdom either).
+// The existing hook test (useRaidState.test.ts) tests pure reducer functions
+// directly. We follow the same pattern: extract and test the pure combo logic
+// via comboReducer rather than renderHook.
+
+import { describe, it, expect } from 'vitest';
+import {
+  comboReducer,
+  type ComboState,
+  type ComboAction,
+} from './useComboSystem';
+
+const initial: ComboState = { streak: 0 };
+
+describe('comboReducer', () => {
+  it('starts at streak 0', () => {
+    expect(initial.streak).toBe(0);
+  });
+
+  it('increments streak on CORRECT_WORD', () => {
+    const next = comboReducer(initial, { type: 'CORRECT_WORD' });
+    expect(next.streak).toBe(1);
+  });
+
+  it('accumulates streak across multiple correct words', () => {
+    let state = initial;
+    state = comboReducer(state, { type: 'CORRECT_WORD' });
+    state = comboReducer(state, { type: 'CORRECT_WORD' });
+    expect(state.streak).toBe(2);
+  });
+
+  it('resets streak to 0 on WRONG_WORD', () => {
+    let state: ComboState = { streak: 2 };
+    state = comboReducer(state, { type: 'WRONG_WORD' });
+    expect(state.streak).toBe(0);
+  });
+
+  it('resets streak to 0 on RESET', () => {
+    const state = comboReducer({ streak: 5 }, { type: 'RESET' });
+    expect(state.streak).toBe(0);
+  });
+});
+
+// Verify rollDamage integration: streak-0 roll with rng=0.99 → no crit, damage=1
+import { rollDamage } from '../utils/combatTuning';
+
+describe('rollDamage (streak 0, rng=0.99)', () => {
+  it('returns damage=1, crit=false', () => {
+    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 1, crit: false });
+  });
+});
