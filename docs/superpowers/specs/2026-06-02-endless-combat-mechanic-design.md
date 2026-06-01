@@ -71,7 +71,7 @@ Three coupled changes in Endless:
   - Non-crit → `damage = BASE_DMG` = **1**.
   - Subtract `damage` from `monsterHp`.
   - Increment `streak`.
-- **On each wrong word** (a word that locks with one or more incorrect characters): `streak = 0` (crit chance returns to 0). The word deals normal non-crit damage or is simply not counted as a hit — see Open Question Q1.
+- **On each wrong word** (a word that locks with one or more incorrect characters): `streak = 0` (crit chance returns to 0) and the word deals **0 damage** — it is a pure penalty, never a hit (resolved, Q1).
 - **Streak persists across monster kills** (it is the player's typing flow, not tied to a monster). It resets to 0 only on a wrong word or on run reset (player death / restart).
 - Constants (`BASE_DMG`, `CRIT_MULT`, ramp `0.015`, cap `0.75`, tier HP) live in one combat-tuning module for easy balancing and Phase-3 weapon multipliers.
 
@@ -103,7 +103,7 @@ A "cold" normal monster ≈ today's default (25 words); combos accelerate kills;
 
 1. Player types a word → `handleWordCompleted` (Endless) determines correct vs. wrong (locked status / `analyzeWords`).
 2. Correct → update streak, roll crit, compute damage, `damageMonster(damage)`, dispatch `combat-hit` event (`{ damage, crit }`) for popup/SFX; also still call `registerCorrectWord()` for potion drops.
-3. Wrong → `streak = 0`, dispatch nothing (or a `combo-break` event for UI — Open Question Q2).
+3. Wrong → `streak = 0`, deal 0 damage, dispatch a `combo-break` event for subtle UI flash + soft SFX (Q2).
 4. `damageMonster` decrements `monsterHp`; an effect detects `monsterHp <= 0` → defeat animation → spawn next monster (new tier via existing `pickMonsterType`, new HP, **text untouched**).
 5. Stream buffer tops up when the typed text nears its end.
 6. On player death, `EndlessCompletionHandler` runs as today, sourced from continuous-stream session stats (words typed, correct/incorrect, WPM).
@@ -135,10 +135,10 @@ A "cold" normal monster ≈ today's default (25 words); combos accelerate kills;
 - Regression: Endless session still records correct/incorrect/WPM and awards XP on death; potion drops still fire per correct word; Daily/Raid untouched.
 - Run frontend CI: `bun run lint && bun run format:check && bunx tsc --noEmit && bun run test`.
 
-## Open Questions (resolve during planning)
+## Resolved Decisions
 
-- **Q1 — Wrong-word damage:** does a wrong word still deal 1 non-crit damage (it was "typed"), or deal **0** (no hit, pure penalty)? *Proposed: 0 damage — a mistake should sting.*
-- **Q2 — Combo-break feedback:** show a "combo broken" flash/SFX on reset? *Proposed: subtle flash + soft SFX, low priority.*
-- **Q3 — Block size / buffering:** fixed ~50-word blocks swapped at boundary, vs. true append streaming. *Proposed: ~50-word block, regenerate when the cursor passes a threshold near the end.*
-- **Q4 — Combo meter thresholds/labels:** exact crit% cutoffs for Heating/Hot/Blazing.
-- **Q5 — XP impact:** confirm Endless XP (WPM × correct/incorrect words) needs no rebalance now that sessions can run longer/continuously. *Proposed: no change in Phase 1; revisit if sessions inflate XP.*
+- **Q1 — Wrong-word damage → 0 damage.** A wrong (locked-incorrect) word deals **no** damage and resets the streak. Mistakes sting (lost combo + lost hit). `§3` and the data flow use this: wrong words are pure penalty, never a hit.
+- **Q2 — Combo-break feedback → subtle.** On streak reset, show a subtle flash + soft SFX. Low priority, keep it understated (no big screen shake).
+- **Q3 — Buffering → ~50-word block, regenerate near end.** Fixed ~50-word text blocks; generate a fresh block when the cursor passes a threshold near the end. No true append-streaming in Phase 1.
+- **Q4 — Combo meter labels → implementer's call, optimize for fun/addictiveness.** Pick thresholds/labels/visual juice that feel the most satisfying and "one-more-run" addicting (e.g. escalating colors, a snappy fill, a momentary glow when a new tier is hit). Treat the meter as a core feel element, not a stat readout.
+- **Q5 — XP → no change in Phase 1.** Endless XP (WPM × correct/incorrect words) is left exactly as-is. Do not rebalance now even though sessions may run longer; revisit only if it proves to inflate XP.
