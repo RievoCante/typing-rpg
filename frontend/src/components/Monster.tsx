@@ -1,6 +1,6 @@
 // inlucde name, monster model, HP number (from top to bottom)
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
@@ -22,7 +22,7 @@ interface MonsterProps {
   shape?: SlimeShapeEnum; // For slimes only
 }
 
-export default function Monster({
+function Monster({
   monsterFamily,
   monsterType,
   isHit = false,
@@ -123,3 +123,5 @@ export default function Monster({
     </>
   );
 }
+
+export default memo(Monster);
