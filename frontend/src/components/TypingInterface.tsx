@@ -417,7 +417,7 @@ export default function TypingInterface({
             />
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden pointer-events-none">
             <KillResultOverlay
               visible={awaitingContinue}
               result={killResult}

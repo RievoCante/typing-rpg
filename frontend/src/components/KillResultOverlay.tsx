@@ -23,7 +23,7 @@ export default function KillResultOverlay({
   if (!visible || !result) return null;
   return (
     <div
-      className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 cursor-pointer rounded-lg"
+      className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 cursor-pointer rounded-lg pointer-events-auto"
       onClick={onContinue}
     >
       <div className="px-8 py-6 rounded-xl backdrop-blur-sm bg-black/30 flex flex-col items-center gap-4 drop-shadow text-center">
