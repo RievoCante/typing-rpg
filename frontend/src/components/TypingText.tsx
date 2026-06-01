@@ -172,16 +172,16 @@ export default function TypingText({
 
   return (
     <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-left">
-      <div className="space-y-0 h-[4.5em] overflow-hidden flex flex-col items-start justify-center">
+      <div className="space-y-0 h-[5.25em] overflow-hidden flex flex-col items-start justify-center">
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (
           <div
             key={`line-${viewportStartIndex}-${lineIndex}`}
-            className="block h-[1.5em]"
+            className="block h-[1.75em]"
           >
             {' '}
-            {/* Each line is exactly 1.5em tall */}
+            {/* Each line is exactly 1.75em tall */}
             {line ? (
               line.chars.map((char, charIndexInLine) => {
                 const absoluteIndex = line.startIndex + charIndexInLine;
