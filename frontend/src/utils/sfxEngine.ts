@@ -5,7 +5,7 @@
 
 export const SFX_VOLUME_KEY = 'sfx:volume';
 export const SFX_MUTED_KEY = 'sfx:muted';
-const DEFAULT_SFX_VOLUME = 0.5;
+const DEFAULT_SFX_VOLUME = 0.25;
 
 function readVolume(): number {
   try {

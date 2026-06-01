@@ -11,7 +11,7 @@ import {
 
 export function useSfx() {
   const [volume, setVolume] = useState<number>(() => {
-    const DEFAULT_VOLUME = 0.5;
+    const DEFAULT_VOLUME = 0.25;
     try {
       const saved = localStorage.getItem(SFX_VOLUME_KEY);
       const v = saved ? parseFloat(saved) : DEFAULT_VOLUME;
