@@ -14,6 +14,7 @@ import {
   type PlayerAvatarConfig,
 } from '../utils/avatarConfig';
 import { isCriticalHp } from '../utils/raidHp';
+import { trackEvent } from '../utils/trackEvent';
 
 interface Props {
   players: RaidPlayer[];
@@ -74,7 +75,10 @@ export default function RaidGame({
     if (!isLocalAlive) return;
     const { key } = e;
     if (key === 'Tab') return;
-    if (!hasStarted) setHasStarted(true);
+    if (!hasStarted) {
+      setHasStarted(true);
+      trackEvent('started_typing', 'raid');
+    }
     if (key === ' ') {
       e.preventDefault();
       typingMechanics.handleSpaceBar();
@@ -96,6 +100,8 @@ export default function RaidGame({
     resetTypingState();
     wordIndexRef.current = 0;
     setHasStarted(false);
+    // Analytics: player reached a live raid battle (deduped per page-load).
+    if (localText.length > 0) trackEvent('reached_game', 'raid');
   }, [localText, resetTypingState]);
 
   // Boss shake fires whenever any player lands a hit.

@@ -9,6 +9,7 @@ import {
 import { useGameContext } from '../hooks/useGameContext';
 import TypingText from './TypingText';
 import { generateText } from '../utils/textGenerator';
+import { trackEvent } from '../utils/trackEvent';
 import CongratsModal from './CongratsModal';
 import OverlayBanner from './OverlayBanner';
 import WPMDisplay from './WPMDisplay';
@@ -180,6 +181,8 @@ export default function TypingInterface({
   // When the text actually changes, reset all per-session state.
   useEffect(() => {
     if (text.length === 0) return;
+    // Analytics: the player reached a playable battle screen (deduped per page-load).
+    trackEvent('reached_game', currentMode);
     resetTypingState();
     resetSession();
     resetForNewSession();
@@ -189,6 +192,7 @@ export default function TypingInterface({
     if (containerRef.current) containerRef.current.focus();
   }, [
     text,
+    currentMode,
     resetTypingState,
     resetSession,
     resetForNewSession,
@@ -277,6 +281,7 @@ export default function TypingInterface({
       if (!hasStartedTyping) {
         setHasStartedTyping(true);
         performance.startSession();
+        trackEvent('started_typing', currentMode);
       }
       typingMechanics.handleCharacterInput(key);
     }
