@@ -63,22 +63,22 @@ export const GameProvider = ({
     setIsCurrentMonsterDefeated(false);
   }, []);
 
-  // Detect defeat the instant remaining words hit zero, so the UI can fire
-  // its defeat animation before the next monster spawns.
+  // The monster is "defeated" exactly while its HP (remaining words) sits at
+  // zero with a prompt loaded. Deriving the flag from remainingWords means it
+  // sets once on the kill and clears the instant the next prompt loads — no
+  // matter how long the post-kill results screen holds the pause open.
+  //
+  // A previous version cleared the flag on a fixed 1.2s timer, which assumed
+  // the next prompt always loaded within that window. The post-kill results
+  // screen broke that assumption: it waits for the player to press Space, so
+  // the timer fired while HP was still zero, re-triggering the defeat (a second
+  // explosion) and then latching it true forever — so the next monster never
+  // spawned. Deriving the flag removes that race entirely.
   useEffect(() => {
-    const pct = totalWords > 0 ? (remainingWords / totalWords) * 100 : 100;
-    if (pct <= 0 && !isCurrentMonsterDefeated && totalWords > 0) {
-      setIsCurrentMonsterDefeated(true);
-    }
-  }, [remainingWords, totalWords, isCurrentMonsterDefeated]);
-
-  // Clear the defeat flag after the animation window elapses so the next
-  // monster can render fresh.
-  useEffect(() => {
-    if (monstersDefeated === 0) return;
-    const t = setTimeout(() => setIsCurrentMonsterDefeated(false), 1200);
-    return () => clearTimeout(t);
-  }, [monstersDefeated]);
+    if (totalWords <= 0) return;
+    const defeated = remainingWords <= 0;
+    setIsCurrentMonsterDefeated(prev => (prev === defeated ? prev : defeated));
+  }, [remainingWords, totalWords]);
 
   // Each new monster session restarts the "started typing" gate so attacks
   // pause until the user actually begins typing.
