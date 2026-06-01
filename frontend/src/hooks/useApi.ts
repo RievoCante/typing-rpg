@@ -40,6 +40,7 @@ export function useApi() {
       totalWords: number;
       correctWords: number;
       incorrectWords: number;
+      difficulty?: 'beginner' | 'common' | 'intermediate' | 'advanced';
     }) =>
       authFetch('/sessions', {
         method: 'POST',

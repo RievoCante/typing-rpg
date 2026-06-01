@@ -3,6 +3,7 @@ import type {
   CompletionResult,
   SessionPayload,
 } from '../types/completion';
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
 import { calculateEndlessXp } from '../utils/calculateXP';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
@@ -12,7 +13,10 @@ export class EndlessCompletionHandler {
     private createSession: (body: SessionPayload) => Promise<Response>
   ) {}
 
-  async handleCompletion(stats: CompletionStats): Promise<CompletionResult> {
+  async handleCompletion(
+    stats: CompletionStats,
+    difficulty: EndlessDifficulty = 'beginner'
+  ): Promise<CompletionResult> {
     const totalWords = stats.correctWords + stats.incorrectWords;
     const payload: SessionPayload = {
       mode: 'endless',
@@ -20,6 +24,7 @@ export class EndlessCompletionHandler {
       totalWords,
       correctWords: stats.correctWords,
       incorrectWords: stats.incorrectWords,
+      difficulty,
     };
 
     // Fire save in background with retries — don't block UI.
@@ -29,7 +34,11 @@ export class EndlessCompletionHandler {
     // the real total.
     void this.saveWithRetry(payload);
 
-    const xpDelta = calculateEndlessXp(payload.incorrectWords, payload.wpm);
+    const xpDelta = calculateEndlessXp(
+      payload.incorrectWords,
+      payload.wpm,
+      difficulty
+    );
 
     return {
       action: 'loadNewText',

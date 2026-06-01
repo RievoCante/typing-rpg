@@ -1,3 +1,5 @@
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+
 export interface CompletionStats {
   correctWords: number;
   incorrectWords: number;
@@ -30,6 +32,8 @@ export interface SessionPayload {
   totalWords: number;
   correctWords: number;
   incorrectWords: number;
+  /** Endless word-list difficulty; scales XP server-side. Omitted for daily. */
+  difficulty?: EndlessDifficulty;
 }
 
 export interface SessionResponse {

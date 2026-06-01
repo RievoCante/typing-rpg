@@ -25,6 +25,22 @@ describe('calculateEndlessXp', () => {
     expect(calculateEndlessXp(7, 60)).toBe(20); // 0.2x
     expect(calculateEndlessXp(9, 60)).toBe(0); // zeroed out
   });
+
+  it('defaults to the beginner (1x) multiplier when difficulty omitted', () => {
+    expect(calculateEndlessXp(0, 60)).toBe(100);
+  });
+
+  it('applies the per-difficulty multiplier', () => {
+    expect(calculateEndlessXp(0, 60, 'beginner')).toBe(100); // *1.0
+    expect(calculateEndlessXp(0, 60, 'common')).toBe(150); // *1.5
+    expect(calculateEndlessXp(0, 60, 'intermediate')).toBe(200); // *2.0
+    expect(calculateEndlessXp(0, 60, 'advanced')).toBe(300); // *3.0
+  });
+
+  it('stacks difficulty with WPM and step penalties', () => {
+    // base 100 * advanced 3.0 * 0.8 (1 mistake) * 1.25 (120 WPM cap) = 300
+    expect(calculateEndlessXp(1, 120, 'advanced')).toBe(300);
+  });
 });
 
 describe('calculateRaidXp', () => {

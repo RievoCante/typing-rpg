@@ -225,6 +225,7 @@ export default function TypingInterface({
 
   const completionHandler = useCompletionHandler({
     currentMode,
+    endlessDifficulty,
     completeCurrentQuote,
     getAverageWPM,
     onShowModal,

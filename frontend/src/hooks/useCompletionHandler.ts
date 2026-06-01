@@ -6,10 +6,12 @@ import type {
   CompletionResult,
   CompletionContext,
 } from '../types/completion';
+import type { EndlessDifficulty } from './useEndlessSettings';
 import { useApi } from './useApi';
 
 interface UseCompletionHandlerProps {
   currentMode: 'daily' | 'endless';
+  endlessDifficulty: EndlessDifficulty;
   completeCurrentQuote: (wpm: number, attempts: number) => void;
   getAverageWPM: () => number;
   onShowModal: () => void;
@@ -17,6 +19,7 @@ interface UseCompletionHandlerProps {
 
 export const useCompletionHandler = ({
   currentMode,
+  endlessDifficulty,
   completeCurrentQuote,
   getAverageWPM,
   onShowModal,
@@ -49,10 +52,10 @@ export const useCompletionHandler = ({
           throw new Error('CompletionContext is required for daily mode');
         return dailyHandler.handleCompletion(stats, context);
       } else {
-        return endlessHandler.handleCompletion(stats);
+        return endlessHandler.handleCompletion(stats, endlessDifficulty);
       }
     },
-    [currentMode, dailyHandler, endlessHandler]
+    [currentMode, endlessDifficulty, dailyHandler, endlessHandler]
   );
 
   return { handleCompletion };

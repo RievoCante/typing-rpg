@@ -12,6 +12,11 @@ const sessionSchema = z.object({
   totalWords: z.number().int().nonnegative().max(2000),
   correctWords: z.number().int().nonnegative().max(2000),
   incorrectWords: z.number().int().nonnegative().max(2000),
+  // Endless word-list difficulty; scales XP. Optional so daily submissions
+  // (which omit it) and older clients default to beginner (1x) server-side.
+  difficulty: z
+    .enum(['beginner', 'common', 'intermediate', 'advanced'])
+    .optional(),
 });
 
 // POST /api/sessions
@@ -31,7 +36,8 @@ export const createSession = async (c: AppContext) => {
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.format() }, 400);
   }
-  const { mode, wpm, totalWords, correctWords, incorrectWords } = parsed.data;
+  const { mode, wpm, totalWords, correctWords, incorrectWords, difficulty } =
+    parsed.data;
 
   const db = c.get('db');
   try {
@@ -71,7 +77,7 @@ export const createSession = async (c: AppContext) => {
     // Compute and apply XP
     let xpDelta = 0;
     if (user) {
-      xpDelta = calculateXpDelta(mode, incorrectWords, wpm);
+      xpDelta = calculateXpDelta(mode, incorrectWords, wpm, difficulty);
       if (xpDelta > 0) {
         const updated = applyXp(user.level, user.xp, xpDelta);
         await db
