@@ -15,6 +15,7 @@ import {
   getLevelLeaderboard,
   getTodayDailyWpmLeaderboard,
 } from "./handlers/leaderboard";
+import { recordEvent } from "./handlers/events";
 import { Bindings, Variables } from "./core/types";
 import { authMiddleware } from "./core/auth";
 import { kvRateLimit } from "./core/rateLimit";
@@ -79,6 +80,9 @@ app.get("/daily/status", authMiddleware, limiter, getDailyStatus);
 // leaderboard routes (public)
 app.get("/leaderboard/levels", limiter, getLevelLeaderboard);
 app.get("/leaderboard/today-wpm", limiter, getTodayDailyWpmLeaderboard);
+
+// analytics beacon (public + anonymous; NO authMiddleware by design)
+app.post("/events", limiter, recordEvent);
 
 import raidRoutes from "./handlers/raid";
 app.use("/raid/*", limiter);
