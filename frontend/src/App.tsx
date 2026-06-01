@@ -43,7 +43,7 @@ function GameContent() {
     currentMode,
     monstersDefeated,
     isCurrentMonsterDefeated,
-    setCurrentMonsterType,
+    spawnMonster,
     isPlayerDead,
     resetGameState,
   } = useGameContext();
@@ -94,8 +94,10 @@ function GameContent() {
       });
     }
 
-    // Update the monster type in context for attack system
-    setCurrentMonsterType(newMonsterType);
+    // Spawn in context: sets the type for the attack system AND resets the
+    // monster's HP to full for its tier (Endless). Atomic so a same-tier
+    // respawn still refills HP.
+    spawnMonster(newMonsterType);
   };
 
   // Spawn the next monster only AFTER the death animation finishes, i.e. when

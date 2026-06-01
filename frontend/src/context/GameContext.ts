@@ -16,6 +16,20 @@ interface GameContextType {
   // Monster defeat state tracking
   isCurrentMonsterDefeated: boolean;
   resetDefeatState: () => void;
+  // Endless monster HP (decoupled from words; see utils/combatTuning.ts)
+  monsterHp: number;
+  monsterMaxHp: number;
+  damageMonster: (amount: number) => void;
+  // Spawn a fresh monster of `type` at full HP for its tier (Endless).
+  spawnMonster: (type: MonsterTypeEnum) => void;
+  // Endless combo streak
+  comboStreak: number;
+  comboCritChance: number;
+  registerComboCorrect: (rng?: () => number) => {
+    damage: number;
+    crit: boolean;
+  };
+  registerComboWrong: () => void;
   endlessWordCount: number;
   setEndlessWordCount: (count: number) => void;
   endlessDifficulty: EndlessDifficulty;
@@ -46,6 +60,14 @@ export const GameContext = createContext<GameContextType>({
   // Monster defeat state tracking
   isCurrentMonsterDefeated: false,
   resetDefeatState: () => {},
+  monsterHp: 0,
+  monsterMaxHp: 0,
+  damageMonster: () => {},
+  spawnMonster: () => {},
+  comboStreak: 0,
+  comboCritChance: 0,
+  registerComboCorrect: () => ({ damage: 1, crit: false }),
+  registerComboWrong: () => {},
   endlessWordCount: 25,
   setEndlessWordCount: () => {},
   endlessDifficulty: 'beginner',
