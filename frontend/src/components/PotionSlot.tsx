@@ -46,7 +46,7 @@ export default function PotionSlot() {
                     ? 'border-pink-400 bg-purple-800'
                     : 'border-purple-400 bg-purple-200'
                   : theme === 'dark'
-                    ? 'border-gray-700 bg-gray-800/40'
+                    ? 'border-gray-700 bg-gray-800'
                     : 'border-gray-300 bg-gray-100'
               }`}
             >

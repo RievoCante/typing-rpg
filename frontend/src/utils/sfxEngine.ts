@@ -118,3 +118,48 @@ export function playExplosion() {
   osc.start(now);
   osc.stop(now + duration);
 }
+
+// Plays a short sequence of square-wave notes with a stepped 8-bit decay.
+// Shared by the potion cues so they sit in the same retro family as the
+// explosion above.
+function playArpeggio(freqs: number[], noteLen: number, peak: number) {
+  if (settings.muted || settings.volume <= 0) return;
+  const audio = getCtx();
+  if (!audio) return;
+
+  const now = audio.currentTime;
+  const vol = settings.volume * peak;
+
+  freqs.forEach((f, i) => {
+    const start = now + i * noteLen;
+    const osc = audio.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(f, start);
+
+    const gain = audio.createGain();
+    // Stepped decay across the note for the chiptune feel.
+    const steps = 4;
+    for (let s = 0; s <= steps; s++) {
+      const level = vol * (1 - s / steps);
+      gain.gain.setValueAtTime(
+        Math.max(0.0001, level),
+        start + (noteLen * s) / steps
+      );
+    }
+
+    osc.connect(gain).connect(audio.destination);
+    osc.start(start);
+    osc.stop(start + noteLen);
+  });
+}
+
+// Bright ascending "pickup" blip for when a potion drops into the inventory.
+export function playPotionDrop() {
+  playArpeggio([660, 880, 1320], 0.07, 0.3);
+}
+
+// Warm ascending chime for drinking a potion (heal). A touch longer and
+// sweeter than the drop cue so the two read as distinct events.
+export function playPotionHeal() {
+  playArpeggio([523, 659, 784, 1047], 0.09, 0.28);
+}
