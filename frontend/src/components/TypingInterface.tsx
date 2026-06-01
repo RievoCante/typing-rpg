@@ -12,6 +12,7 @@ import { generateText } from '../utils/textGenerator';
 import { trackEvent } from '../utils/trackEvent';
 import CongratsModal from './CongratsModal';
 import OverlayBanner from './OverlayBanner';
+import KillResultOverlay, { type KillResult } from './KillResultOverlay';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import PotionSlot from './PotionSlot';
@@ -73,8 +74,9 @@ export default function TypingInterface({
   const [showCongratsModal, setShowCongratsModal] = useState<boolean>(false);
   const [earnedXp, setEarnedXp] = useState<number>(0);
   const [isFocused, setIsFocused] = useState(false);
-  const [celebrating, setCelebrating] = useState(false);
-  const [celebrateText, setCelebrateText] = useState('');
+  // Post-kill results panel, held until the player presses Space.
+  const [killResult, setKillResult] = useState<KillResult | null>(null);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
   const [resetTimeLeft, setResetTimeLeft] = useState<{
     hours: number;
     minutes: number;
@@ -273,15 +275,37 @@ export default function TypingInterface({
     setIsProcessingCompletion,
     setEarnedXp,
     setCurrentAttempts,
-    setCelebrating,
-    setCelebrateText,
+    setKillResult,
+    setAwaitingContinue,
     setSaveError,
     setPendingRetrySave,
   });
 
+  // Dismiss the post-kill results panel and advance. Endless restarts the
+  // session to spawn the next monster; Daily already regenerated the next
+  // quote when its handler advanced the difficulty, so it only needs the
+  // panel cleared.
+  const handleContinue = useCallback(() => {
+    if (!awaitingContinue) return;
+    setAwaitingContinue(false);
+    setKillResult(null);
+    if (currentMode === 'endless') restartSession();
+    // Clicking the panel can drop focus off the typing surface; restore it so
+    // the player can start the next round without re-clicking.
+    containerRef.current?.focus();
+  }, [awaitingContinue, currentMode, restartSession]);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (isPlayerDead) return;
     const { key } = e;
+    // While the post-kill results panel is up, Space (or any typing key)
+    // advances to the next monster/quote instead of feeding the input.
+    if (awaitingContinue) {
+      if (key === 'Tab') return;
+      e.preventDefault();
+      if (key === ' ' || key === 'Enter') handleContinue();
+      return;
+    }
     if (key === 'Tab') return;
     // Ctrl+H drinks a potion (endless only). preventDefault stops the browser
     // from opening its history panel. Other modes keep native behaviour.
@@ -330,7 +354,7 @@ export default function TypingInterface({
   const dailyLocked = currentMode === 'daily' && dailyProgress.isCompletedToday;
   const surfaceBlurred =
     !isFocused ||
-    celebrating ||
+    awaitingContinue ||
     isProcessingCompletion ||
     isPlayerDead ||
     dailyLocked;
@@ -393,11 +417,11 @@ export default function TypingInterface({
             />
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
-            <OverlayBanner
-              visible={celebrating}
-              message={celebrateText}
-              tone="celebrate"
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
+            <KillResultOverlay
+              visible={awaitingContinue}
+              result={killResult}
+              onContinue={handleContinue}
             />
           </div>
 
