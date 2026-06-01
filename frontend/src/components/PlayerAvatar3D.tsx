@@ -211,11 +211,11 @@ function WarriorModel({
       {showPauldrons && (
         <>
           <mesh position={[-armX + 0.04, 0.4, 0]}>
-            <sphereGeometry args={[pauldronR, 16, 16]} />
+            <sphereGeometry args={[pauldronR, 12, 12]} />
             <meshPhongMaterial ref={reg('armor')} shininess={60} />
           </mesh>
           <mesh position={[armX - 0.04, 0.4, 0]}>
-            <sphereGeometry args={[pauldronR, 16, 16]} />
+            <sphereGeometry args={[pauldronR, 12, 12]} />
             <meshPhongMaterial ref={reg('armor')} shininess={60} />
           </mesh>
         </>

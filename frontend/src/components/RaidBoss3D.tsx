@@ -77,7 +77,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
     <group ref={groupRef}>
       {/* Body */}
       <mesh>
-        <sphereGeometry args={[1.1, 32, 32]} />
+        <sphereGeometry args={[1.1, 24, 24]} />
         <meshPhongMaterial
           ref={bodyMatRef}
           color="#7f1d1d"
@@ -86,7 +86,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
         />
         {/* Eyes */}
         <mesh position={[-0.4, 0.2, 0.95]}>
-          <sphereGeometry args={[0.16, 16, 16]} />
+          <sphereGeometry args={[0.16, 12, 12]} />
           <meshPhongMaterial
             color={eyeColor}
             emissive={eyeColor}
@@ -94,7 +94,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
           />
         </mesh>
         <mesh position={[0.4, 0.2, 0.95]}>
-          <sphereGeometry args={[0.16, 16, 16]} />
+          <sphereGeometry args={[0.16, 12, 12]} />
           <meshPhongMaterial
             color={eyeColor}
             emissive={eyeColor}
