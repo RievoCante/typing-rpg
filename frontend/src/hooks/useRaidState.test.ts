@@ -357,11 +357,11 @@ describe('applyRaidMessage', () => {
 
   it('carries characterConfig from room_state players', () => {
     const cfg = {
-      bodyShape: 'round',
-      bodyColor: '#38bdf8',
-      eyeStyle: 'wide',
-      accessory: 'crown',
-      accessoryColor: '#fde047',
+      armorType: 'tunic',
+      armorColor: '#3b5bdb',
+      helmetType: 'crowned',
+      helmetColor: '#d4af37',
+      skinTone: '#f1c9a5',
     };
     const next = applyRaidMessage(
       initialRaidState,
@@ -392,11 +392,11 @@ describe('applyRaidMessage', () => {
 
   it('carries characterConfig on incremental player_joined', () => {
     const cfg = {
-      bodyShape: 'square',
-      bodyColor: '#f472b6',
-      eyeStyle: 'sleepy',
-      accessory: 'none',
-      accessoryColor: '#f8fafc',
+      armorType: 'heavy',
+      armorColor: '#b23a48',
+      helmetType: 'horned',
+      helmetColor: '#9aa4b2',
+      skinTone: '#5c3317',
     };
     const next = applyRaidMessage(
       initialRaidState,

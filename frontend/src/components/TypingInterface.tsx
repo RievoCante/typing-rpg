@@ -15,6 +15,7 @@ import OverlayBanner from './OverlayBanner';
 import KillResultOverlay, { type KillResult } from './KillResultOverlay';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
+import BattleAvatar from './BattleAvatar';
 import PotionSlot from './PotionSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
@@ -364,6 +365,10 @@ export default function TypingInterface({
       <div className="relative max-w-4xl mx-auto mt-4 flex items-stretch gap-4">
         <div className="flex-shrink-0 flex items-center">
           <VerticalPlayerHealthBar />
+        </div>
+
+        <div className="flex-shrink-0 flex items-center">
+          <BattleAvatar />
         </div>
 
         <div className="flex-1 relative">
