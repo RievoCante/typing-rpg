@@ -69,35 +69,13 @@ export const usePerformanceTracking = ({
     const elapsedMinutes = (Date.now() - startTime) / 60000;
     if (elapsedMinutes === 0) return 0;
 
-    // Count completed words (locked words)
-    const wordMatches = [...text.matchAll(/\S+/g)];
-    let totalCharsIncludingSpaces = 0;
-
-    for (const match of wordMatches) {
-      const word = match[0];
-      const wordStartIndex = match.index!;
-      const wordEndIndex = wordStartIndex + word.length;
-
-      let isWordCompleted = true;
-
-      // Check if all characters in this word are locked
-      for (let i = wordStartIndex; i < wordEndIndex; i++) {
-        if (charStatus[i] !== 'locked') {
-          isWordCompleted = false;
-          break;
-        }
-      }
-
-      if (isWordCompleted) {
-        // Add word length + 1 space (except for last word)
-        totalCharsIncludingSpaces += word.length;
-
-        // Add space after word if there's a space character following it
-        if (wordEndIndex < text.length && text[wordEndIndex] === ' ') {
-          totalCharsIncludingSpaces += 1;
-        }
-      }
-    }
+    // Use the SAME word-counting rule as the final calculation (analyzeWords)
+    // so the live number doesn't read low while typing. A word counts as soon
+    // as all its chars are 'correct' or 'locked' — not only 'locked' — which
+    // means a fully-typed-but-not-yet-spaced word (incl. the last word, which
+    // never gets a trailing space) is credited immediately instead of jumping
+    // up only on completion.
+    const { totalCharsIncludingSpaces } = analyzeWords(text, charStatus);
 
     return Math.round(totalCharsIncludingSpaces / 5 / elapsedMinutes);
   }, [text, charStatus, hasStartedTyping, startTime]);
