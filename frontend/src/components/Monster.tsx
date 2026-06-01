@@ -1,6 +1,6 @@
 // inlucde name, monster model, HP number (from top to bottom)
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
@@ -60,9 +60,11 @@ export default function Monster({
     }
   }, [isDefeated, playExplosion]);
 
-  const handleBurstComplete = () => {
+  // Stable identity so ParticleBurst's animation effect (which depends on
+  // onComplete) doesn't re-run — and restart its rAF loop — on every render.
+  const handleBurstComplete = useCallback(() => {
     setShowBurst(false);
-  };
+  }, []);
 
   return (
     <>
