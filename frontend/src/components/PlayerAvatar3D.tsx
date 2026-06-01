@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Group, Color, MeshPhongMaterial } from 'three';
 import type { PlayerAvatarConfig } from '../utils/avatarConfig';
 import { isCriticalHp } from '../utils/raidHp';
+import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 
 const HURT_COLOR = new Color('#ff4d4d');
 const GRAY = new Color('#6b7280');
@@ -210,11 +211,11 @@ function WarriorModel({
       {showPauldrons && (
         <>
           <mesh position={[-armX + 0.04, 0.4, 0]}>
-            <sphereGeometry args={[pauldronR, 16, 16]} />
+            <sphereGeometry args={[pauldronR, 12, 12]} />
             <meshPhongMaterial ref={reg('armor')} shininess={60} />
           </mesh>
           <mesh position={[armX - 0.04, 0.4, 0]}>
-            <sphereGeometry args={[pauldronR, 16, 16]} />
+            <sphereGeometry args={[pauldronR, 12, 12]} />
             <meshPhongMaterial ref={reg('armor')} shininess={60} />
           </mesh>
         </>
@@ -291,7 +292,8 @@ function PlayerAvatar3D({
   return (
     <Canvas
       camera={{ position: [0, 0, 3.6], fov: 50 }}
-      gl={{ alpha: true, antialias: true }}
+      dpr={CANVAS_DPR}
+      gl={CANVAS_GL}
       style={{ width: '100%', height: '100%' }}
     >
       <ambientLight intensity={0.6} />

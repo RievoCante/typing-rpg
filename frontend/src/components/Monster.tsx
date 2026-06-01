@@ -6,6 +6,7 @@ import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
 import ParticleBurst from './ParticleBurst';
 import { useSfx } from '../hooks/useSfx';
+import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 
@@ -76,7 +77,8 @@ export default function Monster({
         <div className="w-full aspect-[3/2] bg-transparent transition-opacity duration-300">
           <Canvas
             camera={{ position: [0, 0, 4], fov: 50 }}
-            gl={{ alpha: true, antialias: true }}
+            dpr={CANVAS_DPR}
+            gl={CANVAS_GL}
           >
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
