@@ -1,10 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from 'react';
 import { SignedIn } from '@clerk/clerk-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import MilestoneProgress from './components/MilestoneProgress';
 import HealthBar from './components/HealthBar';
-import Monster from './components/Monster';
 import TypingInterface from './components/TypingInterface';
 import PlayerLevel from './components/PlayerLevel';
 import PixelArtBackground from './components/PixelArtBackground';
@@ -20,7 +26,6 @@ import type { MonsterFamily } from './components/Monster';
 import type { MonsterTypeEnum } from './context/GameContext';
 import { pickMonsterType } from './utils/monsterSpawn';
 import DeathPopup from './components/DeathPopup';
-import RaidView from './components/RaidView';
 
 // Contexts
 import { useGameContext } from './hooks/useGameContext';
@@ -30,6 +35,11 @@ import VolumeControl from './components/VolumeControl';
 import SiteLogo from './components/SiteLogo';
 import LeftSidebar from './components/LeftSidebar';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+
+// Lazy-load the three.js-backed surfaces so three-vendor leaves the critical
+// path and streams in as an async chunk after first paint.
+const Monster = lazy(() => import('./components/Monster'));
+const RaidView = lazy(() => import('./components/RaidView'));
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -141,18 +151,28 @@ function GameContent() {
         <Header />
         <ModeSelector />
         {currentMode === 'raid' ? (
-          <RaidView />
+          <Suspense fallback={<LoadingScreen />}>
+            <RaidView />
+          </Suspense>
         ) : (
           <>
             <HealthBar />
-            <Monster
-              monsterFamily={monsterFamily}
-              monsterType={monsterType}
-              isDefeated={isDefeated}
-              color={monsterVisuals.color}
-              scale={monsterVisuals.scale}
-              shape={monsterShape}
-            />
+            <Suspense
+              fallback={
+                <div className="w-full max-w-md mx-auto py-4">
+                  <div className="w-full aspect-[3/2]" />
+                </div>
+              }
+            >
+              <Monster
+                monsterFamily={monsterFamily}
+                monsterType={monsterType}
+                isDefeated={isDefeated}
+                color={monsterVisuals.color}
+                scale={monsterVisuals.scale}
+                shape={monsterShape}
+              />
+            </Suspense>
             <SignedIn>
               <PlayerLevel
                 level={level}
