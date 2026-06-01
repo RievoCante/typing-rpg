@@ -100,9 +100,11 @@ export default function VolumeControl() {
     <div className="fixed bottom-4 left-4 z-50 select-none">
       {/* Outer group: collapsed 48px circle, expands to a 320px column on hover */}
       <div className="group relative h-12 w-12 hover:w-80 focus-within:w-80 transition-all duration-300 ease-out">
-        {/* SFX row — stacked above, hidden until the control is opened */}
+        {/* SFX row — stacked above, hidden until the control is opened.
+            bottom-full + pb-2 keeps a transparent bridge over the visual gap so
+            moving the cursor up to the SFX row doesn't drop the hover. */}
         <div
-          className="absolute left-0 bottom-14 w-full opacity-0 translate-y-1 pointer-events-none
+          className="absolute left-0 bottom-full w-full pb-2 opacity-0 translate-y-1 pointer-events-none
                      transition-all duration-300 ease-out
                      group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
                      group-focus-within:opacity-100 group-focus-within:translate-y-0 group-focus-within:pointer-events-auto"
