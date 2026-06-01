@@ -14,7 +14,9 @@ interface SliderRowProps {
   setVolume: (v: number) => void;
   muted: boolean;
   toggleMute: () => void;
-  onInteract?: () => void;
+  onInteract?: () => void; // icon button click
+  onSlide?: () => void; // fired on every slider change (keep idempotent)
+  onCommit?: () => void; // fired once when the drag/keypress is released
   isDark: boolean;
   iconColor: string;
 }
@@ -29,6 +31,8 @@ function SliderRow({
   muted,
   toggleMute,
   onInteract,
+  onSlide,
+  onCommit,
   isDark,
   iconColor,
 }: SliderRowProps) {
@@ -80,8 +84,10 @@ function SliderRow({
             const v = parseFloat(e.target.value);
             setVolume(v);
             if (v > 0 && muted) toggleMute();
-            onInteract?.();
+            onSlide?.();
           }}
+          onPointerUp={() => onCommit?.()}
+          onKeyUp={() => onCommit?.()}
           className="w-full accent-[#FCC800]"
         />
       </div>
@@ -117,6 +123,7 @@ export default function VolumeControl() {
             muted={sfx.muted}
             toggleMute={sfx.toggleMute}
             onInteract={sfx.playExplosion}
+            onCommit={sfx.playExplosion}
             isDark={isDark}
             iconColor={iconColor}
           />
@@ -131,6 +138,7 @@ export default function VolumeControl() {
           muted={bgm.muted}
           toggleMute={bgm.toggleMute}
           onInteract={bgm.ensurePlay}
+          onSlide={bgm.ensurePlay}
           isDark={isDark}
           iconColor={iconColor}
         />
