@@ -405,18 +405,17 @@ export default function TypingInterface({
   return (
     <>
       {currentMode === 'endless' && <ComboMeter />}
-      <div className="relative max-w-4xl mx-auto mt-4 flex items-stretch gap-4">
-        <div className="flex-shrink-0 flex items-center">
+      <div className="relative max-w-5xl mx-auto mt-4">
+        {/* Side clusters are absolutely positioned so the typing panel stays
+            locked to the horizontal center of the screen regardless of their width. */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-4">
           <VerticalPlayerHealthBar />
-        </div>
-
-        <div className="flex-shrink-0 flex items-center">
           <Suspense fallback={<div className="h-44 w-28" />}>
             <BattleAvatar />
           </Suspense>
         </div>
 
-        <div className="flex-1 relative">
+        <div className="mx-auto w-full max-w-2xl relative">
           <div
             ref={containerRef}
             onKeyDown={handleKeyDown}
@@ -481,7 +480,7 @@ export default function TypingInterface({
         </div>
 
         {currentMode === 'endless' && (
-          <div className="flex-shrink-0 flex items-center">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
             <PotionSlot />
           </div>
         )}
