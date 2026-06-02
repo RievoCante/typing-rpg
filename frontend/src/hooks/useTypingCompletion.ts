@@ -96,6 +96,13 @@ export function useTypingCompletion({
 }: Args) {
   useEffect(() => {
     if (!isCompleted || isProcessingCompletion) return;
+
+    // Endless: block/text completion is a SILENT buffer refill, not a kill.
+    // Kills are HP-based and finalized in TypingInterface's death handler
+    // (save + XP + overlay happen there). The block-refill effect in
+    // TypingInterface owns markAsProcessed + restartSession for endless.
+    if (currentMode === 'endless') return;
+
     setIsProcessingCompletion(true);
     markAsProcessed();
     // Final word never produced a space, so the health bar wouldn't fully
@@ -158,10 +165,9 @@ export function useTypingCompletion({
       }
 
       if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
-      // Endless kills are HP-based (GameProvider), so a block/text completion is
-      // only a buffer refill — it must not count a monster defeat. Daily/raid
-      // still defeat the monster by finishing the text.
-      if (currentMode !== 'endless') incrementMonstersDefeated();
+      // Daily/raid defeat the monster by finishing the text. (Endless returns
+      // early above — its kills are HP-based and counted in GameProvider.)
+      incrementMonstersDefeated();
       reloadPlayerStats();
 
       switch (result.action) {
@@ -194,29 +200,11 @@ export function useTypingCompletion({
           break;
         case 'loadNewText':
         default:
-          if (currentMode === 'endless') {
-            // Hold the results panel (speed rating + WPM/accuracy/XP) until the
-            // player presses Space. Leave isProcessingCompletion true so the
-            // completion effect doesn't re-fire while we wait; the continue
-            // handler calls restartSession, which clears it on the next text.
-            setKillResult({
-              title: getWpmTitle(stats.finalWpm),
-              wpm: stats.finalWpm,
-              accuracy: computeAccuracy(
-                stats.correctWords,
-                stats.incorrectWords
-              ),
-              xp:
-                typeof result.xpDelta === 'number' ? result.xpDelta : undefined,
-            });
-            setAwaitingContinue(true);
-          } else {
-            // Raid (and any other auto-advancing mode): keep the brief pause.
-            setTimeout(() => {
-              setIsProcessingCompletion(false);
-              restartSession();
-            }, 400);
-          }
+          // Raid (and any other auto-advancing mode): keep the brief pause.
+          setTimeout(() => {
+            setIsProcessingCompletion(false);
+            restartSession();
+          }, 400);
           break;
       }
     })();
