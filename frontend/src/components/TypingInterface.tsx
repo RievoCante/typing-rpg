@@ -44,6 +44,10 @@ import { useCombatPopups } from '../hooks/useCombatPopups';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
 import type { CompletionResult } from '../types/completion';
+import { useFightStats } from '../hooks/useFightStats';
+import { analyzeWords } from '../utils/wordAnalysis';
+import { getWpmTitle } from '../utils/wpmTitle';
+import WeaponLoadoutPanel from './WeaponLoadoutPanel';
 
 // Lazy-loaded: BattleAvatar pulls in three-vendor via PlayerAvatar3D. Deferring
 // it keeps the 3D bundle off the critical path.
@@ -59,6 +63,15 @@ interface TypingInterfaceProps {
 // the player finishes one (the monster's HP — not the word pool — decides death,
 // so a block boundary is just a seamless text refill, never a monster kill).
 const ENDLESS_BLOCK_WORDS = 50;
+
+// Matches the monster death-animation window; the result overlay reveals after it.
+const DEATH_ANIM_MS = 1200;
+
+// Word-level accuracy as a 0-100 integer (100 when nothing typed).
+function accuracyPct(correct: number, incorrect: number): number {
+  const total = correct + incorrect;
+  return total > 0 ? Math.round((correct / total) * 100) : 100;
+}
 
 export default function TypingInterface({
   dailyProgress,
@@ -83,6 +96,9 @@ export default function TypingInterface({
     setIsPaused,
     registerCorrectWord,
     drinkPotion,
+    monsterHp,
+    isCurrentMonsterDefeated,
+    resetDefeatState,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -134,6 +150,14 @@ export default function TypingInterface({
   const potionPopups = usePotionPopups();
   const weaponPopups = useWeaponPopups();
   const combatPopups = useCombatPopups();
+
+  const fightStats = useFightStats();
+  const [loadoutPending, setLoadoutPending] = useState(
+    currentMode === 'endless'
+  );
+  const prevDefeatedRef = useRef(false);
+  const fightFinalizedRef = useRef(false);
+  const wasDeadRef = useRef(false);
 
   // Surface the kill reward as a big "+N XP" under the Player Level card.
   useEffect(() => {
@@ -267,6 +291,33 @@ export default function TypingInterface({
     setHasStartedTyping,
   ]);
 
+  // Endless: when the player exhausts a 50-word block but the monster is still
+  // alive, fold the finished block's stats into the fight and refill the buffer
+  // silently — no overlay, no pause, no fight-stats reset. Guarded by
+  // monsterHp > 0 so a kill that lands on the last word of a block is owned by
+  // the death finalizer instead (avoids a wrong, post-refill stats snapshot).
+  useEffect(() => {
+    if (currentMode !== 'endless') return;
+    if (!completion.isCompleted) return;
+    if (awaitingContinue || isCurrentMonsterDefeated || monsterHp <= 0) return;
+    completion.markAsProcessed();
+    fightStats.foldBlock(
+      analyzeWords(text, charStatusRef.current, typingMechanics.overflow)
+    );
+    restartSession();
+  }, [
+    currentMode,
+    completion,
+    awaitingContinue,
+    isCurrentMonsterDefeated,
+    monsterHp,
+    fightStats,
+    text,
+    typingMechanics.overflow,
+    restartSession,
+    charStatusRef,
+  ]);
+
   useEffect(() => {
     if (!dailyProgress.isCompleted) setHasShownDailyCompletion(false);
   }, [dailyProgress.isCompleted]);
@@ -334,22 +385,122 @@ export default function TypingInterface({
     setPendingRetrySave,
   });
 
-  // Dismiss the post-kill results panel and advance. Endless restarts the
-  // session to spawn the next monster; Daily already regenerated the next
-  // quote when its handler advanced the difficulty, so it only needs the
-  // panel cleared.
+  // Endless: when the monster dies (defeat flag rises), finalize the fight:
+  // snapshot per-fight stats, save the session + preview XP via the endless
+  // handler, then reveal the SUPER FAST overlay after the death animation.
+  // GameProvider already counted the kill, so we never incrementMonstersDefeated.
+  useEffect(() => {
+    if (currentMode !== 'endless') {
+      prevDefeatedRef.current = isCurrentMonsterDefeated;
+      return;
+    }
+    const rising = isCurrentMonsterDefeated && !prevDefeatedRef.current;
+    prevDefeatedRef.current = isCurrentMonsterDefeated;
+    if (!rising || !hasStartedTyping || fightFinalizedRef.current) return;
+    fightFinalizedRef.current = true;
+
+    const stats = fightStats.finalize(
+      analyzeWords(text, charStatusRef.current, typingMechanics.overflow)
+    );
+    let revealId: number | undefined;
+    (async () => {
+      const result = await completionHandler.handleCompletion(stats);
+      if (result.action === 'saveError') {
+        setSaveError(result.message ?? 'Failed to save. Please retry.');
+        setPendingRetrySave(() => result.retrySave ?? null);
+      }
+      if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
+      reloadPlayerStats();
+      setKillResult({
+        title: getWpmTitle(stats.finalWpm),
+        wpm: stats.finalWpm,
+        accuracy: accuracyPct(stats.correctWords, stats.incorrectWords),
+        xp: typeof result.xpDelta === 'number' ? result.xpDelta : undefined,
+      });
+      revealId = window.setTimeout(
+        () => setAwaitingContinue(true),
+        DEATH_ANIM_MS
+      );
+    })();
+    return () => {
+      if (revealId) window.clearTimeout(revealId);
+    };
+  }, [
+    currentMode,
+    isCurrentMonsterDefeated,
+    hasStartedTyping,
+    fightStats,
+    text,
+    typingMechanics.overflow,
+    completionHandler,
+    reloadPlayerStats,
+    charStatusRef,
+  ]);
+
+  // Dismiss the post-kill results panel and advance. Endless drives the next
+  // fight: reset fight state, clear the defeat flag (App spawns the next
+  // monster), and refill the buffer. Daily already regenerated the next quote
+  // when its handler advanced the difficulty, so it only needs the panel cleared.
   const handleContinue = useCallback(() => {
     if (!awaitingContinue) return;
     setAwaitingContinue(false);
     setKillResult(null);
-    if (currentMode === 'endless') restartSession();
+    if (currentMode === 'endless') {
+      fightStats.resetFight();
+      fightFinalizedRef.current = false;
+      prevDefeatedRef.current = false;
+      resetDefeatState(); // flag falls -> App spawns the next monster
+      restartSession(); // fresh 50-word buffer
+    }
     // Clicking the panel can drop focus off the typing surface; restore it so
     // the player can start the next round without re-clicking.
     containerRef.current?.focus();
-  }, [awaitingContinue, currentMode, restartSession]);
+  }, [
+    awaitingContinue,
+    currentMode,
+    fightStats,
+    resetDefeatState,
+    restartSession,
+  ]);
+
+  // Show the loadout picker at the start of every endless run: on entering
+  // endless, and again after a death reset (revive). Reset fight stats too.
+  useEffect(() => {
+    if (currentMode === 'endless') {
+      setLoadoutPending(true);
+      fightStats.resetFight();
+      fightFinalizedRef.current = false;
+      prevDefeatedRef.current = false;
+    } else {
+      setLoadoutPending(false);
+    }
+  }, [currentMode, fightStats]);
+
+  useEffect(() => {
+    if (currentMode !== 'endless') return;
+    if (wasDeadRef.current && !isPlayerDead) {
+      setLoadoutPending(true);
+      setAwaitingContinue(false);
+      setKillResult(null);
+      fightStats.resetFight();
+      fightFinalizedRef.current = false;
+      prevDefeatedRef.current = false;
+    }
+    wasDeadRef.current = isPlayerDead;
+  }, [currentMode, isPlayerDead, fightStats]);
+
+  const handleLoadoutConfirm = useCallback(() => {
+    setLoadoutPending(false);
+    containerRef.current?.focus();
+  }, []);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (isPlayerDead) return;
+    // Pre-run loadout gate: ignore typing until the player picks a loadout.
+    if (loadoutPending) {
+      if (e.key !== 'Tab') e.preventDefault();
+      return;
+    }
     const { key } = e;
     // While the post-kill results panel is up, Space (or any typing key)
     // advances to the next monster/quote instead of feeding the input.
@@ -357,6 +508,12 @@ export default function TypingInterface({
       if (key === 'Tab') return;
       e.preventDefault();
       if (key === ' ' || key === 'Enter') handleContinue();
+      return;
+    }
+    // Endless: monster is dead and playing its death animation; freeze input
+    // until the results overlay appears (then the awaitingContinue branch runs).
+    if (currentMode === 'endless' && isCurrentMonsterDefeated) {
+      e.preventDefault();
       return;
     }
     if (key === 'Tab') return;
@@ -383,6 +540,7 @@ export default function TypingInterface({
       if (!hasStartedTyping) {
         setHasStartedTyping(true);
         performance.startSession();
+        fightStats.startFightIfNeeded();
         trackEvent('started_typing', currentMode);
       }
       typingMechanics.handleCharacterInput(key);
@@ -410,7 +568,9 @@ export default function TypingInterface({
     awaitingContinue ||
     isProcessingCompletion ||
     isPlayerDead ||
-    dailyLocked;
+    dailyLocked ||
+    loadoutPending ||
+    (currentMode === 'endless' && isCurrentMonsterDefeated);
 
   return (
     <>
@@ -469,12 +629,16 @@ export default function TypingInterface({
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
             <OverlayBanner
-              visible={!isFocused && !dailyLocked}
+              visible={!isFocused && !dailyLocked && !loadoutPending}
               message="Click to start fighting!"
               tone="info"
               onClick={() => containerRef.current?.focus()}
             />
           </div>
+
+          {currentMode === 'endless' && loadoutPending && (
+            <WeaponLoadoutPanel onConfirm={handleLoadoutConfirm} />
+          )}
 
           <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden pointer-events-none">
             <KillResultOverlay

@@ -56,9 +56,7 @@ export function useFightStats() {
   const finalize = useCallback(
     (current: WordAnalysisResult): CompletionStats => {
       const elapsedMinutes =
-        startRef.current !== null
-          ? (Date.now() - startRef.current) / 60000
-          : 0;
+        startRef.current !== null ? (Date.now() - startRef.current) / 60000 : 0;
       return finalizeFightStats(accumRef.current, current, elapsedMinutes);
     },
     []
