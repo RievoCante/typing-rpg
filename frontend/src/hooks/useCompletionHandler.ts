@@ -58,5 +58,9 @@ export const useCompletionHandler = ({
     [currentMode, endlessDifficulty, dailyHandler, endlessHandler]
   );
 
-  return { handleCompletion };
+  // Stable object identity: consumers list `completionHandler` in effect deps
+  // (e.g. the endless death-finalizer). Returning a fresh literal each render
+  // would re-fire those effects every render — which previously cancelled the
+  // post-kill reveal timer and soft-locked Endless. Memoize on the callback.
+  return useMemo(() => ({ handleCompletion }), [handleCompletion]);
 };

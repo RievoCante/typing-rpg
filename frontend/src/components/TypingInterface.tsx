@@ -402,7 +402,10 @@ export default function TypingInterface({
     const stats = fightStats.finalize(
       analyzeWords(text, charStatusRef.current, typingMechanics.overflow)
     );
-    let revealId: number | undefined;
+    // Only compute + stash the result here. The 1.2s reveal is scheduled by a
+    // separate effect keyed on `killResult` (stable state) — NOT here — so the
+    // re-renders this async block triggers (setEarnedXp / setKillResult /
+    // reloadPlayerStats) can't re-fire this effect and cancel the reveal timer.
     (async () => {
       const result = await completionHandler.handleCompletion(stats);
       if (result.action === 'saveError') {
@@ -417,14 +420,7 @@ export default function TypingInterface({
         accuracy: accuracyPct(stats.correctWords, stats.incorrectWords),
         xp: typeof result.xpDelta === 'number' ? result.xpDelta : undefined,
       });
-      revealId = window.setTimeout(
-        () => setAwaitingContinue(true),
-        DEATH_ANIM_MS
-      );
     })();
-    return () => {
-      if (revealId) window.clearTimeout(revealId);
-    };
   }, [
     currentMode,
     isCurrentMonsterDefeated,
@@ -436,6 +432,21 @@ export default function TypingInterface({
     reloadPlayerStats,
     charStatusRef,
   ]);
+
+  // Reveal the post-kill overlay DEATH_ANIM_MS after the result is computed.
+  // Depends only on stable state (killResult, awaitingContinue), so the churn
+  // of re-renders during the death-animation window can't re-fire it and cancel
+  // the timer. Fires once when killResult lands; the timer then flips
+  // awaitingContinue, which re-fires this effect into the early-return branch.
+  useEffect(() => {
+    if (currentMode !== 'endless') return;
+    if (!killResult || awaitingContinue) return;
+    const id = window.setTimeout(
+      () => setAwaitingContinue(true),
+      DEATH_ANIM_MS
+    );
+    return () => window.clearTimeout(id);
+  }, [currentMode, killResult, awaitingContinue]);
 
   // Dismiss the post-kill results panel and advance. Endless drives the next
   // fight: reset fight state, clear the defeat flag (App spawns the next
@@ -514,6 +525,12 @@ export default function TypingInterface({
     // until the results overlay appears (then the awaitingContinue branch runs).
     if (currentMode === 'endless' && isCurrentMonsterDefeated) {
       e.preventDefault();
+      // Safety escape: if the result is already computed but the reveal timer
+      // hasn't fired, Space/Enter reveals it now so the player can never get
+      // stuck in the blurred death state.
+      if ((key === ' ' || key === 'Enter') && killResult) {
+        setAwaitingContinue(true);
+      }
       return;
     }
     if (key === 'Tab') return;
