@@ -15,7 +15,7 @@ export default function PixelArtBackground() {
   const { theme } = useThemeContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pixelsRef = useRef<FloatingPixel[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   // Static room + props are baked here once per resize/theme change.
   const sceneRef = useRef<HTMLCanvasElement | null>(null);
   const roomRef = useRef<DungeonRoom | null>(null);

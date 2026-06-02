@@ -1,7 +1,12 @@
 import { useEffect } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { getWpmTitle } from '../utils/wpmTitle';
-import type { CompletionContext, CompletionResult } from '../types/completion';
+import type {
+  CompletionContext,
+  CompletionResult,
+  CompletionStats,
+} from '../types/completion';
+import type { CharStatus } from '../components/TypingText';
 import type { KillResult } from '../components/KillResultOverlay';
 
 // Word-level accuracy as a 0-100 integer. 100 when no words were typed (avoids
@@ -21,24 +26,20 @@ interface Args {
   startTime: number | null;
   text: string;
   hasStartedTyping: boolean;
-  charStatusRef: MutableRefObject<('correct' | 'incorrect' | 'pending')[]>;
-  calculateFinalStats: () => {
-    finalWpm: number;
-    correctWords: number;
-    incorrectWords: number;
-  } | null;
+  charStatusRef: RefObject<CharStatus[]>;
+  calculateFinalStats: () => CompletionStats | null;
   // mode-specific context
   currentMode: 'daily' | 'endless' | 'raid';
-  currentDifficulty: string;
+  currentDifficulty: 'easy' | 'medium' | 'hard';
   currentAttempts: number;
-  completedQuotes: unknown[];
+  completedQuotes: number;
   hasShownDailyCompletion: boolean;
   // outputs / side effects
   completionHandler: {
     handleCompletion: (
-      stats: { finalWpm: number },
-      context: CompletionContext | undefined
-    ) => Promise<CompletionResult>;
+      stats: CompletionStats,
+      context?: CompletionContext
+    ) => CompletionResult | Promise<CompletionResult>;
   };
   damagePlayerFromMistake: () => void;
   incrementMonstersDefeated: () => void;

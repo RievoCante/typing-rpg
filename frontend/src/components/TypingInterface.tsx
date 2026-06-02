@@ -211,8 +211,10 @@ export default function TypingInterface({
       const newText =
         currentMode === 'daily'
           ? generateText(currentMode, currentDifficulty)
-          : generateText(
-              currentMode,
+          : // TypingInterface is only mounted for daily/endless (raid renders its
+            // own surface), so the non-daily branch is always endless.
+            generateText(
+              'endless',
               undefined,
               ENDLESS_BLOCK_WORDS,
               endlessDifficulty
@@ -276,7 +278,8 @@ export default function TypingInterface({
   }, []);
 
   const completionHandler = useCompletionHandler({
-    currentMode,
+    // raid never mounts TypingInterface, so the mode is always daily/endless here.
+    currentMode: currentMode as 'daily' | 'endless',
     endlessDifficulty,
     completeCurrentQuote,
     getAverageWPM,

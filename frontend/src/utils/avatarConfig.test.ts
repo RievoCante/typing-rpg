@@ -10,6 +10,7 @@ import {
   HELMET_COLORS,
   SKIN_TONES,
   DEFAULT_AVATAR_CONFIG,
+  type PlayerAvatarConfig,
 } from './avatarConfig';
 
 describe('avatarConfigFromSeed', () => {
@@ -43,7 +44,7 @@ describe('avatarConfigFromSeed', () => {
   });
 });
 
-const valid = {
+const valid: PlayerAvatarConfig = {
   armorType: 'plate',
   armorColor: ARMOR_COLORS[0],
   helmetType: 'crowned',
