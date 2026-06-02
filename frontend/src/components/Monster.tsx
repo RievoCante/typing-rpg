@@ -4,14 +4,18 @@ import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
+import MushroomModel from './MushroomModel';
+import CrystalModel from './CrystalModel';
 import ParticleBurst from './ParticleBurst';
 import { useSfx } from '../hooks/useSfx';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
+import type { MushroomTypeEnum } from '../types/MushroomTypes';
+import type { CrystalTypeEnum } from '../types/CrystalTypes';
 import type { MonsterVariant } from '../context/GameContext';
 
-export type MonsterFamily = 'slime' | 'golem';
+export type MonsterFamily = 'slime' | 'golem' | 'mushroom' | 'crystal';
 
 // Elite/rare kills get a bigger, variant-colored death burst for spectacle.
 const VARIANT_BURST: Record<MonsterVariant, { count: number; color?: string }> =
@@ -23,7 +27,11 @@ const VARIANT_BURST: Record<MonsterVariant, { count: number; color?: string }> =
 
 interface MonsterProps {
   monsterFamily: MonsterFamily;
-  monsterType: SlimeTypeEnum | GolemTypeEnum;
+  monsterType:
+    | SlimeTypeEnum
+    | GolemTypeEnum
+    | MushroomTypeEnum
+    | CrystalTypeEnum;
   variant?: MonsterVariant;
   isHit?: boolean;
   isDefeated?: boolean;
@@ -100,7 +108,7 @@ function Monster({
               color="#ffffff"
             />
 
-            {/* Main monster model */}
+            {/* Main monster model — one per family */}
             {monsterFamily === 'slime' ? (
               <SlimeModel
                 slimeType={monsterType as SlimeTypeEnum}
@@ -111,9 +119,27 @@ function Monster({
                 customScale={scale}
                 shape={shape}
               />
-            ) : (
+            ) : monsterFamily === 'golem' ? (
               <GolemModel
                 golemType={monsterType as GolemTypeEnum}
+                variant={variant}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+              />
+            ) : monsterFamily === 'mushroom' ? (
+              <MushroomModel
+                mushroomType={monsterType as MushroomTypeEnum}
+                variant={variant}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+              />
+            ) : (
+              <CrystalModel
+                crystalType={monsterType as CrystalTypeEnum}
                 variant={variant}
                 isHit={isHit}
                 isDefeated={isDefeated}

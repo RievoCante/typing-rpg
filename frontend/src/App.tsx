@@ -22,10 +22,16 @@ import {
   type SlimeShapeEnum,
 } from './types/SlimeTypes';
 import { GOLEM_COLORS, GOLEM_SIZES } from './types/GolemTypes';
+import { MUSHROOM_COLORS, MUSHROOM_SIZES } from './types/MushroomTypes';
+import { CRYSTAL_COLORS, CRYSTAL_SIZES } from './types/CrystalTypes';
 import type { MonsterFamily } from './components/Monster';
 import MonsterNameplate from './components/MonsterNameplate';
 import type { MonsterTypeEnum, MonsterVariant } from './context/GameContext';
-import { pickMonsterType, pickMonsterVariant } from './utils/monsterSpawn';
+import {
+  pickMonsterType,
+  pickMonsterVariant,
+  pickMonsterFamily,
+} from './utils/monsterSpawn';
 import { VARIANT_SCALE_MULT } from './utils/combatTuning';
 import DeathPopup from './components/DeathPopup';
 
@@ -87,8 +93,8 @@ function GameContent() {
   // pickMonsterType so fresh runs start safe and difficulty ramps as the player
   // survives — a boss can no longer spawn on the first monster.
   const generateNewMonster = () => {
-    // 50/50 family selection
-    const family: MonsterFamily = Math.random() > 0.5 ? 'slime' : 'golem';
+    // Weighted family selection (slime/golem common, mushroom/crystal rarer).
+    const family: MonsterFamily = pickMonsterFamily();
     setMonsterFamily(family);
 
     const newMonsterType: MonsterTypeEnum = pickMonsterType(monstersDefeated);
@@ -113,11 +119,27 @@ function GameContent() {
           SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)] *
           scaleMult,
       });
-    } else {
+    } else if (family === 'golem') {
       setMonsterVisuals({
         color: GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)],
         scale:
           GOLEM_SIZES[Math.floor(Math.random() * GOLEM_SIZES.length)] *
+          scaleMult,
+      });
+    } else if (family === 'mushroom') {
+      setMonsterVisuals({
+        color:
+          MUSHROOM_COLORS[Math.floor(Math.random() * MUSHROOM_COLORS.length)],
+        scale:
+          MUSHROOM_SIZES[Math.floor(Math.random() * MUSHROOM_SIZES.length)] *
+          scaleMult,
+      });
+    } else {
+      setMonsterVisuals({
+        color:
+          CRYSTAL_COLORS[Math.floor(Math.random() * CRYSTAL_COLORS.length)],
+        scale:
+          CRYSTAL_SIZES[Math.floor(Math.random() * CRYSTAL_SIZES.length)] *
           scaleMult,
       });
     }

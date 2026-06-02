@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { pickMonsterType, pickMonsterVariant } from './monsterSpawn';
+import {
+  pickMonsterType,
+  pickMonsterVariant,
+  pickMonsterFamily,
+  FAMILY_WEIGHTS,
+} from './monsterSpawn';
+import type { MonsterFamily } from '../components/Monster';
 
 describe('pickMonsterType', () => {
   it('only spawns normal monsters for the first three fights (0-2 defeated)', () => {
@@ -70,5 +76,34 @@ describe('pickMonsterVariant', () => {
     expect(pickMonsterVariant(5, () => 0.11)).toBe('elite');
     // post-unlock: elite occupies [0.05, 0.17) — same width, shifted above rare
     expect(pickMonsterVariant(8, () => 0.16)).toBe('elite');
+  });
+});
+
+describe('pickMonsterFamily', () => {
+  it('has weights that sum to 1', () => {
+    const total = FAMILY_WEIGHTS.reduce((s, f) => s + f.weight, 0);
+    expect(total).toBeCloseTo(1, 10);
+  });
+
+  it('maps each cumulative band to its family (slime/golem common, mushroom/crystal rarer)', () => {
+    // bands: slime [0,0.35) golem [0.35,0.70) mushroom [0.70,0.88) crystal [0.88,1)
+    expect(pickMonsterFamily(() => 0)).toBe('slime');
+    expect(pickMonsterFamily(() => 0.349)).toBe('slime');
+    expect(pickMonsterFamily(() => 0.35)).toBe('golem');
+    expect(pickMonsterFamily(() => 0.699)).toBe('golem');
+    expect(pickMonsterFamily(() => 0.7)).toBe('mushroom');
+    expect(pickMonsterFamily(() => 0.879)).toBe('mushroom');
+    expect(pickMonsterFamily(() => 0.88)).toBe('crystal');
+    expect(pickMonsterFamily(() => 0.999)).toBe('crystal');
+  });
+
+  it('returns the last family when rng yields 1 (out-of-band guard)', () => {
+    expect(pickMonsterFamily(() => 1)).toBe('crystal');
+  });
+
+  it('reaches every family across the unit interval', () => {
+    const seen = new Set<MonsterFamily>();
+    for (let i = 0; i < 100; i++) seen.add(pickMonsterFamily(() => i / 100));
+    expect(seen).toEqual(new Set(['slime', 'golem', 'mushroom', 'crystal']));
   });
 });

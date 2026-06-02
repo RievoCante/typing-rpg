@@ -9,6 +9,8 @@ interface MonsterNameplateProps {
 const FAMILY_LABEL: Record<MonsterFamily, string> = {
   slime: 'Slime',
   golem: 'Golem',
+  mushroom: 'Mushroom',
+  crystal: 'Crystal',
 };
 
 // Per-variant badge styling. Common renders nothing (keeps the normal monster
