@@ -53,4 +53,36 @@ describe('combatTuning', () => {
       crit: false,
     });
   });
+
+  it('rollDamage adds weapon bonus damage to a non-crit hit', () => {
+    const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0 };
+    // streak 0 → 0% streak crit, rng 0.99 → no crit. damage = 1 + 3 = 4.
+    expect(rollDamage(0, () => 0.99, weapon)).toEqual({
+      damage: 4,
+      crit: false,
+    });
+  });
+
+  it('rollDamage applies weapon crit multiplier bonus on a crit', () => {
+    const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0.5 };
+    // streak 50 → 75% crit, rng 0.1 → crit. (1+3) * (2+0.5) = 10.
+    expect(rollDamage(50, () => 0.1, weapon)).toEqual({
+      damage: 10,
+      crit: true,
+    });
+  });
+
+  it('rollDamage lets a weapon crit-chance bonus crit at streak 0', () => {
+    const weapon = { bonusDamage: 0, bonusCritChance: 0.5, critMultBonus: 0 };
+    // streak 0 (0%) + 0.5 = 0.5. rng 0.4 < 0.5 → crit; without weapon: no crit.
+    expect(rollDamage(0, () => 0.4, weapon).crit).toBe(true);
+    expect(rollDamage(0, () => 0.4).crit).toBe(false);
+  });
+
+  it('rollDamage caps total crit chance at 95% even with a weapon', () => {
+    const weapon = { bonusDamage: 0, bonusCritChance: 0.5, critMultBonus: 0 };
+    // streak 50 (0.75) + 0.5 = 1.25 → capped 0.95.
+    expect(rollDamage(50, () => 0.94, weapon).crit).toBe(true);
+    expect(rollDamage(50, () => 0.96, weapon).crit).toBe(false);
+  });
 });

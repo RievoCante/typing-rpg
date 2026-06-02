@@ -1,5 +1,6 @@
 import { createContext } from 'react';
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { Weapon } from '../utils/weapons';
 
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
@@ -30,10 +31,15 @@ interface GameContextType {
   spawnMonster: (type: MonsterTypeEnum, variant?: MonsterVariant) => void;
   // Current monster variant (common/elite/rare) — drives glow, nameplate, HP.
   currentMonsterVariant: MonsterVariant;
+  // Per-run equipped weapon (Endless loot); null = Fists. Modifies combat damage.
+  equippedWeapon: Weapon | null;
   // Endless combo streak
   comboStreak: number;
   comboCritChance: number;
-  registerComboCorrect: (rng?: () => number) => {
+  registerComboCorrect: (
+    weapon?: Weapon | null,
+    rng?: () => number
+  ) => {
     damage: number;
     crit: boolean;
   };
@@ -86,6 +92,7 @@ export const GameContext = createContext<GameContextType>({
   damageMonster: () => {},
   spawnMonster: () => {},
   currentMonsterVariant: 'common',
+  equippedWeapon: null,
   comboStreak: 0,
   comboCritChance: 0,
   registerComboCorrect: () => ({ damage: 1, crit: false }),

@@ -9,6 +9,7 @@ import { usePlayerHealth } from '../hooks/usePlayerHealth';
 import { usePotionSystem } from '../hooks/usePotionSystem';
 import { useMonsterAttackLoop } from '../hooks/useMonsterAttackLoop';
 import { useComboSystem } from '../hooks/useComboSystem';
+import { useWeaponSystem } from '../hooks/useWeaponSystem';
 import {
   MONSTER_MAX_HP,
   VARIANT_HP_MULT,
@@ -62,6 +63,8 @@ export const GameProvider = ({
     health.maxPlayerHealth
   );
   const { addPotion } = potion;
+  const weapon = useWeaponSystem();
+  const { tryDrop: tryDropWeapon } = weapon;
 
   useMonsterAttackLoop({
     currentMode,
@@ -132,6 +135,9 @@ export const GameProvider = ({
       const surge = VARIANT_COMBO_SURGE[currentMonsterVariant];
       if (surge > 0) addStreak(surge);
       if (currentMonsterVariant === 'rare') addPotion();
+      // Weapon loot: every kill rolls a drop (chance + rarity scale with the
+      // variant); a strictly-better weapon auto-equips. Fires its own popup.
+      tryDropWeapon(currentMonsterVariant);
     }
   }, [
     currentMode,
@@ -141,6 +147,7 @@ export const GameProvider = ({
     currentMonsterVariant,
     addStreak,
     addPotion,
+    tryDropWeapon,
   ]);
 
   // Daily/raid: the monster is "defeated" exactly while its HP (remaining words)
@@ -193,7 +200,8 @@ export const GameProvider = ({
     setCurrentMonsterVariant('common');
     defeatHandledRef.current = false;
     combo.reset();
-  }, [health, potion, combo]);
+    weapon.reset();
+  }, [health, potion, combo, weapon]);
 
   const contextValue = useMemo(
     () => ({
@@ -213,6 +221,7 @@ export const GameProvider = ({
       damageMonster,
       spawnMonster,
       currentMonsterVariant,
+      equippedWeapon: weapon.equippedWeapon,
       comboStreak: combo.streak,
       comboCritChance: combo.critChance,
       registerComboCorrect: combo.registerCorrectWord,
@@ -259,6 +268,7 @@ export const GameProvider = ({
       health,
       currentMonsterType,
       currentMonsterVariant,
+      weapon.equippedWeapon,
       killStreak,
       resetKillStreak,
       potion,

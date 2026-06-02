@@ -4,6 +4,7 @@ import {
   rollDamage,
   type DamageRoll,
 } from '../utils/combatTuning';
+import type { Weapon } from '../utils/weapons';
 
 // --- Pure reducer (exported for tests, following useRaidState.ts convention) ---
 
@@ -49,10 +50,14 @@ export function useComboSystem() {
   // increments. rng is injectable for tests. Returns the roll so the caller can
   // apply damage + drive popups/SFX.
   const registerCorrectWord = useCallback(
-    (rng: () => number = Math.random): DamageRoll => {
+    (
+      weapon: Weapon | null = null,
+      rng: () => number = Math.random
+    ): DamageRoll => {
       // Roll BEFORE dispatching so the roll uses the current streak value.
       // useReducer dispatch is synchronous for the state snapshot we read here.
-      const roll = rollDamage(state.streak, rng);
+      // An equipped weapon raises crit chance / damage (see rollDamage).
+      const roll = rollDamage(state.streak, rng, weapon);
       dispatch({ type: 'CORRECT_WORD' });
       return roll;
     },
