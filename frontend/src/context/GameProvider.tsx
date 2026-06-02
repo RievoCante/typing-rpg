@@ -172,16 +172,10 @@ export const GameProvider = ({
     setIsCurrentMonsterDefeated(prev => (prev === defeated ? prev : defeated));
   }, [currentMode, remainingWords, totalWords]);
 
-  // Endless only: clear the defeat flag after the death-animation window so App
-  // spawns the next monster. Endless has no per-kill press-Space pause, so the
-  // fixed window is safe here (daily/raid instead clear via the remainingWords
-  // derive above when the next prompt loads).
-  useEffect(() => {
-    if (currentMode !== 'endless') return;
-    if (monstersDefeated === 0) return;
-    const t = setTimeout(() => setIsCurrentMonsterDefeated(false), 1200);
-    return () => clearTimeout(t);
-  }, [currentMode, monstersDefeated]);
+  // Endless respawn is gated behind the post-kill results overlay: the defeat
+  // flag stays true (monster shows its death state) until the player presses
+  // Space, at which point TypingInterface calls resetDefeatState() -> App spawns
+  // the next monster. (Daily/raid still clear via the remainingWords derive.)
 
   // Each new monster session restarts the "started typing" gate so attacks
   // pause until the user actually begins typing. Endless is a continuous stream
