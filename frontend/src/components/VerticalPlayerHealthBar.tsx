@@ -56,6 +56,7 @@ export default function VerticalPlayerHealthBar({
 
       {/* Vertical Health bar container */}
       <div
+        data-hp-anchor
         className={`w-6 h-48 rounded-full border-2 overflow-hidden relative ${
           isFlashing
             ? 'border-red-500 animate-pulse shadow-lg shadow-red-500/50'
