@@ -55,6 +55,29 @@ export function useApi() {
     [authFetch]
   );
 
+  // Persistent weapon vault (Phase 3b).
+  const getWeaponVault = useCallback(() => authFetch('/me/vault'), [authFetch]);
+
+  const unlockWeapons = useCallback(
+    (weaponIds: string[]) =>
+      authFetch('/me/vault/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weaponIds }),
+      }),
+    [authFetch]
+  );
+
+  const selectLoadout = useCallback(
+    (weaponId: string | null) =>
+      authFetch('/me/vault/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weaponId }),
+      }),
+    [authFetch]
+  );
+
   const getDailyStatus = useCallback(
     () => authFetch('/daily/status'),
     [authFetch]
@@ -85,5 +108,8 @@ export function useApi() {
     getDailyStatus,
     getLeaderboardLevels,
     getLeaderboardTodayWpm,
+    getWeaponVault,
+    unlockWeapons,
+    selectLoadout,
   };
 }

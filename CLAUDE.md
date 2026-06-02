@@ -40,6 +40,7 @@ After merging a **vault-worthy** change into `dev` (a new feature, or a change t
 - **XP sync**: `frontend/src/utils/calculateXP.ts` MUST match `backend/src/core/xp.ts`.
 - **Wordlist sync**: `backend/src/static/english_1k.json` MUST match `frontend/src/static/english/english_1k.json` — backend imports its own copy at module init for raid text.
 - **Avatar-schema sync**: the warrior `PlayerAvatarConfig` enums in `frontend/src/utils/avatarConfig.ts` MUST match the Zod schema in `backend/src/core/character.ts` (used by `PATCH /me/character` and raid `join` validation). Change both together.
+- **Weapon-id sync**: the weapon ids in `frontend/src/utils/weapons.ts` (`WEAPON_POOL`) MUST match `WEAPON_IDS` in `backend/src/core/weapons.ts` (the persistent vault validates `/me/vault` unlock/select against it). Guarded by `backend/src/core/weapons.sync.test.ts`.
 - **Locked words**: pressing space after a correct word locks it — locked chars can't be deleted.
 - **Daily**: 3 quotes, 1 attempt/day, 500 base XP (0.5–1.5× WPM multiplier).
 - **Raid**: min 2 / max 3 players, 75-word texts, cooperative boss battle.

@@ -107,6 +107,20 @@ export const WEAPON_POOL: Record<WeaponRarity, Weapon[]> = {
   ],
 };
 
+// Flat list of every weapon in the pool, ordered by rarity rank. Used by the
+// persistent vault UI (Phase 3b) and loadout lookup.
+export const ALL_WEAPONS: Weapon[] = (
+  ['common', 'rare', 'epic', 'legendary'] as WeaponRarity[]
+).flatMap(rarity => WEAPON_POOL[rarity]);
+
+// Stable id list. SYNC RULE: must match backend core/weapons.ts WEAPON_IDS
+// (guarded by backend weapons.sync.test.ts).
+export const WEAPON_IDS: string[] = ALL_WEAPONS.map(w => w.id);
+
+// Resolve a weapon by id (e.g. a persisted loadout id). null = Fists / unknown.
+export const getWeaponById = (id: string | null | undefined): Weapon | null =>
+  id ? (ALL_WEAPONS.find(w => w.id === id) ?? null) : null;
+
 // Comparable power score for auto-equip-if-better. Rarity dominates, then a
 // weighted stat sum. Fists (null) = 0.
 export const weaponPower = (w: Weapon | null): number => {
