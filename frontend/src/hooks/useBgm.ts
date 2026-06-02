@@ -68,8 +68,24 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
 
   const toggleMute = useCallback(() => setMuted(m => !m), []);
 
-  // Audio only starts via VolumeControl interaction - no global auto-unlock
-  // This ensures keyboard has zero effect on audio
+  // Auto-start music on the user's first interaction anywhere on the page.
+  // Browsers block audio autoplay until a gesture, so we listen for the first
+  // pointer/touch/key event, start playback, then remove the listeners.
+  useEffect(() => {
+    const events: (keyof WindowEventMap)[] = [
+      'pointerdown',
+      'touchstart',
+      'keydown',
+    ];
+    const handler = () => {
+      void ensurePlay();
+      events.forEach(ev => window.removeEventListener(ev, handler));
+    };
+    events.forEach(ev =>
+      window.addEventListener(ev, handler, { passive: true })
+    );
+    return () => events.forEach(ev => window.removeEventListener(ev, handler));
+  }, [ensurePlay]);
 
   return { volume, setVolume, muted, toggleMute, ensurePlay };
 }
