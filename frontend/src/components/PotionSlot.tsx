@@ -32,6 +32,7 @@ export default function PotionSlot() {
     // and read as junk on the bottom slot. A solid panel hides the scene
     // regardless of where a rat scurries (viewport-independent).
     <div
+      data-potion-anchor
       className={`group relative flex flex-col items-center gap-3 select-none rounded-2xl px-3 py-4 ${
         theme === 'dark'
           ? 'bg-gray-900 ring-1 ring-gray-800'
