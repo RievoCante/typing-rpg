@@ -16,7 +16,7 @@ Read those for product/feature-level questions. This file holds engineering rule
 
 ## Response Style
 
-Keep responses short and concise. Save output tokens without sacrificing readability.
+**Be super concise and straight to the point.** Answer the question asked — nothing more. No preamble, no recap of the request, no summary of what you just did unless asked. Prefer the shortest correct answer; one word or one line when that suffices. Lead with the result. Use tables/bullets over prose. Skip filler ("Great question", "Sure", "I'll now…"). Show code/commands instead of describing them. Save output tokens without sacrificing correctness or readability.
 
 ## Git Workflow
 
