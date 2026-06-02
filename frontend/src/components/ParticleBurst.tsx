@@ -18,7 +18,7 @@ export default function ParticleBurst({
 }: ParticleBurstProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<BurstParticle[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const hasTriggeredRef = useRef(false);
 
   const createParticle = useCallback(

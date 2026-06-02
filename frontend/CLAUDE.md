@@ -11,7 +11,7 @@ bun run lint         # ESLint
 bun run format       # Prettier write
 bun run format:check # Prettier check (used in CI)
 bun run test         # Run vitest tests
-bunx tsc --noEmit    # Type check
+bunx tsc -b          # Type check (project references; plain --noEmit checks 0 files)
 ```
 
 ## Critical Rules
@@ -22,4 +22,4 @@ bunx tsc --noEmit    # Type check
 
 ## Verification
 
-Before finishing any frontend task, run: `bun run lint && bun run format:check && bunx tsc --noEmit`
+Before finishing any frontend task, run: `bun run lint && bun run format:check && bunx tsc -b`

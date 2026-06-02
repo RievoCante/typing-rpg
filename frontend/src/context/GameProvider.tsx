@@ -191,7 +191,6 @@ export const GameProvider = ({
       resetPlayerHealth: health.resetPlayerHealth,
       isPlayerDead: health.isPlayerDead,
       currentMonsterType,
-      setCurrentMonsterType,
       damagePlayerFromMistake: health.damagePlayerFromMistake,
       killStreak,
       resetKillStreak,

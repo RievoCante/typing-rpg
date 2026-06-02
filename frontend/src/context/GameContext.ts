@@ -43,6 +43,21 @@ interface GameContextType {
   maxPotions: number;
   registerCorrectWord: () => void;
   drinkPotion: () => void;
+  // Current monster tier (drives HP + 3D model)
+  currentMonsterType: MonsterTypeEnum;
+  // Player health (Endless monster attacks)
+  playerHealth: number;
+  maxPlayerHealth: number;
+  damagePlayer: (amount: number) => void;
+  healPlayer: (amount: number) => void;
+  resetPlayerHealth: () => void;
+  isPlayerDead: boolean;
+  damagePlayerFromMistake: () => void;
+  // Kill streak (consecutive kills this run)
+  killStreak: number;
+  resetKillStreak: () => void;
+  // Full run reset (health, streaks, potions, monster, combo)
+  resetGameState: () => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -79,4 +94,19 @@ export const GameContext = createContext<GameContextType>({
   maxPotions: 3,
   registerCorrectWord: () => {},
   drinkPotion: () => {},
+  // Current monster tier
+  currentMonsterType: 'normal',
+  // Player health
+  playerHealth: 100,
+  maxPlayerHealth: 100,
+  damagePlayer: () => {},
+  healPlayer: () => {},
+  resetPlayerHealth: () => {},
+  isPlayerDead: false,
+  damagePlayerFromMistake: () => {},
+  // Kill streak
+  killStreak: 0,
+  resetKillStreak: () => {},
+  // Full run reset
+  resetGameState: () => {},
 });
