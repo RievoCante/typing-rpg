@@ -1,4 +1,5 @@
 import type { MonsterTypeEnum, MonsterVariant } from '../context/GameContext';
+import type { MonsterFamily } from '../components/Monster';
 
 // Endless monster-type gating.
 //
@@ -42,4 +43,29 @@ export function pickMonsterVariant(
   const eliteFloor = rareUnlocked ? RARE_CHANCE : 0;
   if (roll >= eliteFloor && roll < eliteFloor + ELITE_CHANCE) return 'elite';
   return 'common';
+}
+
+// Endless monster-family selection (cosmetic only — family does not affect HP,
+// tier, or combat). All four families are available from the first fight, but
+// slime/golem stay the bread-and-butter while the procedural newcomers
+// (mushroom/crystal) are rarer treats. A single uniform roll is partitioned
+// into non-overlapping cumulative bands. Weights must sum to 1.
+export const FAMILY_WEIGHTS: { family: MonsterFamily; weight: number }[] = [
+  { family: 'slime', weight: 0.35 },
+  { family: 'golem', weight: 0.35 },
+  { family: 'mushroom', weight: 0.18 },
+  { family: 'crystal', weight: 0.12 },
+];
+
+export function pickMonsterFamily(
+  rng: () => number = Math.random
+): MonsterFamily {
+  const roll = rng();
+  let cumulative = 0;
+  for (const { family, weight } of FAMILY_WEIGHTS) {
+    cumulative += weight;
+    if (roll < cumulative) return family;
+  }
+  // rng() === 1 (or float drift) falls through to the last band.
+  return FAMILY_WEIGHTS[FAMILY_WEIGHTS.length - 1].family;
 }
