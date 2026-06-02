@@ -3,6 +3,9 @@ import {
   WEAPON_POOL,
   weaponPower,
   rollWeaponDrop,
+  ALL_WEAPONS,
+  WEAPON_IDS,
+  getWeaponById,
   type Weapon,
 } from './weapons';
 
@@ -69,5 +72,28 @@ describe('rollWeaponDrop', () => {
   it('picks within the rarity pool by the third draw', () => {
     expect(rollWeaponDrop('elite', seq(0, 0.5, 0))?.id).toBe('iron-sword');
     expect(rollWeaponDrop('elite', seq(0, 0.5, 0.99))?.id).toBe('hunters-bow');
+  });
+});
+
+describe('ALL_WEAPONS / WEAPON_IDS', () => {
+  it('flattens the whole pool with unique ids', () => {
+    const poolCount = Object.values(WEAPON_POOL).flat().length;
+    expect(ALL_WEAPONS).toHaveLength(poolCount);
+    expect(new Set(WEAPON_IDS).size).toBe(poolCount);
+  });
+
+  it('WEAPON_IDS lists every weapon id', () => {
+    expect(WEAPON_IDS).toEqual(ALL_WEAPONS.map(w => w.id));
+  });
+});
+
+describe('getWeaponById', () => {
+  it('resolves a known id', () => {
+    expect(getWeaponById('iron-sword')?.name).toBe('Iron Sword');
+  });
+  it('returns null for null / undefined / unknown ids', () => {
+    expect(getWeaponById(null)).toBeNull();
+    expect(getWeaponById(undefined)).toBeNull();
+    expect(getWeaponById('bogus')).toBeNull();
   });
 });

@@ -10,6 +10,8 @@ import { usePotionSystem } from '../hooks/usePotionSystem';
 import { useMonsterAttackLoop } from '../hooks/useMonsterAttackLoop';
 import { useComboSystem } from '../hooks/useComboSystem';
 import { useWeaponSystem } from '../hooks/useWeaponSystem';
+import { useWeaponVault } from '../hooks/useWeaponVault';
+import { getWeaponById } from '../utils/weapons';
 import {
   MONSTER_MAX_HP,
   VARIANT_HP_MULT,
@@ -63,8 +65,15 @@ export const GameProvider = ({
     health.maxPlayerHealth
   );
   const { addPotion } = potion;
-  const weapon = useWeaponSystem();
-  const { tryDrop: tryDropWeapon } = weapon;
+  // Persistent vault (Phase 3b): the run's starting weapon is the player's
+  // chosen loadout (resolved from its id) instead of always Fists.
+  const weaponVault = useWeaponVault();
+  const loadoutWeapon = useMemo(
+    () => getWeaponById(weaponVault.loadout),
+    [weaponVault.loadout]
+  );
+  const weapon = useWeaponSystem(loadoutWeapon);
+  const { tryDrop: tryDropWeapon, equipLoadout } = weapon;
 
   useMonsterAttackLoop({
     currentMode,
@@ -184,6 +193,29 @@ export const GameProvider = ({
     setHasStartedTyping(false);
   }, [currentMode, monstersDefeated]);
 
+  // Apply the persistent loadout as the run's starting weapon while the run is
+  // fresh (no kills yet, not started typing, alive). Covers the vault loading
+  // async and the player changing their loadout in the pre-run panel. Once
+  // typing/kills begin it won't yank a mid-run weapon; death restores the
+  // loadout via weapon.reset() in resetGameState.
+  useEffect(() => {
+    if (
+      currentMode === 'endless' &&
+      monstersDefeated === 0 &&
+      !hasStartedTyping &&
+      !health.isPlayerDead
+    ) {
+      equipLoadout(loadoutWeapon);
+    }
+  }, [
+    currentMode,
+    monstersDefeated,
+    hasStartedTyping,
+    health.isPlayerDead,
+    loadoutWeapon,
+    equipLoadout,
+  ]);
+
   const resetKillStreak = useCallback(() => setKillStreak(0), []);
 
   const resetGameState = useCallback(() => {
@@ -222,6 +254,12 @@ export const GameProvider = ({
       spawnMonster,
       currentMonsterVariant,
       equippedWeapon: weapon.equippedWeapon,
+      weaponVault: {
+        unlocked: weaponVault.unlocked,
+        loadout: weaponVault.loadout,
+        setLoadout: weaponVault.setLoadout,
+        isSignedIn: weaponVault.isSignedIn,
+      },
       comboStreak: combo.streak,
       comboCritChance: combo.critChance,
       registerComboCorrect: combo.registerCorrectWord,
@@ -269,6 +307,10 @@ export const GameProvider = ({
       currentMonsterType,
       currentMonsterVariant,
       weapon.equippedWeapon,
+      weaponVault.unlocked,
+      weaponVault.loadout,
+      weaponVault.setLoadout,
+      weaponVault.isSignedIn,
       killStreak,
       resetKillStreak,
       potion,

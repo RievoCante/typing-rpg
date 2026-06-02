@@ -20,6 +20,11 @@ export const users = sqliteTable('users', {
   // JSON-encoded cosmetic avatar config (see core/character.ts). Null until the
   // user customizes their character.
   character: text('character'),
+  // Persistent weapon vault (Phase 3b). JSON array of unlocked weapon ids (see
+  // core/weapons.ts WEAPON_IDS). Defaults to an empty collection.
+  unlockedWeapons: text('unlocked_weapons').default('[]').notNull(),
+  // Selected loadout weapon id (the Endless starting weapon); null = Fists.
+  loadoutWeapon: text('loadout_weapon'),
 });
 
 /**

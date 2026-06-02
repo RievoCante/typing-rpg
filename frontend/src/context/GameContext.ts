@@ -33,6 +33,14 @@ interface GameContextType {
   currentMonsterVariant: MonsterVariant;
   // Per-run equipped weapon (Endless loot); null = Fists. Modifies combat damage.
   equippedWeapon: Weapon | null;
+  // Persistent weapon vault (Phase 3b): unlocked collection + chosen loadout.
+  // The pre-run loadout panel reads/writes this; logged-out = empty + read-only.
+  weaponVault: {
+    unlocked: string[];
+    loadout: string | null;
+    setLoadout: (id: string | null) => void;
+    isSignedIn: boolean;
+  };
   // Endless combo streak
   comboStreak: number;
   comboCritChance: number;
@@ -93,6 +101,12 @@ export const GameContext = createContext<GameContextType>({
   spawnMonster: () => {},
   currentMonsterVariant: 'common',
   equippedWeapon: null,
+  weaponVault: {
+    unlocked: [],
+    loadout: null,
+    setLoadout: () => {},
+    isSignedIn: false,
+  },
   comboStreak: 0,
   comboCritChance: 0,
   registerComboCorrect: () => ({ damage: 1, crit: false }),
