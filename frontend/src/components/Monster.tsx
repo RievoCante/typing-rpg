@@ -9,12 +9,22 @@ import { useSfx } from '../hooks/useSfx';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
+import type { MonsterVariant } from '../context/GameContext';
 
 export type MonsterFamily = 'slime' | 'golem';
+
+// Elite/rare kills get a bigger, variant-colored death burst for spectacle.
+const VARIANT_BURST: Record<MonsterVariant, { count: number; color?: string }> =
+  {
+    common: { count: 45 },
+    elite: { count: 75, color: '#fbbf24' }, // amber
+    rare: { count: 110, color: '#a78bfa' }, // violet
+  };
 
 interface MonsterProps {
   monsterFamily: MonsterFamily;
   monsterType: SlimeTypeEnum | GolemTypeEnum;
+  variant?: MonsterVariant;
   isHit?: boolean;
   isDefeated?: boolean;
   color?: string;
@@ -25,6 +35,7 @@ interface MonsterProps {
 function Monster({
   monsterFamily,
   monsterType,
+  variant = 'common',
   isHit = false,
   isDefeated = false,
   color,
@@ -93,6 +104,7 @@ function Monster({
             {monsterFamily === 'slime' ? (
               <SlimeModel
                 slimeType={monsterType as SlimeTypeEnum}
+                variant={variant}
                 isHit={isHit}
                 isDefeated={isDefeated}
                 customColor={color}
@@ -102,6 +114,7 @@ function Monster({
             ) : (
               <GolemModel
                 golemType={monsterType as GolemTypeEnum}
+                variant={variant}
                 isHit={isHit}
                 isDefeated={isDefeated}
                 customColor={color}
@@ -112,12 +125,13 @@ function Monster({
         </div>
       </div>
 
-      {/* Particle burst overlay */}
+      {/* Particle burst overlay — bigger + variant-colored for elite/rare */}
       <ParticleBurst
         isActive={showBurst}
         originX={burstOrigin.x}
         originY={burstOrigin.y}
-        color={color || '#87CEEB'}
+        color={VARIANT_BURST[variant].color || color || '#87CEEB'}
+        particleCount={VARIANT_BURST[variant].count}
         onComplete={handleBurstComplete}
       />
     </>

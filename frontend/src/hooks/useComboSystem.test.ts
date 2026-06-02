@@ -35,6 +35,16 @@ describe('comboReducer', () => {
     const state = comboReducer({ streak: 5 }, { type: 'RESET' });
     expect(state.streak).toBe(0);
   });
+
+  it('adds a bonus surge on BONUS (elite/rare kill reward)', () => {
+    const state = comboReducer({ streak: 5 }, { type: 'BONUS', amount: 8 });
+    expect(state.streak).toBe(13);
+  });
+
+  it('clamps a negative BONUS so streak never goes below 0', () => {
+    const state = comboReducer({ streak: 2 }, { type: 'BONUS', amount: -10 });
+    expect(state.streak).toBe(0);
+  });
 });
 
 // Verify rollDamage integration: streak-0 roll with rng=0.99 → no crit, damage=1

@@ -3,11 +3,14 @@ import { useFrame } from '@react-three/fiber';
 import { Mesh, Color, MeshPhongMaterial } from 'three';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import { SLIME_CONFIGS, SLIME_ANIMATIONS } from '../types/SlimeTypes';
+import type { MonsterVariant } from '../context/GameContext';
+import { VARIANT_GLOW, glowIntensity } from '../utils/variantGlow';
 
 const HIT_FLASH_COLOR = new Color('#ff4d4d');
 
 interface SlimeModelProps {
   slimeType: SlimeTypeEnum;
+  variant?: MonsterVariant;
   isHit: boolean;
   isDefeated: boolean;
   customColor?: string;
@@ -17,6 +20,7 @@ interface SlimeModelProps {
 
 export default function SlimeModel({
   slimeType,
+  variant = 'common',
   isHit,
   isDefeated,
   customColor,
@@ -109,6 +113,19 @@ export default function SlimeModel({
         mat.emissive.copy(emissiveColor);
         mat.emissiveIntensity = 0.25;
         setHitFlashTime(0);
+      }
+    } else if (bodyMatRef.current && !isDefeated) {
+      // Resting state (alive, not flashing): elite/rare wear a variant-colored
+      // aura (rare pulses). Common restores the subtle base emissive so a
+      // common slime spawned right after an elite/rare doesn't inherit its glow.
+      const glow = VARIANT_GLOW[variant];
+      const mat = bodyMatRef.current as MeshPhongMaterial;
+      if (glow) {
+        mat.emissive.copy(glow.color);
+        mat.emissiveIntensity = glowIntensity(glow, time);
+      } else {
+        mat.emissive.copy(emissiveColor);
+        mat.emissiveIntensity = 0.25;
       }
     }
 

@@ -6,6 +6,8 @@ interface ParticleBurstProps {
   originX: number;
   originY: number;
   color: string;
+  /** Particle count — bumped for elite/rare kills for a bigger spectacle. */
+  particleCount?: number;
   onComplete?: () => void;
 }
 
@@ -14,6 +16,7 @@ export default function ParticleBurst({
   originX,
   originY,
   color,
+  particleCount = 45,
   onComplete,
 }: ParticleBurstProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,10 +125,10 @@ export default function ParticleBurst({
         x: originX,
         y: originY,
         color,
-        count: 45,
+        count: particleCount,
       });
     }
-  }, [isActive, originX, originY, color, triggerBurst]);
+  }, [isActive, originX, originY, color, particleCount, triggerBurst]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

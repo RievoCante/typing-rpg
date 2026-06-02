@@ -57,6 +57,15 @@ export function usePotionSystem(
     setPotionCount(prev => Math.max(0, prev - 1));
   }, [healPlayer, maxPlayerHealth]);
 
+  // Grant a potion directly (e.g. a rare-monster kill reward), bypassing the
+  // word-clock drop roll. Clamped to the cap; fires `potion-drop` only on a
+  // real gain so the popup/SFX stay honest, exactly like the word-clock drop.
+  const addPotion = useCallback(() => {
+    if (potionCountRef.current >= MAX_POTIONS) return;
+    window.dispatchEvent(new Event('potion-drop'));
+    setPotionCount(prev => Math.min(MAX_POTIONS, prev + 1));
+  }, []);
+
   const resetPotionState = useCallback(() => {
     setPotionCount(0);
     correctWordCount.current = 0;
@@ -67,6 +76,7 @@ export function usePotionSystem(
     maxPotions: MAX_POTIONS,
     registerCorrectWord,
     drinkPotion,
+    addPotion,
     resetPotionState,
   };
 }

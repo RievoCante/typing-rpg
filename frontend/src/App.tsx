@@ -23,8 +23,10 @@ import {
 } from './types/SlimeTypes';
 import { GOLEM_COLORS, GOLEM_SIZES } from './types/GolemTypes';
 import type { MonsterFamily } from './components/Monster';
-import type { MonsterTypeEnum } from './context/GameContext';
-import { pickMonsterType } from './utils/monsterSpawn';
+import MonsterNameplate from './components/MonsterNameplate';
+import type { MonsterTypeEnum, MonsterVariant } from './context/GameContext';
+import { pickMonsterType, pickMonsterVariant } from './utils/monsterSpawn';
+import { VARIANT_SCALE_MULT } from './utils/combatTuning';
 import DeathPopup from './components/DeathPopup';
 
 // Contexts
@@ -71,6 +73,8 @@ function GameContent() {
   const [monsterFamily, setMonsterFamily] = useState<MonsterFamily>('slime');
   const [monsterType, setMonsterType] = useState<MonsterTypeEnum>('normal');
   const [monsterShape, setMonsterShape] = useState<SlimeShapeEnum>('round');
+  const [monsterVariant, setMonsterVariant] =
+    useState<MonsterVariant>('common');
 
   // Each new monster gets random family, type, color, size, and shape
   const [monsterVisuals, setMonsterVisuals] = useState(() => ({
@@ -90,24 +94,38 @@ function GameContent() {
     const newMonsterType: MonsterTypeEnum = pickMonsterType(monstersDefeated);
     setMonsterType(newMonsterType);
 
+    // Variant (common/elite/rare): rarer + tougher + glows, gated by run
+    // progress like the tier. Endless only — Daily monsters stay common.
+    // Elite/rare also scale up the visual size.
+    const variant: MonsterVariant =
+      currentMode === 'endless'
+        ? pickMonsterVariant(monstersDefeated)
+        : 'common';
+    setMonsterVariant(variant);
+    const scaleMult = VARIANT_SCALE_MULT[variant];
+
     if (family === 'slime') {
       // 50/50 round or square shape, independent of type.
       setMonsterShape(Math.random() > 0.5 ? 'round' : 'square');
       setMonsterVisuals({
         color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
-        scale: SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)],
+        scale:
+          SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)] *
+          scaleMult,
       });
     } else {
       setMonsterVisuals({
         color: GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)],
-        scale: GOLEM_SIZES[Math.floor(Math.random() * GOLEM_SIZES.length)],
+        scale:
+          GOLEM_SIZES[Math.floor(Math.random() * GOLEM_SIZES.length)] *
+          scaleMult,
       });
     }
 
-    // Spawn in context: sets the type for the attack system AND resets the
-    // monster's HP to full for its tier (Endless). Atomic so a same-tier
-    // respawn still refills HP.
-    spawnMonster(newMonsterType);
+    // Spawn in context: sets type + variant for the attack/HP system AND resets
+    // the monster's HP to full for its tier×variant (Endless). Atomic so a
+    // same-tier respawn still refills HP.
+    spawnMonster(newMonsterType, variant);
   };
 
   // Spawn the next monster only AFTER the death animation finishes, i.e. when
@@ -158,6 +176,7 @@ function GameContent() {
           </Suspense>
         ) : (
           <>
+            <MonsterNameplate family={monsterFamily} variant={monsterVariant} />
             <HealthBar />
             <Suspense
               fallback={
@@ -169,6 +188,7 @@ function GameContent() {
               <Monster
                 monsterFamily={monsterFamily}
                 monsterType={monsterType}
+                variant={monsterVariant}
                 isDefeated={isDefeated}
                 color={monsterVisuals.color}
                 scale={monsterVisuals.scale}
