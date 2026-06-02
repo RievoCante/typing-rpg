@@ -1,11 +1,19 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { GameContext, type MonsterTypeEnum } from './GameContext';
+import {
+  GameContext,
+  type MonsterTypeEnum,
+  type MonsterVariant,
+} from './GameContext';
 import { useEndlessSettings } from '../hooks/useEndlessSettings';
 import { usePlayerHealth } from '../hooks/usePlayerHealth';
 import { usePotionSystem } from '../hooks/usePotionSystem';
 import { useMonsterAttackLoop } from '../hooks/useMonsterAttackLoop';
 import { useComboSystem } from '../hooks/useComboSystem';
-import { MONSTER_MAX_HP } from '../utils/combatTuning';
+import {
+  MONSTER_MAX_HP,
+  VARIANT_HP_MULT,
+  VARIANT_COMBO_SURGE,
+} from '../utils/combatTuning';
 
 // GameProvider owns daily/endless game state. Raid state lives entirely inside
 // the RaidView component subtree (its own hooks: useRaidSocket, useRaidState)
@@ -29,6 +37,8 @@ export const GameProvider = ({
     useState<boolean>(false);
   const [currentMonsterType, setCurrentMonsterType] =
     useState<MonsterTypeEnum>('normal');
+  const [currentMonsterVariant, setCurrentMonsterVariant] =
+    useState<MonsterVariant>('common');
   const [killStreak, setKillStreak] = useState<number>(0);
   const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
@@ -40,6 +50,9 @@ export const GameProvider = ({
   );
   const [monsterHp, setMonsterHp] = useState<number>(MONSTER_MAX_HP.normal);
   const combo = useComboSystem();
+  // Stable callbacks pulled out so the HP-defeat effect can depend on them
+  // without depending on the whole (per-render) combo/potion objects.
+  const { addStreak } = combo;
 
   const endlessSettings = useEndlessSettings();
   const health = usePlayerHealth();
@@ -48,6 +61,7 @@ export const GameProvider = ({
     health.playerHealth,
     health.maxPlayerHealth
   );
+  const { addPotion } = potion;
 
   useMonsterAttackLoop({
     currentMode,
@@ -85,16 +99,21 @@ export const GameProvider = ({
   // Guarding on the flag would re-fire defeat in that gap and freeze the game.
   const defeatHandledRef = useRef<boolean>(false);
 
-  // Spawn a fresh monster of `type` at full tier HP (Endless). Atomic with the
-  // type change so a same-tier respawn (normal -> normal) still resets HP, and
-  // a tier change uses the new tier's HP. App.generateNewMonster calls this.
-  const spawnMonster = useCallback((type: MonsterTypeEnum) => {
-    setCurrentMonsterType(type);
-    const max = MONSTER_MAX_HP[type];
-    setMonsterMaxHp(max);
-    setMonsterHp(max);
-    defeatHandledRef.current = false;
-  }, []);
+  // Spawn a fresh monster of `type` + `variant` at full HP (Endless). HP scales
+  // by variant on top of the tier HP (elite/rare are tougher). Atomic with the
+  // type/variant change so a same-tier respawn still resets HP, and a tier or
+  // variant change uses the new effective HP. App.generateNewMonster calls this.
+  const spawnMonster = useCallback(
+    (type: MonsterTypeEnum, variant: MonsterVariant = 'common') => {
+      setCurrentMonsterType(type);
+      setCurrentMonsterVariant(variant);
+      const max = Math.round(MONSTER_MAX_HP[type] * VARIANT_HP_MULT[variant]);
+      setMonsterMaxHp(max);
+      setMonsterHp(max);
+      defeatHandledRef.current = false;
+    },
+    []
+  );
 
   // Endless: the monster dies the instant its HP hits zero (combat damage),
   // mid-stream. This is THE kill event in endless — it counts the defeat, which
@@ -108,8 +127,21 @@ export const GameProvider = ({
       defeatHandledRef.current = true;
       setIsCurrentMonsterDefeated(true);
       incrementMonstersDefeated();
+      // Variant kill reward: elite/rare grant an instant combo surge (more
+      // crits = faster kills), and a rare also drops a potion. Common = none.
+      const surge = VARIANT_COMBO_SURGE[currentMonsterVariant];
+      if (surge > 0) addStreak(surge);
+      if (currentMonsterVariant === 'rare') addPotion();
     }
-  }, [currentMode, monsterHp, monsterMaxHp, incrementMonstersDefeated]);
+  }, [
+    currentMode,
+    monsterHp,
+    monsterMaxHp,
+    incrementMonstersDefeated,
+    currentMonsterVariant,
+    addStreak,
+    addPotion,
+  ]);
 
   // Daily/raid: the monster is "defeated" exactly while its HP (remaining words)
   // sits at zero with a prompt loaded. Deriving the flag from remainingWords sets
@@ -158,6 +190,7 @@ export const GameProvider = ({
     setRemainingWords(0);
     setMonsterMaxHp(MONSTER_MAX_HP.normal);
     setMonsterHp(MONSTER_MAX_HP.normal);
+    setCurrentMonsterVariant('common');
     defeatHandledRef.current = false;
     combo.reset();
   }, [health, potion, combo]);
@@ -179,6 +212,7 @@ export const GameProvider = ({
       monsterMaxHp,
       damageMonster,
       spawnMonster,
+      currentMonsterVariant,
       comboStreak: combo.streak,
       comboCritChance: combo.critChance,
       registerComboCorrect: combo.registerCorrectWord,
@@ -224,6 +258,7 @@ export const GameProvider = ({
       endlessSettings,
       health,
       currentMonsterType,
+      currentMonsterVariant,
       killStreak,
       resetKillStreak,
       potion,

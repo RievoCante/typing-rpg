@@ -14,7 +14,8 @@ export interface ComboState {
 export type ComboAction =
   | { type: 'CORRECT_WORD' }
   | { type: 'WRONG_WORD' }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  | { type: 'BONUS'; amount: number };
 
 export function comboReducer(
   state: ComboState,
@@ -26,6 +27,10 @@ export function comboReducer(
     case 'WRONG_WORD':
     case 'RESET':
       return { streak: 0 };
+    case 'BONUS':
+      // Instant streak surge (e.g. killing an elite/rare). Clamped at 0 so a
+      // negative amount can't drive the streak below zero.
+      return { streak: Math.max(0, state.streak + action.amount) };
     default:
       return state;
   }
@@ -60,11 +65,18 @@ export function useComboSystem() {
   );
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
+  // Instant streak surge, e.g. an elite/rare monster kill reward.
+  const addStreak = useCallback(
+    (amount: number) => dispatch({ type: 'BONUS', amount }),
+    []
+  );
+
   return {
     streak: state.streak,
     critChance: critChanceForStreak(state.streak),
     registerCorrectWord,
     registerWrongWord,
     reset,
+    addStreak,
   };
 }

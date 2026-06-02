@@ -3,6 +3,11 @@ import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
 
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
+// Endless monster variant, layered on top of family + tier. Elite/rare are
+// rarer, tougher (HP ×), glow, and reward the player on kill (see combatTuning
+// + GameProvider). Daily/raid are always 'common'.
+export type MonsterVariant = 'common' | 'elite' | 'rare';
+
 interface GameContextType {
   currentMode: 'daily' | 'endless' | 'raid';
   setCurrentMode: (mode: 'daily' | 'endless' | 'raid') => void;
@@ -20,8 +25,11 @@ interface GameContextType {
   monsterHp: number;
   monsterMaxHp: number;
   damageMonster: (amount: number) => void;
-  // Spawn a fresh monster of `type` at full HP for its tier (Endless).
-  spawnMonster: (type: MonsterTypeEnum) => void;
+  // Spawn a fresh monster of `type` + `variant` at full HP (Endless). HP scales
+  // by variant on top of the tier HP.
+  spawnMonster: (type: MonsterTypeEnum, variant?: MonsterVariant) => void;
+  // Current monster variant (common/elite/rare) — drives glow, nameplate, HP.
+  currentMonsterVariant: MonsterVariant;
   // Endless combo streak
   comboStreak: number;
   comboCritChance: number;
@@ -77,6 +85,7 @@ export const GameContext = createContext<GameContextType>({
   monsterMaxHp: 0,
   damageMonster: () => {},
   spawnMonster: () => {},
+  currentMonsterVariant: 'common',
   comboStreak: 0,
   comboCritChance: 0,
   registerComboCorrect: () => ({ damage: 1, crit: false }),
