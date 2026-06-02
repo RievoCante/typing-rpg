@@ -33,10 +33,12 @@ export function usePotionPopups() {
       kind: 'drop' | 'heal' | 'warn',
       leftPct: number,
       topBase: number,
-      holdMs: number
+      holdMs: number,
+      jitterX = 8,
+      jitterY = 12
     ) => {
-      const left = leftPct + (Math.random() * 8 - 4);
-      const top = topBase + (Math.random() * 12 - 6);
+      const left = leftPct + (Math.random() * jitterX - jitterX / 2);
+      const top = topBase + (Math.random() * jitterY - jitterY / 2);
       const id = ++idRef.current;
       setPopups(prev => [
         ...prev,
@@ -62,9 +64,23 @@ export function usePotionPopups() {
 
     const onDrop = () => {
       playPotionDrop();
-      // Near the potion column on the right so the gain reads next to the slots.
-      // Holds ~2.5s before fading so the player clearly notices the drop.
-      spawn('+1 Potion', 'drop', 85, 40, 2500);
+      // Anchor the popup to the *actual* potion panel rather than a fixed
+      // viewport %: the panel sits at the right edge of a centered max-w-5xl
+      // container, so a hardcoded percentage drifts far from it on wide
+      // screens. We read the panel's on-screen rect and convert its centre to
+      // viewport-relative percentages so the gain always lands right over the
+      // slots. Small jitter keeps repeated drops from stacking. Holds ~2.5s.
+      const anchor = document.querySelector('[data-potion-anchor]');
+      if (anchor) {
+        const r = anchor.getBoundingClientRect();
+        const leftPct = ((r.left + r.width / 2) / window.innerWidth) * 100;
+        // ~22% down the panel puts the text over the "POTIONS" label / top
+        // slot, floating just above the flasks rather than covering them.
+        const topPct = ((r.top + r.height * 0.22) / window.innerHeight) * 100;
+        spawn('+1 Potion', 'drop', leftPct, topPct, 2500, 4, 6);
+      } else {
+        spawn('+1 Potion', 'drop', 85, 40, 2500);
+      }
     };
 
     const onHeal = (e: Event) => {

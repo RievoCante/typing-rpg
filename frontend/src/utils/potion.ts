@@ -6,8 +6,8 @@
 // The player banks a small number and spends them manually.
 
 export const POTION_DROP_CHANCE = 0.1; // chance per drop check
-export const POTION_MIN_HEAL = 25;
-export const POTION_MAX_HEAL = 50;
+export const POTION_MIN_HEAL = 10;
+export const POTION_MAX_HEAL = 30;
 export const MAX_POTIONS = 3;
 export const WORDS_PER_DROP_CHECK = 5; // a drop is rolled every N correct words
 
