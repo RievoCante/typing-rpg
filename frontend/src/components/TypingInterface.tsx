@@ -216,6 +216,11 @@ export default function TypingInterface({
   const charStatusRef = useRef(typingMechanics.charStatus);
   charStatusRef.current = typingMechanics.charStatus;
 
+  // Latest cursor position, read inside the death-finalizer effect (which isn't
+  // keyed on cursorPosition) to bound stats to the words actually typed.
+  const cursorPositionRef = useRef(typingMechanics.cursorPosition);
+  cursorPositionRef.current = typingMechanics.cursorPosition;
+
   const performance = usePerformanceTracking({
     text,
     charStatus: typingMechanics.charStatus,
@@ -399,8 +404,16 @@ export default function TypingInterface({
     if (!rising || !hasStartedTyping || fightFinalizedRef.current) return;
     fightFinalizedRef.current = true;
 
+    // The monster usually dies mid-block, so bound the analysis to the cursor:
+    // words past it are untyped and must not count as incorrect (that would
+    // zero out the earned XP and report a bogus low accuracy).
     const stats = fightStats.finalize(
-      analyzeWords(text, charStatusRef.current, typingMechanics.overflow)
+      analyzeWords(
+        text,
+        charStatusRef.current,
+        typingMechanics.overflow,
+        cursorPositionRef.current
+      )
     );
     // Only compute + stash the result here. The 1.2s reveal is scheduled by a
     // separate effect keyed on `killResult` (stable state) — NOT here — so the

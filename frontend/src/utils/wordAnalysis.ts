@@ -15,12 +15,18 @@ export interface WordAnalysisResult {
  * @param overflow - Optional map of word-boundary index -> extra typed letters.
  *   A word that carries overflow is scored as incorrect (Monkeytype-style), so
  *   it never adds WPM/correct-char credit.
+ * @param typedLength - Optional cursor position. When set, only words the player
+ *   has fully reached (wordEndIndex <= typedLength) are scored; the untyped tail
+ *   past the cursor is ignored. Used when a fight ends mid-block on a monster
+ *   kill so the remaining `pending` words aren't counted as incorrect (which
+ *   would otherwise zero out endless XP and tank accuracy).
  * @returns Object containing word analysis results
  */
 export const analyzeWords = (
   text: string,
   charStatus: CharStatus[],
-  overflow: Record<number, string[]> = {}
+  overflow: Record<number, string[]> = {},
+  typedLength?: number
 ): WordAnalysisResult => {
   let correctWords = 0;
   let incorrectWords = 0;
@@ -33,6 +39,10 @@ export const analyzeWords = (
     const word = match[0];
     const wordStartIndex = match.index!;
     const wordEndIndex = wordStartIndex + word.length;
+
+    // Matches are ordered, so once a word extends past the cursor every later
+    // word is also untyped — stop scoring entirely.
+    if (typedLength !== undefined && wordEndIndex > typedLength) break;
 
     // A word with extra (overflow) characters at its trailing boundary is
     // always incorrect, regardless of its base characters.

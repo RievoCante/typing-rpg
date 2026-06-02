@@ -38,4 +38,44 @@ describe('analyzeWords', () => {
     const result = analyzeWords(TEXT, allCorrect());
     expect(result.correctWords).toBe(3);
   });
+
+  describe('typedLength bound (mid-fight kill)', () => {
+    // Player typed "to be " then the monster died; "free" is untyped (pending).
+    const partial = (): CharStatus[] => [
+      'correct', // t
+      'correct', // o
+      'locked', //  (space)
+      'correct', // b
+      'correct', // e
+      'locked', //  (space)
+      'pending', // f
+      'pending', // r
+      'pending', // e
+      'pending', // e
+    ];
+
+    it('excludes the untyped tail past the cursor instead of scoring it incorrect', () => {
+      // cursor at 6 = start of "free". Without the bound, "free" (all pending)
+      // would count as 1 incorrect word and zero out endless XP.
+      const result = analyzeWords(TEXT, partial(), {}, 6);
+      expect(result.correctWords).toBe(2); // "to", "be"
+      expect(result.incorrectWords).toBe(0); // "free" untyped -> not penalized
+    });
+
+    it('excludes an in-progress word straddling the cursor', () => {
+      // Player started "fr" of "free" then died: cursor at 8, word ends at 10.
+      const inProgress = partial();
+      inProgress[6] = 'correct';
+      inProgress[7] = 'correct';
+      const result = analyzeWords(TEXT, inProgress, {}, 8);
+      expect(result.correctWords).toBe(2); // "to", "be"
+      expect(result.incorrectWords).toBe(0); // "free" not finished -> not penalized
+    });
+
+    it('counts everything when typedLength is omitted (full-block path)', () => {
+      const result = analyzeWords(TEXT, partial());
+      expect(result.correctWords).toBe(2);
+      expect(result.incorrectWords).toBe(1); // "free" pending -> incorrect
+    });
+  });
 });
