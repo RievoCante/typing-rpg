@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useThemeContext } from '../hooks/useThemeContext';
 import { buildTypingLines } from '../utils/typingLines';
 
@@ -28,14 +29,44 @@ export default function TypingText({
 }: TypingTextProps) {
   const { theme } = useThemeContext();
 
-  // ADJUST THIS NUMBER to change max characters per line.
-  // Must stay small enough that a full line fits the prompt container width;
-  // otherwise the line visually wraps and its second row overflows the
-  // fixed-height line box and overlaps the next line. At the desktop card
-  // width (~665px) a monospace char with tracking-wider is ~15.7px, so 42
-  // chars (~658px) is the safe max. The whitespace-nowrap on each line below
-  // is the hard guard against overlap if a line ever exceeds the width.
-  const MAX_CHARS_PER_LINE = 42;
+  // Chars-per-line is measured from the live container width instead of being
+  // hardcoded, so a full line always fits no matter the screen size. We size a
+  // line to the actual available width divided by the actual rendered width of
+  // one monospace glyph (which includes tracking). `whitespace-nowrap` +
+  // `overflow-hidden` on each line below remain the hard guard if a single
+  // token (e.g. a long overflow run) ever exceeds the width.
+  const widthRef = useRef<HTMLDivElement>(null);
+  const charRef = useRef<HTMLSpanElement>(null);
+  // Conservative starting value: small enough to never overflow on first paint
+  // before measurement runs; corrected synchronously via useLayoutEffect.
+  const [maxCharsPerLine, setMaxCharsPerLine] = useState(20);
+
+  // Drives the re-measure when text first arrives (see effect deps below).
+  const hasText = text.length > 0;
+
+  useLayoutEffect(() => {
+    const widthEl = widthRef.current;
+    const charEl = charRef.current;
+    if (!widthEl || !charEl) return;
+
+    const SAMPLE_LEN = 20;
+    const recompute = () => {
+      const available = widthEl.clientWidth;
+      const charWidth = charEl.getBoundingClientRect().width / SAMPLE_LEN;
+      if (available <= 0 || charWidth <= 0) return;
+      // floor() guarantees the line fits; -1 char absorbs sub-pixel rounding
+      // and the cursor's 2px border. Clamp so we never produce empty lines.
+      const fit = Math.floor(available / charWidth) - 1;
+      setMaxCharsPerLine(Math.max(8, fit));
+    };
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(widthEl);
+    return () => observer.disconnect();
+    // Re-run when text first appears: the measured refs only mount in the
+    // non-loading branch, so the initial run is a no-op until text exists.
+  }, [hasText]);
 
   if (!text) {
     return (
@@ -104,7 +135,7 @@ export default function TypingText({
     return false;
   };
 
-  const textLines = buildTypingLines(text, overflow, MAX_CHARS_PER_LINE);
+  const textLines = buildTypingLines(text, overflow, maxCharsPerLine);
 
   // Find which line contains the cursor position
   const getCursorLineIndex = () => {
@@ -137,7 +168,19 @@ export default function TypingText({
   ];
 
   return (
-    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-left">
+    <div
+      ref={widthRef}
+      className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-left"
+    >
+      {/* Hidden probe: one rendered monospace glyph's width (incl. tracking),
+          measured live so chars-per-line adapts to the font and zoom level. */}
+      <span
+        ref={charRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute -z-10 select-none whitespace-pre opacity-0"
+      >
+        00000000000000000000
+      </span>
       <div className="space-y-0 h-[5.25em] overflow-hidden flex flex-col items-start justify-center">
         {' '}
         {/* Fixed height for exactly 3 lines */}
