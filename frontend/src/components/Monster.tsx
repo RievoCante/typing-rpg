@@ -1,11 +1,12 @@
 // inlucde name, monster model, HP number (from top to bottom)
 
-import { useRef, useState, useEffect } from 'react';
+import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
 import ParticleBurst from './ParticleBurst';
 import { useSfx } from '../hooks/useSfx';
+import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 
@@ -21,7 +22,7 @@ interface MonsterProps {
   shape?: SlimeShapeEnum; // For slimes only
 }
 
-export default function Monster({
+function Monster({
   monsterFamily,
   monsterType,
   isHit = false,
@@ -60,9 +61,11 @@ export default function Monster({
     }
   }, [isDefeated, playExplosion]);
 
-  const handleBurstComplete = () => {
+  // Stable identity so ParticleBurst's animation effect (which depends on
+  // onComplete) doesn't re-run — and restart its rAF loop — on every render.
+  const handleBurstComplete = useCallback(() => {
     setShowBurst(false);
-  };
+  }, []);
 
   return (
     <>
@@ -74,7 +77,8 @@ export default function Monster({
         <div className="w-full aspect-[3/2] bg-transparent transition-opacity duration-300">
           <Canvas
             camera={{ position: [0, 0, 4], fov: 50 }}
-            gl={{ alpha: true, antialias: true }}
+            dpr={CANVAS_DPR}
+            gl={CANVAS_GL}
           >
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
@@ -119,3 +123,5 @@ export default function Monster({
     </>
   );
 }
+
+export default memo(Monster);

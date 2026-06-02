@@ -28,8 +28,14 @@ export default function TypingText({
 }: TypingTextProps) {
   const { theme } = useThemeContext();
 
-  // ADJUST THIS NUMBER to change max characters per line
-  const MAX_CHARS_PER_LINE = 43;
+  // ADJUST THIS NUMBER to change max characters per line.
+  // Must stay small enough that a full line fits the prompt container width;
+  // otherwise the line visually wraps and its second row overflows the
+  // fixed-height line box and overlaps the next line. At the desktop card
+  // width (~665px) a monospace char with tracking-wider is ~15.7px, so 42
+  // chars (~658px) is the safe max. The whitespace-nowrap on each line below
+  // is the hard guard against overlap if a line ever exceeds the width.
+  const MAX_CHARS_PER_LINE = 42;
 
   if (!text) {
     return (
@@ -138,7 +144,7 @@ export default function TypingText({
         {visibleLines.map((line, lineIndex) => (
           <div
             key={`line-${viewportStartIndex}-${lineIndex}`}
-            className="block h-[1.75em]"
+            className="block h-[1.75em] overflow-hidden whitespace-nowrap"
           >
             {' '}
             {/* Each line is exactly 1.75em tall */}

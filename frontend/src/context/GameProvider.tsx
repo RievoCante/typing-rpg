@@ -78,9 +78,9 @@ export const GameProvider = ({
     setMonsterHp(prev => Math.max(0, prev - amount));
   }, []);
 
-  // One-shot guard so the HP-based defeat effect fires exactly once per monster.
-  // It is cleared only by spawnMonster (a genuinely new monster) — NOT by the
-  // defeat flag — because HP stays at 0 through the ~1.2s defeat window, during
+  // One-shot guard so the endless HP-defeat effect fires exactly once per
+  // monster. Cleared only by spawnMonster (a genuinely new monster) — NOT by the
+  // defeat flag — because HP sits at 0 through the death-animation window, during
   // which the flag flips back to false a render before spawnMonster restores HP.
   // Guarding on the flag would re-fire defeat in that gap and freeze the game.
   const defeatHandledRef = useRef<boolean>(false);
@@ -96,11 +96,12 @@ export const GameProvider = ({
     defeatHandledRef.current = false;
   }, []);
 
-  // Endless: defeat the instant monster HP hits zero, so the UI fires its defeat
-  // animation before the next monster spawns. One-shot via defeatHandledRef.
-  // The HP kill is THE kill event in endless: it counts the defeat (which then
-  // drives the 1.2s defeat window + App respawn). Block/text completion is just
-  // a buffer refill and must NOT count a kill (see useTypingCompletion).
+  // Endless: the monster dies the instant its HP hits zero (combat damage),
+  // mid-stream. This is THE kill event in endless — it counts the defeat, which
+  // drives the death-animation timer below + App respawn. One-shot via
+  // defeatHandledRef so it can't re-fire while HP sits at 0 during the window.
+  // Block/text completion is just a buffer refill and must NOT count a kill
+  // (see useTypingCompletion).
   useEffect(() => {
     if (currentMode !== 'endless') return;
     if (monsterHp <= 0 && monsterMaxHp > 0 && !defeatHandledRef.current) {
@@ -110,23 +111,29 @@ export const GameProvider = ({
     }
   }, [currentMode, monsterHp, monsterMaxHp, incrementMonstersDefeated]);
 
-  // Daily/raid: defeat the instant remaining words hit zero (unchanged). Endless
-  // no longer uses the word pool for defeat — its HP effect above owns that.
+  // Daily/raid: the monster is "defeated" exactly while its HP (remaining words)
+  // sits at zero with a prompt loaded. Deriving the flag from remainingWords sets
+  // it once on the kill and clears it the instant the next prompt loads — no
+  // matter how long the post-kill results screen holds the pause open. (A fixed
+  // timer here used to mis-fire while that results screen waited for Space.)
+  // Endless does not use the word pool for defeat — its HP effect above owns that.
   useEffect(() => {
     if (currentMode === 'endless') return;
-    const pct = totalWords > 0 ? (remainingWords / totalWords) * 100 : 100;
-    if (pct <= 0 && !isCurrentMonsterDefeated && totalWords > 0) {
-      setIsCurrentMonsterDefeated(true);
-    }
-  }, [currentMode, remainingWords, totalWords, isCurrentMonsterDefeated]);
+    if (totalWords <= 0) return;
+    const defeated = remainingWords <= 0;
+    setIsCurrentMonsterDefeated(prev => (prev === defeated ? prev : defeated));
+  }, [currentMode, remainingWords, totalWords]);
 
-  // Clear the defeat flag after the animation window elapses so the next
-  // monster can render fresh.
+  // Endless only: clear the defeat flag after the death-animation window so App
+  // spawns the next monster. Endless has no per-kill press-Space pause, so the
+  // fixed window is safe here (daily/raid instead clear via the remainingWords
+  // derive above when the next prompt loads).
   useEffect(() => {
+    if (currentMode !== 'endless') return;
     if (monstersDefeated === 0) return;
     const t = setTimeout(() => setIsCurrentMonsterDefeated(false), 1200);
     return () => clearTimeout(t);
-  }, [monstersDefeated]);
+  }, [currentMode, monstersDefeated]);
 
   // Each new monster session restarts the "started typing" gate so attacks
   // pause until the user actually begins typing. Endless is a continuous stream

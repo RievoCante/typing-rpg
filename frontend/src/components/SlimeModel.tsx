@@ -148,7 +148,7 @@ export default function SlimeModel({
         {activeShape === 'square' ? (
           <dodecahedronGeometry args={[1, 0]} />
         ) : (
-          <sphereGeometry args={[1, 32, 32]} />
+          <sphereGeometry args={[1, 24, 24]} />
         )}
         <meshPhongMaterial
           ref={bodyMatRef}
@@ -164,12 +164,12 @@ export default function SlimeModel({
 
         {/* Eyes are children of the body so they move/scale automatically */}
         <mesh ref={leftEyeRef} position={[-0.3, 0.2, 0.95]}>
-          <sphereGeometry args={[0.15, 16, 16]} />
+          <sphereGeometry args={[0.15, 12, 12]} />
           <meshPhongMaterial color="#000000" transparent={true} opacity={1.0} />
         </mesh>
 
         <mesh ref={rightEyeRef} position={[0.3, 0.2, 0.95]}>
-          <sphereGeometry args={[0.15, 16, 16]} />
+          <sphereGeometry args={[0.15, 12, 12]} />
           <meshPhongMaterial color="#000000" transparent={true} opacity={1.0} />
         </mesh>
       </mesh>
