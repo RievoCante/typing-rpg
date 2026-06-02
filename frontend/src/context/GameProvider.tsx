@@ -25,7 +25,7 @@ import {
 // raid surface in place of the daily/endless UI.
 export const GameProvider = ({
   children,
-  initialMode = 'daily',
+  initialMode = 'endless',
 }: {
   children: React.ReactNode;
   initialMode?: 'daily' | 'endless';
