@@ -18,12 +18,14 @@ import KillResultOverlay, { type KillResult } from './KillResultOverlay';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import PotionSlot from './PotionSlot';
+import WeaponSlot from './WeaponSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
 import {
   HitPopups,
   AttackPopups,
   PotionPopups,
+  WeaponPopups,
   CombatPopups,
   SaveErrorBanner,
 } from './TypingPopups';
@@ -37,6 +39,7 @@ import { useCompletionHandler } from '../hooks/useCompletionHandler';
 import { useHitPopups } from '../hooks/useHitPopups';
 import { useAttackPopups } from '../hooks/useAttackPopups';
 import { usePotionPopups } from '../hooks/usePotionPopups';
+import { useWeaponPopups } from '../hooks/useWeaponPopups';
 import { useCombatPopups } from '../hooks/useCombatPopups';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
@@ -73,6 +76,7 @@ export default function TypingInterface({
     damageMonster,
     registerComboCorrect,
     registerComboWrong,
+    equippedWeapon,
     isPlayerDead,
     hasStartedTyping,
     setHasStartedTyping,
@@ -128,6 +132,7 @@ export default function TypingInterface({
   const { hits, triggerHit } = useHitPopups();
   const attacks = useAttackPopups();
   const potionPopups = usePotionPopups();
+  const weaponPopups = useWeaponPopups();
   const combatPopups = useCombatPopups();
 
   // Surface the kill reward as a big "+N XP" under the Player Level card.
@@ -139,8 +144,9 @@ export default function TypingInterface({
     triggerHit();
     if (currentMode === 'endless') {
       // Combo-driven damage to the monster's HP. Endless HP is decoupled from
-      // the word pool, so we no longer decrement remainingWords here.
-      const { damage, crit } = registerComboCorrect();
+      // the word pool, so we no longer decrement remainingWords here. The
+      // equipped weapon (if any) raises crit chance / damage.
+      const { damage, crit } = registerComboCorrect(equippedWeapon);
       damageMonster(damage);
       window.dispatchEvent(
         new CustomEvent('combat-hit', { detail: { damage, crit } })
@@ -161,6 +167,7 @@ export default function TypingInterface({
     triggerHit,
     currentMode,
     registerComboCorrect,
+    equippedWeapon,
     damageMonster,
     registerCorrectWord,
     decrementRemainingWords,
@@ -483,8 +490,9 @@ export default function TypingInterface({
         </div>
 
         {currentMode === 'endless' && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-3">
             <PotionSlot />
+            <WeaponSlot />
           </div>
         )}
       </div>
@@ -505,6 +513,7 @@ export default function TypingInterface({
       <HitPopups hits={hits} />
       <AttackPopups attacks={attacks} />
       <PotionPopups popups={potionPopups} />
+      <WeaponPopups popups={weaponPopups} />
       <CombatPopups popups={combatPopups} />
     </>
   );

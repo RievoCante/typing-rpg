@@ -45,6 +45,8 @@ export const monsterMaxHp = (
 // at streak 50). A wrong word resets the streak to 0 (see useComboSystem).
 const CRIT_RAMP_PER_WORD = 0.015;
 const CRIT_CHANCE_CAP = 0.75;
+// Hard ceiling once a weapon's crit bonus is added on top of the streak chance.
+const TOTAL_CRIT_CHANCE_CAP = 0.95;
 
 export const critChanceForStreak = (streak: number): number =>
   Math.min(CRIT_CHANCE_CAP, Math.max(0, streak) * CRIT_RAMP_PER_WORD);
@@ -54,11 +56,27 @@ export interface DamageRoll {
   crit: boolean;
 }
 
-// Pure: rng is injectable so tests are deterministic. Defaults to Math.random.
+// Combat modifiers a weapon contributes (subset of utils/weapons.Weapon, kept
+// local so combatTuning has no hard dependency on the weapon pool).
+export interface WeaponMods {
+  bonusDamage: number;
+  bonusCritChance: number;
+  critMultBonus: number;
+}
+
+// Pure: rng is injectable so tests are deterministic. An equipped weapon raises
+// crit chance (capped at 95% total), base damage, and crit multiplier.
 export const rollDamage = (
   streak: number,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  weapon: WeaponMods | null = null
 ): DamageRoll => {
-  const crit = rng() < critChanceForStreak(streak);
-  return { damage: crit ? BASE_DMG * CRIT_MULT : BASE_DMG, crit };
+  const critChance = Math.min(
+    TOTAL_CRIT_CHANCE_CAP,
+    critChanceForStreak(streak) + (weapon?.bonusCritChance ?? 0)
+  );
+  const crit = rng() < critChance;
+  const base = BASE_DMG + (weapon?.bonusDamage ?? 0);
+  const mult = CRIT_MULT + (weapon?.critMultBonus ?? 0);
+  return { damage: Math.round(crit ? base * mult : base), crit };
 };
