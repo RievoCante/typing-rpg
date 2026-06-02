@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import type { CompletionStats } from '../types/completion';
 import type { WordAnalysisResult } from '../utils/wordAnalysis';
 
@@ -67,5 +67,10 @@ export function useFightStats() {
     startRef.current = null;
   }, []);
 
-  return { startFightIfNeeded, foldBlock, finalize, resetFight };
+  // Stable object identity: the four callbacks never change, so consumers can
+  // safely list the returned object in effect deps without re-firing each render.
+  return useMemo(
+    () => ({ startFightIfNeeded, foldBlock, finalize, resetFight }),
+    [startFightIfNeeded, foldBlock, finalize, resetFight]
+  );
 }
