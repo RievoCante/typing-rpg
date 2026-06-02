@@ -83,7 +83,7 @@ interface GameContextType {
 }
 
 export const GameContext = createContext<GameContextType>({
-  currentMode: 'daily',
+  currentMode: 'endless',
   setCurrentMode: () => {},
   totalWords: 0,
   remainingWords: 0,
