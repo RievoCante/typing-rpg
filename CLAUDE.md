@@ -22,13 +22,18 @@ Read those for product/feature-level questions. This file holds engineering rule
 
 - **Branch per feature off `dev`.** For any new feature/fix, create a branch from `dev` (e.g. `feature/raid-emotes`); never commit directly to `dev` or `main`.
 - **One worktree per feature branch (agents).** This project runs many parallel AI agents, so each agent's branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy. Agents: call `EnterWorktree` before editing; humans: `git worktree add`.
-- **Agent merges feature → `dev`** once the feature is complete and CI passes (see Verification below), then deletes its worktree.
+- **Agent merges feature → `dev`** once the feature is complete and CI passes (see Verification below). The merge isn't done until you've run the **Vault Sync** step below (or decided the change isn't vault-worthy) — treat it as part of the merge, not a separate task to be asked for. Then delete the worktree.
 - **`dev` is the integration + test branch; `main` is production.** The user keeps their main checkout on `dev` and runs the local server there to test merged features — no need to enter agent worktrees. After testing, open a PR `dev → main`. Merging to `main` triggers backend CD (see Deployment).
 - **Squash-merge `dev → main`, then re-sync.** Because the PR is squash-merged, merge `origin/main` back into `dev` afterward to keep history clean and avoid phantom commits in the next PR.
 
 ## Vault Sync (after merge → `dev`)
 
-After merging a **vault-worthy** change into `dev` (a new feature, or a change to documented product behavior — *not* styling/perf/refactor/bugfix), **use the `vault-update` skill** to keep the product vault (`~/Workspace/ai-brain/business/typing-rpg/`) in sync. The skill has the full procedure (owned-file edits, conflict-safe `log-inbox/` fragments, commit+push). Don't hand-edit `log.md`/`index.md` — the skill explains why.
+**This is automatic, not on-request.** After every merge to `dev`, decide whether the change is vault-worthy and act without waiting to be told:
+
+- **Vault-worthy → invoke the `vault-update` skill.** A change is vault-worthy if a teammate reading the product vault would need it to understand what the product does: a new feature shipped, documented product behavior changed (game rules, modes, XP numbers, user flow, balance), or a feature was removed/reworked.
+- **Not vault-worthy → skip silently.** Styling/layout, performance, refactors with no behavior change, and pure bug fixes are already captured by git + claude-mem. Don't run the skill for these.
+
+When in doubt, lean toward running it — the skill itself re-applies this filter and holds the full procedure (owned-file edits, conflict-safe `log-inbox/` fragments, commit+push to the separate `ai-brain` repo). Never hand-edit `log.md`/`index.md` — the skill explains why.
 
 ## Verification (CI order)
 
