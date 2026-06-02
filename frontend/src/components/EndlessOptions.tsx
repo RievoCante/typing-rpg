@@ -1,6 +1,5 @@
 import { useThemeContext } from '../hooks/useThemeContext';
 import DifficultyDropdown from './DifficultyDropdown';
-import WeaponLoadoutPanel from './WeaponLoadoutPanel';
 
 export default function EndlessOptions() {
   const { theme } = useThemeContext();
@@ -19,9 +18,6 @@ export default function EndlessOptions() {
           <DifficultyDropdown />
         </div>
       </div>
-
-      {/* Pre-run weapon loadout picker (Phase 3b) */}
-      <WeaponLoadoutPanel />
     </div>
   );
 }
