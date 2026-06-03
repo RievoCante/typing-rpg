@@ -12,7 +12,7 @@ export default function TypingPauseButton({
 }) {
   const { theme } = useThemeContext();
   return (
-    <div className="absolute bottom-4 right-16 z-10 group">
+    <div className="relative group">
       <button
         type="button"
         aria-label={paused ? 'Resume game' : 'Pause game'}

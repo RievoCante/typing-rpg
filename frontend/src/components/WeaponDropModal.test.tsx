@@ -15,7 +15,7 @@ describe('WeaponDropModal', () => {
     expect(html).toContain('+5 Damage');
     expect(html).toContain('+10% Crit Chance');
     expect(html).toContain('Take');
-    expect(html).toContain('Press SPACE to take');
+    expect(html).toContain('Press ENTER to take');
   });
 
   it('applies the rarity color class', () => {

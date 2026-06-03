@@ -8,7 +8,7 @@ export default function TypingRestartButton({
 }) {
   const { theme } = useThemeContext();
   return (
-    <div className="absolute bottom-4 right-4 z-10 group">
+    <div className="relative group">
       <button
         type="button"
         aria-label="Restart typing"

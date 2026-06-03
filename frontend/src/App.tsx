@@ -7,6 +7,7 @@ import {
   Suspense,
 } from 'react';
 import { SignedIn } from '@clerk/clerk-react';
+import { Pause } from 'lucide-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import MilestoneProgress from './components/MilestoneProgress';
@@ -197,25 +198,37 @@ function GameContent() {
           <>
             <MonsterNameplate family={monsterFamily} variant={monsterVariant} />
             <HealthBar />
-            <Suspense
-              fallback={
-                <div className="w-full max-w-md mx-auto py-4">
-                  <div className="w-full aspect-[3/2]" />
+            <div className="relative">
+              <Suspense
+                fallback={
+                  <div className="w-full max-w-md mx-auto py-4">
+                    <div className="w-full aspect-[3/2]" />
+                  </div>
+                }
+              >
+                <Monster
+                  monsterFamily={monsterFamily}
+                  monsterType={monsterType}
+                  variant={monsterVariant}
+                  isDefeated={isDefeated}
+                  color={monsterVisuals.color}
+                  scale={monsterVisuals.scale}
+                  shape={monsterShape}
+                  eyeStyle={monsterVisuals.eyeStyle}
+                  paused={isManuallyPaused}
+                />
+              </Suspense>
+              {isManuallyPaused && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Pause
+                    size={96}
+                    className="text-white/85 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+                    fill="currentColor"
+                    strokeWidth={0}
+                  />
                 </div>
-              }
-            >
-              <Monster
-                monsterFamily={monsterFamily}
-                monsterType={monsterType}
-                variant={monsterVariant}
-                isDefeated={isDefeated}
-                color={monsterVisuals.color}
-                scale={monsterVisuals.scale}
-                shape={monsterShape}
-                eyeStyle={monsterVisuals.eyeStyle}
-                paused={isManuallyPaused}
-              />
-            </Suspense>
+              )}
+            </div>
             <SignedIn>
               <PlayerLevel
                 level={level}

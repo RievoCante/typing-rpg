@@ -727,13 +727,15 @@ export default function TypingInterface({
               />
             </div>
 
-            {canPause && (
-              <TypingPauseButton
-                paused={isManuallyPaused}
-                onToggle={togglePause}
-              />
-            )}
-            <TypingRestartButton onRestart={restartSession} />
+            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
+              {canPause && (
+                <TypingPauseButton
+                  paused={isManuallyPaused}
+                  onToggle={togglePause}
+                />
+              )}
+              <TypingRestartButton onRestart={restartSession} />
+            </div>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
