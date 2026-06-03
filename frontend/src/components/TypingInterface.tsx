@@ -45,6 +45,7 @@ import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
 import type { CompletionResult } from '../types/completion';
 import { useFightStats } from '../hooks/useFightStats';
+import { useSessionMetrics } from '../hooks/useSessionMetrics';
 import { analyzeWords } from '../utils/wordAnalysis';
 import { getWpmTitle } from '../utils/wpmTitle';
 import WeaponLoadoutPanel from './WeaponLoadoutPanel';
@@ -67,11 +68,6 @@ const ENDLESS_BLOCK_WORDS = 50;
 // Matches the monster death-animation window; the result overlay reveals after it.
 const DEATH_ANIM_MS = 1200;
 
-// Word-level accuracy as a 0-100 integer (100 when nothing typed).
-function accuracyPct(correct: number, incorrect: number): number {
-  const total = correct + incorrect;
-  return total > 0 ? Math.round((correct / total) * 100) : 100;
-}
 
 export default function TypingInterface({
   dailyProgress,
@@ -152,6 +148,7 @@ export default function TypingInterface({
   const combatPopups = useCombatPopups();
 
   const fightStats = useFightStats();
+  const sessionMetrics = useSessionMetrics();
   const [loadoutPending, setLoadoutPending] = useState(
     currentMode === 'endless'
   );
@@ -211,6 +208,7 @@ export default function TypingInterface({
     text,
     onWordCompleted: handleWordCompleted,
     onWordMistake: handleWordMistake,
+    onKeypress: sessionMetrics.recordKeypress,
   });
 
   const charStatusRef = useRef(typingMechanics.charStatus);
@@ -407,7 +405,7 @@ export default function TypingInterface({
     // The monster usually dies mid-block, so bound the analysis to the cursor:
     // words past it are untyped and must not count as incorrect (that would
     // zero out the earned XP and report a bogus low accuracy).
-    const stats = fightStats.finalize(
+    const baseStats = fightStats.finalize(
       analyzeWords(
         text,
         charStatusRef.current,
@@ -415,6 +413,8 @@ export default function TypingInterface({
         cursorPositionRef.current
       )
     );
+    const metrics = sessionMetrics.finalize(baseStats.elapsedMinutes);
+    const stats = { ...baseStats, metrics };
     // Only compute + stash the result here. The 1.2s reveal is scheduled by a
     // separate effect keyed on `killResult` (stable state) — NOT here — so the
     // re-renders this async block triggers (setEarnedXp / setKillResult /
@@ -430,7 +430,7 @@ export default function TypingInterface({
       setKillResult({
         title: getWpmTitle(stats.finalWpm),
         wpm: stats.finalWpm,
-        accuracy: accuracyPct(stats.correctWords, stats.incorrectWords),
+        accuracy: metrics.accuracy,
         xp: typeof result.xpDelta === 'number' ? result.xpDelta : undefined,
       });
     })();
@@ -439,6 +439,7 @@ export default function TypingInterface({
     isCurrentMonsterDefeated,
     hasStartedTyping,
     fightStats,
+    sessionMetrics,
     text,
     typingMechanics.overflow,
     completionHandler,
@@ -471,6 +472,7 @@ export default function TypingInterface({
     setKillResult(null);
     if (currentMode === 'endless') {
       fightStats.resetFight();
+      sessionMetrics.reset();
       fightFinalizedRef.current = false;
       prevDefeatedRef.current = false;
       resetDefeatState(); // flag falls -> App spawns the next monster
@@ -483,6 +485,7 @@ export default function TypingInterface({
     awaitingContinue,
     currentMode,
     fightStats,
+    sessionMetrics,
     resetDefeatState,
     restartSession,
   ]);
@@ -493,12 +496,13 @@ export default function TypingInterface({
     if (currentMode === 'endless') {
       setLoadoutPending(true);
       fightStats.resetFight();
+      sessionMetrics.reset();
       fightFinalizedRef.current = false;
       prevDefeatedRef.current = false;
     } else {
       setLoadoutPending(false);
     }
-  }, [currentMode, fightStats]);
+  }, [currentMode, fightStats, sessionMetrics]);
 
   useEffect(() => {
     if (currentMode !== 'endless') return;
@@ -507,11 +511,12 @@ export default function TypingInterface({
       setAwaitingContinue(false);
       setKillResult(null);
       fightStats.resetFight();
+      sessionMetrics.reset();
       fightFinalizedRef.current = false;
       prevDefeatedRef.current = false;
     }
     wasDeadRef.current = isPlayerDead;
-  }, [currentMode, isPlayerDead, fightStats]);
+  }, [currentMode, isPlayerDead, fightStats, sessionMetrics]);
 
   const handleLoadoutConfirm = useCallback(() => {
     setLoadoutPending(false);
@@ -571,6 +576,7 @@ export default function TypingInterface({
         setHasStartedTyping(true);
         performance.startSession();
         fightStats.startFightIfNeeded();
+        sessionMetrics.startIfNeeded();
         trackEvent('started_typing', currentMode);
       }
       typingMechanics.handleCharacterInput(key);
