@@ -4,6 +4,10 @@ export interface WordAnalysisResult {
   correctWords: number;
   incorrectWords: number;
   totalCharsIncludingSpaces: number;
+  correctChars: number;
+  incorrectChars: number;
+  extraChars: number;
+  missedChars: number;
 }
 
 /**
@@ -31,6 +35,10 @@ export const analyzeWords = (
   let correctWords = 0;
   let incorrectWords = 0;
   let totalCharsIncludingSpaces = 0;
+  let correctChars = 0;
+  let incorrectChars = 0;
+  let extraChars = 0;
+  let missedChars = 0;
 
   // Use regex to find words with their positions in the original text
   const wordMatches = [...text.matchAll(/\S+/g)];
@@ -44,18 +52,27 @@ export const analyzeWords = (
     // word is also untyped — stop scoring entirely.
     if (typedLength !== undefined && wordEndIndex > typedLength) break;
 
-    // A word with extra (overflow) characters at its trailing boundary is
-    // always incorrect, regardless of its base characters.
-    let isWordCorrect = (overflow[wordEndIndex]?.length ?? 0) === 0;
-
-    // Check if all characters in this word are correct or locked
-    for (let i = wordStartIndex; isWordCorrect && i < wordEndIndex; i++) {
+    // Per-character tally for this reached word (letter-only; spaces excluded).
+    let wordCorrect = 0;
+    let wordIncorrect = 0;
+    let wordMissed = 0;
+    for (let i = wordStartIndex; i < wordEndIndex; i++) {
       const status = charStatus[i];
-      if (status !== 'correct' && status !== 'locked') {
-        isWordCorrect = false;
-        break;
-      }
+      if (status === 'correct' || status === 'locked') wordCorrect++;
+      else if (status === 'incorrect') wordIncorrect++;
+      else wordMissed++; // 'pending' | 'skipped'
     }
+    const wordExtra = overflow[wordEndIndex]?.length ?? 0;
+
+    correctChars += wordCorrect;
+    incorrectChars += wordIncorrect;
+    missedChars += wordMissed;
+    extraChars += wordExtra;
+
+    // A word is correct only if every char is correct/locked and it carries no
+    // overflow — identical to the previous definition.
+    const isWordCorrect =
+      wordExtra === 0 && wordIncorrect === 0 && wordMissed === 0;
 
     if (isWordCorrect) {
       correctWords++;
@@ -75,6 +92,10 @@ export const analyzeWords = (
     correctWords,
     incorrectWords,
     totalCharsIncludingSpaces,
+    correctChars,
+    incorrectChars,
+    extraChars,
+    missedChars,
   };
 };
 

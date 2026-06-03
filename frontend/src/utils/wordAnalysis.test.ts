@@ -79,3 +79,47 @@ describe('analyzeWords', () => {
     });
   });
 });
+
+describe('analyzeWords char breakdown', () => {
+  it('counts all-correct word as correctChars only', () => {
+    const text = 'cat';
+    const cs: CharStatus[] = ['correct', 'correct', 'correct'];
+    const r = analyzeWords(text, cs);
+    expect(r.correctChars).toBe(3);
+    expect(r.incorrectChars).toBe(0);
+    expect(r.missedChars).toBe(0);
+    expect(r.extraChars).toBe(0);
+  });
+
+  it('counts a wrong char inside a word', () => {
+    const text = 'cat';
+    const cs: CharStatus[] = ['correct', 'incorrect', 'correct'];
+    const r = analyzeWords(text, cs);
+    expect(r.correctChars).toBe(2);
+    expect(r.incorrectChars).toBe(1);
+    expect(r.incorrectWords).toBe(1);
+  });
+
+  it('counts overflow letters as extraChars and marks the word incorrect', () => {
+    const text = 'cat dog';
+    const cs: CharStatus[] = [
+      'correct', 'correct', 'correct', 'pending',
+      'pending', 'pending', 'pending',
+    ];
+    const r = analyzeWords(text, cs, { 3: ['x', 'y'] }, 3);
+    expect(r.extraChars).toBe(2);
+    expect(r.incorrectWords).toBe(1);
+    expect(r.correctChars).toBe(3);
+  });
+
+  it('counts pending/skipped chars in a reached word as missedChars', () => {
+    const text = 'cat dog';
+    const cs: CharStatus[] = [
+      'correct', 'pending', 'pending', 'locked',
+      'pending', 'pending', 'pending',
+    ];
+    const r = analyzeWords(text, cs, {}, 4);
+    expect(r.correctChars).toBe(1);
+    expect(r.missedChars).toBe(2);
+  });
+});
