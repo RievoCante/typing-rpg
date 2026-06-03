@@ -25,9 +25,14 @@ describe('comboReducer', () => {
     expect(state.streak).toBe(2);
   });
 
-  it('resets streak to 0 on WRONG_WORD', () => {
-    let state: ComboState = { streak: 2 };
+  it('halves streak (round down) on WRONG_WORD', () => {
+    let state: ComboState = { streak: 9 };
     state = comboReducer(state, { type: 'WRONG_WORD' });
+    expect(state.streak).toBe(4);
+  });
+
+  it('floors streak to 0 on WRONG_WORD when streak is 1', () => {
+    const state = comboReducer({ streak: 1 }, { type: 'WRONG_WORD' });
     expect(state.streak).toBe(0);
   });
 
