@@ -41,7 +41,7 @@ export default function WeaponSlot() {
       {/* Hover tooltip explaining the loot loop. */}
       <div
         role="tooltip"
-        className={`pointer-events-none absolute right-full top-1/2 z-50 mr-3 w-56 -translate-y-1/2 rounded-lg px-3 py-2.5 text-left opacity-0 shadow-xl ring-1 transition-opacity duration-150 group-hover:opacity-100 ${
+        className={`pointer-events-none absolute left-full top-1/2 z-50 ml-3 w-56 -translate-y-1/2 rounded-lg px-3 py-2.5 text-left opacity-0 shadow-xl ring-1 transition-opacity duration-150 group-hover:opacity-100 ${
           theme === 'dark'
             ? 'bg-gray-800 text-gray-200 ring-gray-700'
             : 'bg-white text-gray-700 ring-gray-200'
