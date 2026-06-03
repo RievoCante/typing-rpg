@@ -1,6 +1,8 @@
 import { createContext } from 'react';
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
 import type { Weapon } from '../utils/weapons';
+import type { RunMetricsState } from '../hooks/useRunMetrics';
+import type { ChartData } from '../types/completion';
 
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
 
@@ -56,6 +58,13 @@ interface GameContextType {
     crit: boolean;
   };
   registerComboWrong: () => void;
+  // Run-level metrics for the Battle Report (Endless). Accumulated across kills,
+  // reset in resetGameState.
+  runMetrics: RunMetricsState;
+  /** Forward a finished fight's per-second samples + elapsed seconds. */
+  appendRunFight: (chart: ChartData, seconds: number) => void;
+  /** Add per-kill XP to the run total. */
+  addRunXp: (amount: number) => void;
   endlessDifficulty: EndlessDifficulty;
   setEndlessDifficulty: (difficulty: EndlessDifficulty) => void;
   // Player typing state
@@ -124,6 +133,17 @@ export const GameContext = createContext<GameContextType>({
   comboCritChance: 0,
   registerComboCorrect: () => ({ damage: 1, crit: false }),
   registerComboWrong: () => {},
+  runMetrics: {
+    chart: { wpm: [], raw: [], err: [] },
+    critCount: 0,
+    totalXp: 0,
+    monstersDefeated: 0,
+    bestWpm: 0,
+    elapsedSeconds: 0,
+    loot: [],
+  },
+  appendRunFight: () => {},
+  addRunXp: () => {},
   endlessDifficulty: 'beginner',
   setEndlessDifficulty: () => {},
   // Player typing state

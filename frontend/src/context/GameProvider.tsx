@@ -9,6 +9,7 @@ import { usePlayerHealth } from '../hooks/usePlayerHealth';
 import { usePotionSystem } from '../hooks/usePotionSystem';
 import { useMonsterAttackLoop } from '../hooks/useMonsterAttackLoop';
 import { useComboSystem } from '../hooks/useComboSystem';
+import { useRunMetrics } from '../hooks/useRunMetrics';
 import { useWeaponSystem } from '../hooks/useWeaponSystem';
 import { useWeaponVault } from '../hooks/useWeaponVault';
 import { usePlayerStats } from '../hooks/usePlayerStats';
@@ -117,6 +118,10 @@ export const GameProvider = ({
     clearPendingDrop,
   } = weapon;
 
+  // Run-level metrics accumulator for the Battle Report (Endless). Fed by the
+  // combo roll (crits), kills, XP, fight finalize, and loot; reset on run end.
+  const runMetrics = useRunMetrics();
+
   useMonsterAttackLoop({
     currentMode,
     currentMonsterType,
@@ -181,6 +186,7 @@ export const GameProvider = ({
       defeatHandledRef.current = true;
       setIsCurrentMonsterDefeated(true);
       incrementMonstersDefeated();
+      runMetrics.incMonster();
       // Variant kill reward: elite/rare grant an instant combo surge (more
       // crits = faster kills), and a rare also drops a potion. Common = none.
       const surge = VARIANT_COMBO_SURGE[currentMonsterVariant];
@@ -200,7 +206,14 @@ export const GameProvider = ({
     addStreak,
     addPotion,
     tryDropWeapon,
+    runMetrics,
   ]);
+
+  // Record each weapon drop into the run loot list (deduped by id in the
+  // reducer). pendingDrop is set by useWeaponSystem on a successful drop roll.
+  useEffect(() => {
+    if (pendingDrop) runMetrics.loot(pendingDrop);
+  }, [pendingDrop, runMetrics]);
 
   // Daily/raid: the monster is "defeated" exactly while its HP (remaining words)
   // sits at zero with a prompt loaded. Deriving the flag from remainingWords sets
@@ -257,13 +270,20 @@ export const GameProvider = ({
 
   // Bind the current player level into the combo damage roll so base damage
   // includes the level bonus without TypingInterface needing to know about it.
+  // Also tally each crit for the Battle Report; the roll is passed through
+  // unchanged so callers (TypingInterface) still get { damage, crit }.
   const { registerCorrectWord: registerComboCorrectRaw } = combo;
+  const { tallyCrit: runTallyCrit } = runMetrics;
   const registerComboCorrect = useCallback(
     (
       weapon: Parameters<typeof registerComboCorrectRaw>[0] = null,
       rng: Parameters<typeof registerComboCorrectRaw>[1] = Math.random
-    ) => registerComboCorrectRaw(weapon, rng, level),
-    [registerComboCorrectRaw, level]
+    ) => {
+      const roll = registerComboCorrectRaw(weapon, rng, level);
+      if (roll.crit) runTallyCrit();
+      return roll;
+    },
+    [registerComboCorrectRaw, level, runTallyCrit]
   );
 
   const resetGameState = useCallback(() => {
@@ -282,7 +302,8 @@ export const GameProvider = ({
     defeatHandledRef.current = false;
     combo.reset();
     weapon.reset();
-  }, [health, potion, combo, weapon]);
+    runMetrics.reset();
+  }, [health, potion, combo, weapon, runMetrics]);
 
   const contextValue = useMemo(
     () => ({
@@ -315,6 +336,9 @@ export const GameProvider = ({
       comboCritChance: combo.critChance,
       registerComboCorrect,
       registerComboWrong: combo.registerWrongWord,
+      runMetrics: runMetrics.state,
+      appendRunFight: runMetrics.appendFight,
+      addRunXp: runMetrics.addXp,
       ...endlessSettings,
       playerHealth: health.playerHealth,
       maxPlayerHealth: health.maxPlayerHealth,
@@ -359,6 +383,9 @@ export const GameProvider = ({
       combo.critChance,
       registerComboCorrect,
       combo.registerWrongWord,
+      runMetrics.state,
+      runMetrics.appendFight,
+      runMetrics.addXp,
       endlessSettings,
       health,
       currentMonsterType,
