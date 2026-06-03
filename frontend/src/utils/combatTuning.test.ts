@@ -8,6 +8,9 @@ import {
   monsterMaxHp,
   VARIANT_HP_MULT,
   VARIANT_COMBO_SURGE,
+  hpBonus,
+  levelDmgBonus,
+  detectLevelUp,
 } from './combatTuning';
 
 describe('combatTuning', () => {
@@ -84,5 +87,113 @@ describe('combatTuning', () => {
     // streak 50 (0.75) + 0.5 = 1.25 → capped 0.95.
     expect(rollDamage(50, () => 0.94, weapon).crit).toBe(true);
     expect(rollDamage(50, () => 0.96, weapon).crit).toBe(false);
+  });
+
+  it('rollDamage adds the level damage bonus to a non-crit hit', () => {
+    // streak 0, rng 0.99 → no crit. level 20 → +1.0 bonus. base = 1 + 0 + 1 = 2.
+    expect(rollDamage(0, () => 0.99, null, 20)).toEqual({
+      damage: 2,
+      crit: false,
+    });
+  });
+
+  it('rollDamage caps the level damage bonus at +1.0', () => {
+    // level 50 also yields +1.0 (capped). base = 1 + 1 = 2.
+    expect(rollDamage(0, () => 0.99, null, 50)).toEqual({
+      damage: 2,
+      crit: false,
+    });
+  });
+
+  it('rollDamage stacks weapon bonus and level bonus on the base', () => {
+    const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0 };
+    // base = 1 + 3 + 0.25 (level 5) = 4.25 → round → 4.
+    expect(rollDamage(0, () => 0.99, weapon, 5)).toEqual({
+      damage: 4,
+      crit: false,
+    });
+  });
+
+  it('rollDamage defaults level to 1 (no bonus) when omitted', () => {
+    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 1, crit: false });
+  });
+});
+
+describe('hpBonus', () => {
+  it('grants +1 max HP per 5 levels, uncapped', () => {
+    expect(hpBonus(1)).toBe(0);
+    expect(hpBonus(4)).toBe(0);
+    expect(hpBonus(5)).toBe(1);
+    expect(hpBonus(9)).toBe(1);
+    expect(hpBonus(20)).toBe(4);
+    expect(hpBonus(50)).toBe(10);
+  });
+});
+
+describe('levelDmgBonus', () => {
+  it('adds +0.25 base damage per 5 levels, capped at +1.0', () => {
+    expect(levelDmgBonus(1)).toBeCloseTo(0);
+    expect(levelDmgBonus(4)).toBeCloseTo(0);
+    expect(levelDmgBonus(5)).toBeCloseTo(0.25);
+    expect(levelDmgBonus(10)).toBeCloseTo(0.5);
+    expect(levelDmgBonus(20)).toBeCloseTo(1.0); // 4 milestones * 0.25 = 1.0
+    expect(levelDmgBonus(50)).toBeCloseTo(1.0); // capped
+    expect(levelDmgBonus(100)).toBeCloseTo(1.0); // still capped
+  });
+});
+
+describe('detectLevelUp', () => {
+  it('flags no level-up when level is unchanged or decreased', () => {
+    expect(detectLevelUp(5, 5)).toEqual({
+      leveledUp: false,
+      milestoneReached: false,
+      newLevel: 5,
+    });
+    expect(detectLevelUp(5, 4)).toEqual({
+      leveledUp: false,
+      milestoneReached: false,
+      newLevel: 4,
+    });
+  });
+  it('flags a plain level-up that does not cross a multiple of 5', () => {
+    expect(detectLevelUp(6, 7)).toEqual({
+      leveledUp: true,
+      milestoneReached: false,
+      newLevel: 7,
+    });
+  });
+  it('flags a milestone when the new level crosses a multiple of 5', () => {
+    expect(detectLevelUp(4, 5)).toEqual({
+      leveledUp: true,
+      milestoneReached: true,
+      newLevel: 5,
+    });
+    expect(detectLevelUp(9, 10)).toEqual({
+      leveledUp: true,
+      milestoneReached: true,
+      newLevel: 10,
+    });
+  });
+  it('flags a milestone on a multi-level jump that crosses a multiple of 5', () => {
+    // 8 -> 12 crosses 10
+    expect(detectLevelUp(8, 12)).toEqual({
+      leveledUp: true,
+      milestoneReached: true,
+      newLevel: 12,
+    });
+    // 3 -> 11 crosses 5 and 10 -> still milestone, celebrate highest (derived from newLevel)
+    expect(detectLevelUp(3, 11)).toEqual({
+      leveledUp: true,
+      milestoneReached: true,
+      newLevel: 11,
+    });
+  });
+  it('flags a multi-level jump with no multiple of 5 crossed as a non-milestone level-up', () => {
+    // 6 -> 9 crosses no multiple of 5
+    expect(detectLevelUp(6, 9)).toEqual({
+      leveledUp: true,
+      milestoneReached: false,
+      newLevel: 9,
+    });
   });
 });

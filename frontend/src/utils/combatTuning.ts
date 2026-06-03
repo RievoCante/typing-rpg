@@ -51,6 +51,36 @@ const TOTAL_CRIT_CHANCE_CAP = 0.95;
 export const critChanceForStreak = (streak: number): number =>
   Math.min(CRIT_CHANCE_CAP, Math.max(0, streak) * CRIT_RAMP_PER_WORD);
 
+// --- Level-derived progression payoff (Endless, signed-in only) ---
+// milestonesReached = floor(level / 5). Bonuses are DERIVED from level (no
+// backend state) so they're idempotent across multi-level jumps.
+
+const milestonesReached = (level: number): number =>
+  Math.max(0, Math.floor(level / 5));
+
+// Max HP bonus: +1 per milestone, uncapped. Trivial vs base 100.
+export const hpBonus = (level: number): number => milestonesReached(level);
+
+// Base damage bonus: +0.25 per milestone, CAPPED at +1.0 (~level 20) so it
+// never outweighs streak/weapon power.
+export const levelDmgBonus = (level: number): number =>
+  Math.min(1.0, 0.25 * milestonesReached(level));
+
+export interface LevelUpEvent {
+  leveledUp: boolean;
+  milestoneReached: boolean;
+  newLevel: number;
+}
+
+// Pure level-up detection: leveledUp when next > prev; milestoneReached when
+// the jump crosses (or lands on) a new multiple of 5, i.e. floor(next/5) grew.
+export const detectLevelUp = (prev: number, next: number): LevelUpEvent => {
+  const leveledUp = next > prev;
+  const milestoneReached =
+    leveledUp && milestonesReached(next) > milestonesReached(prev);
+  return { leveledUp, milestoneReached, newLevel: next };
+};
+
 export interface DamageRoll {
   damage: number;
   crit: boolean;
@@ -65,18 +95,20 @@ export interface WeaponMods {
 }
 
 // Pure: rng is injectable so tests are deterministic. An equipped weapon raises
-// crit chance (capped at 95% total), base damage, and crit multiplier.
+// crit chance (capped at 95% total), base damage, and crit multiplier. `level`
+// adds the faint level-derived base-damage bonus (capped +1.0; default 1 = +0).
 export const rollDamage = (
   streak: number,
   rng: () => number = Math.random,
-  weapon: WeaponMods | null = null
+  weapon: WeaponMods | null = null,
+  level: number = 1
 ): DamageRoll => {
   const critChance = Math.min(
     TOTAL_CRIT_CHANCE_CAP,
     critChanceForStreak(streak) + (weapon?.bonusCritChance ?? 0)
   );
   const crit = rng() < critChance;
-  const base = BASE_DMG + (weapon?.bonusDamage ?? 0);
+  const base = BASE_DMG + (weapon?.bonusDamage ?? 0) + levelDmgBonus(level);
   const mult = CRIT_MULT + (weapon?.critMultBonus ?? 0);
   return { damage: Math.round(crit ? base * mult : base), crit };
 };
