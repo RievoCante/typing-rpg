@@ -68,7 +68,6 @@ const ENDLESS_BLOCK_WORDS = 50;
 // Matches the monster death-animation window; the result overlay reveals after it.
 const DEATH_ANIM_MS = 1200;
 
-
 export default function TypingInterface({
   dailyProgress,
   reloadPlayerStats,

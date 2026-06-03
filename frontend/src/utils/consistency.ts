@@ -16,9 +16,7 @@ export function populationStdDev(values: number[]): number {
 }
 
 export function kogasa(cov: number): number {
-  return (
-    100 * (1 - Math.tanh(cov + cov ** 3 / 3 + cov ** 5 / 5))
-  );
+  return 100 * (1 - Math.tanh(cov + cov ** 3 / 3 + cov ** 5 / 5));
 }
 
 // Consistency over a samples array (e.g. raw WPM per second). <2 samples → 0.

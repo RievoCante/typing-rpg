@@ -75,8 +75,7 @@ export function useSessionMetrics() {
     const total = s.correct + s.incorrect;
     const rawWpm =
       elapsedMinutes > 0 ? Math.round(total / 5 / elapsedMinutes) : 0;
-    const accuracy =
-      total > 0 ? Math.round((s.correct / total) * 100) : 100;
+    const accuracy = total > 0 ? Math.round((s.correct / total) * 100) : 100;
     return {
       rawWpm,
       accuracy,
@@ -94,7 +93,8 @@ export function useSessionMetrics() {
 
   useEffect(() => {
     return () => {
-      if (ref.current.intervalId !== null) clearInterval(ref.current.intervalId);
+      if (ref.current.intervalId !== null)
+        clearInterval(ref.current.intervalId);
     };
   }, []);
 

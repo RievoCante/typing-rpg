@@ -16,8 +16,20 @@ const block = (over: Partial<WordAnalysisResult>): WordAnalysisResult => ({
 describe('finalizeFightStats', () => {
   it('sums accumulated blocks with the in-progress block', () => {
     const stats = finalizeFightStats(
-      { chars: 100, correct: 20, incorrect: 2, correctChars: 0, incorrectChars: 0, extraChars: 0, missedChars: 0 },
-      block({ totalCharsIncludingSpaces: 50, correctWords: 10, incorrectWords: 1 }),
+      {
+        chars: 100,
+        correct: 20,
+        incorrect: 2,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 50,
+        correctWords: 10,
+        incorrectWords: 1,
+      }),
       1 // minute
     );
     expect(stats.totalCharsIncludingSpaces).toBe(150);
@@ -29,8 +41,20 @@ describe('finalizeFightStats', () => {
 
   it('returns 0 wpm when no time elapsed', () => {
     const stats = finalizeFightStats(
-      { chars: 0, correct: 0, incorrect: 0, correctChars: 0, incorrectChars: 0, extraChars: 0, missedChars: 0 },
-      block({ totalCharsIncludingSpaces: 25, correctWords: 5, incorrectWords: 0 }),
+      {
+        chars: 0,
+        correct: 0,
+        incorrect: 0,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 25,
+        correctWords: 5,
+        incorrectWords: 0,
+      }),
       0
     );
     expect(stats.finalWpm).toBe(0);
@@ -38,8 +62,20 @@ describe('finalizeFightStats', () => {
 
   it('handles a fast kill that fits in a single block (no accumulation)', () => {
     const stats = finalizeFightStats(
-      { chars: 0, correct: 0, incorrect: 0, correctChars: 0, incorrectChars: 0, extraChars: 0, missedChars: 0 },
-      block({ totalCharsIncludingSpaces: 60, correctWords: 12, incorrectWords: 0 }),
+      {
+        chars: 0,
+        correct: 0,
+        incorrect: 0,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 60,
+        correctWords: 12,
+        incorrectWords: 0,
+      }),
       0.5
     );
     expect(stats.totalCharsIncludingSpaces).toBe(60);

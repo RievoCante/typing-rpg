@@ -47,7 +47,13 @@ export const useTypingMechanics = ({
       if (events.wordCompleted) onWordCompleted?.();
       if (events.wordMistake) onWordMistake?.();
     },
-    [onCharacterInput, onCharacterMistake, onWordCompleted, onWordMistake, onKeypress]
+    [
+      onCharacterInput,
+      onCharacterMistake,
+      onWordCompleted,
+      onWordMistake,
+      onKeypress,
+    ]
   );
 
   const resetTypingState = useCallback(() => {

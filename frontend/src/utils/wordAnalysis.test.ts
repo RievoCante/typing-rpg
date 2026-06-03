@@ -103,8 +103,13 @@ describe('analyzeWords char breakdown', () => {
   it('counts overflow letters as extraChars and marks the word incorrect', () => {
     const text = 'cat dog';
     const cs: CharStatus[] = [
-      'correct', 'correct', 'correct', 'pending',
-      'pending', 'pending', 'pending',
+      'correct',
+      'correct',
+      'correct',
+      'pending',
+      'pending',
+      'pending',
+      'pending',
     ];
     const r = analyzeWords(text, cs, { 3: ['x', 'y'] }, 3);
     expect(r.extraChars).toBe(2);
@@ -115,8 +120,13 @@ describe('analyzeWords char breakdown', () => {
   it('counts pending/skipped chars in a reached word as missedChars', () => {
     const text = 'cat dog';
     const cs: CharStatus[] = [
-      'correct', 'pending', 'pending', 'locked',
-      'pending', 'pending', 'pending',
+      'correct',
+      'pending',
+      'pending',
+      'locked',
+      'pending',
+      'pending',
+      'pending',
     ];
     const r = analyzeWords(text, cs, {}, 4);
     expect(r.correctChars).toBe(1);
