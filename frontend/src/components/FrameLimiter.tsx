@@ -4,6 +4,9 @@ import { useThree } from '@react-three/fiber';
 interface FrameLimiterProps {
   /** Target frames per second. Default 30 — plenty for idle/hit animations. */
   fps?: number;
+  /** When true, stop driving invalidate() so the canvas freezes on its last
+   *  rendered frame (and stops burning CPU/GPU). Used by the pause feature. */
+  paused?: boolean;
 }
 
 // Caps a `frameloop="demand"` Canvas to `fps` by driving invalidate() from a
@@ -15,10 +18,14 @@ interface FrameLimiterProps {
 // elapsedTime advances by real wall-clock time on each render, so animation
 // SPEED is unchanged; only the sampling rate drops. The browser throttles rAF
 // when the tab is hidden, so off-screen rendering pauses for free.
-export default function FrameLimiter({ fps = 30 }: FrameLimiterProps) {
+export default function FrameLimiter({
+  fps = 30,
+  paused = false,
+}: FrameLimiterProps) {
   const invalidate = useThree(state => state.invalidate);
 
   useEffect(() => {
+    if (paused) return; // freeze: hold the last frame, no invalidate loop
     const minDelta = 1000 / fps;
     let last = -Infinity;
     let raf = 0;
@@ -31,7 +38,7 @@ export default function FrameLimiter({ fps = 30 }: FrameLimiterProps) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [fps, invalidate]);
+  }, [fps, invalidate, paused]);
 
   return null;
 }

@@ -41,6 +41,7 @@ interface MonsterProps {
   scale?: number;
   shape?: SlimeShapeEnum; // For slimes only
   eyeStyle?: EyeStyle;
+  paused?: boolean; // freeze the 3D animation when the game is paused
 }
 
 function Monster({
@@ -53,6 +54,7 @@ function Monster({
   scale,
   shape,
   eyeStyle = 'neutral',
+  paused = false,
 }: MonsterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
@@ -104,7 +106,7 @@ function Monster({
             dpr={CANVAS_DPR}
             gl={CANVAS_GL}
           >
-            <FrameLimiter />
+            <FrameLimiter paused={paused} />
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
             <pointLight position={[5, 5, 5]} intensity={0.8} />

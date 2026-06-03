@@ -70,6 +70,7 @@ function GameContent() {
     spawnMonster,
     isPlayerDead,
     resetGameState,
+    isManuallyPaused,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -212,6 +213,7 @@ function GameContent() {
                 scale={monsterVisuals.scale}
                 shape={monsterShape}
                 eyeStyle={monsterVisuals.eyeStyle}
+                paused={isManuallyPaused}
               />
             </Suspense>
             <SignedIn>
