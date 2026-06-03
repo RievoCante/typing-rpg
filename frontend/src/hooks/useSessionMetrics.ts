@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { consistency } from '../utils/consistency';
 import type { SessionMetrics } from '../types/completion';
 
@@ -90,6 +90,12 @@ export function useSessionMetrics() {
     const s = ref.current;
     if (s.intervalId !== null) clearInterval(s.intervalId);
     ref.current = fresh();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (ref.current.intervalId !== null) clearInterval(ref.current.intervalId);
+    };
   }, []);
 
   return useMemo(
