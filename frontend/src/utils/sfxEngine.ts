@@ -124,7 +124,7 @@ export function playExplosion() {
 // Plays a short sequence of square-wave notes with a stepped 8-bit decay.
 // Shared by the potion cues so they sit in the same retro family as the
 // explosion above.
-function playArpeggio(freqs: number[], noteLen: number, peak: number) {
+export function playArpeggio(freqs: number[], noteLen: number, peak: number) {
   if (settings.muted || settings.volume <= 0) return;
   const audio = getCtx();
   if (!audio) return;
