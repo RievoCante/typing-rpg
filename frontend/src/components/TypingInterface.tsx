@@ -83,6 +83,7 @@ export default function TypingInterface({
     damageMonster,
     registerComboCorrect,
     registerComboWrong,
+    comboCritChance,
     equippedWeapon,
     isPlayerDead,
     hasStartedTyping,
@@ -169,7 +170,9 @@ export default function TypingInterface({
       const { damage, crit } = registerComboCorrect(equippedWeapon);
       damageMonster(damage);
       window.dispatchEvent(
-        new CustomEvent('combat-hit', { detail: { damage, crit } })
+        new CustomEvent('combat-hit', {
+          detail: { damage, crit, critChance: comboCritChance },
+        })
       );
       // Potions still drop on the per-correct-word clock.
       registerCorrectWord();
@@ -187,6 +190,7 @@ export default function TypingInterface({
     triggerHit,
     currentMode,
     registerComboCorrect,
+    comboCritChance,
     equippedWeapon,
     damageMonster,
     registerCorrectWord,
