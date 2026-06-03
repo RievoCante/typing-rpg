@@ -2,6 +2,7 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useCallback, useMemo } from 'react';
 import type { PlayerAvatarConfig } from '../utils/avatarConfig';
+import type { SessionPayload } from '../types/completion';
 
 export function useApi() {
   const { getToken } = useAuth();
@@ -34,14 +35,7 @@ export function useApi() {
   );
 
   const createSession = useCallback(
-    (body: {
-      mode: 'daily' | 'endless';
-      wpm: number;
-      totalWords: number;
-      correctWords: number;
-      incorrectWords: number;
-      difficulty?: 'beginner' | 'common' | 'intermediate' | 'advanced';
-    }) =>
+    (body: SessionPayload) =>
       authFetch('/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
