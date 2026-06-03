@@ -18,6 +18,9 @@ interface UseTypingMechanicsProps {
   // character — for raid mode, used to signal a mistake to the server. Also
   // fires for overflow keystrokes (extra letters typed past a word's end).
   onCharacterMistake?: () => void;
+  // Fires once per character keystroke reaching the engine (incl. overflow).
+  // `correct` is true when the typed char matched, false otherwise.
+  onKeypress?: (correct: boolean) => void;
 }
 
 export const useTypingMechanics = ({
@@ -26,6 +29,7 @@ export const useTypingMechanics = ({
   onWordCompleted,
   onWordMistake,
   onCharacterMistake,
+  onKeypress,
 }: UseTypingMechanicsProps) => {
   const [state, setState] = useState<TypingState>(() =>
     initTypingState(text.length)
@@ -35,13 +39,15 @@ export const useTypingMechanics = ({
   // the setState updater so side effects don't run twice under StrictMode.
   const dispatchEvents = useCallback(
     (events: TypingEvents) => {
-      if (events.characterInput !== undefined)
+      if (events.characterInput !== undefined) {
         onCharacterInput?.(events.characterInput);
+        onKeypress?.(!events.characterMistake);
+      }
       if (events.characterMistake) onCharacterMistake?.();
       if (events.wordCompleted) onWordCompleted?.();
       if (events.wordMistake) onWordMistake?.();
     },
-    [onCharacterInput, onCharacterMistake, onWordCompleted, onWordMistake]
+    [onCharacterInput, onCharacterMistake, onWordCompleted, onWordMistake, onKeypress]
   );
 
   const resetTypingState = useCallback(() => {
