@@ -92,21 +92,19 @@ function GameContent() {
   // random; the *type* (which drives attack DPS) is gated by run progress via
   // pickMonsterType so fresh runs start safe and difficulty ramps as the player
   // survives — a boss can no longer spawn on the first monster.
-  const generateNewMonster = () => {
+  const generateNewMonster = (progress: number = monstersDefeated) => {
     // Weighted family selection (slime/golem common, mushroom/crystal rarer).
     const family: MonsterFamily = pickMonsterFamily();
     setMonsterFamily(family);
 
-    const newMonsterType: MonsterTypeEnum = pickMonsterType(monstersDefeated);
+    const newMonsterType: MonsterTypeEnum = pickMonsterType(progress);
     setMonsterType(newMonsterType);
 
     // Variant (common/elite/rare): rarer + tougher + glows, gated by run
     // progress like the tier. Endless only — Daily monsters stay common.
     // Elite/rare also scale up the visual size.
     const variant: MonsterVariant =
-      currentMode === 'endless'
-        ? pickMonsterVariant(monstersDefeated)
-        : 'common';
+      currentMode === 'endless' ? pickMonsterVariant(progress) : 'common';
     setMonsterVariant(variant);
     const scaleMult = VARIANT_SCALE_MULT[variant];
 
@@ -164,9 +162,13 @@ function GameContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDefeated, monstersDefeated]);
 
-  // Handle player death - reset everything while preserving current mode
+  // Handle player death - reset everything while preserving current mode, then
+  // spawn a fresh random monster. resetGameState refills HP but keeps the dead
+  // run's monster type/visuals, so without this the same monster would persist
+  // into the new run. Pass progress 0 so the restart begins at the safe tier.
   const handleDeathRestart = () => {
     resetGameState();
+    generateNewMonster(0);
   };
 
   // Big "+N XP" reward under the Player Level card on monster kill.
