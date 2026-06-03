@@ -14,7 +14,6 @@ import HealthBar from './components/HealthBar';
 import TypingInterface from './components/TypingInterface';
 import PlayerLevel from './components/PlayerLevel';
 import PixelArtBackground from './components/PixelArtBackground';
-import { usePlayerStats } from './hooks/usePlayerStats';
 import { useDailyProgress } from './hooks/useDailyProgress';
 import {
   SLIME_COLORS,
@@ -34,6 +33,7 @@ import {
 } from './utils/monsterSpawn';
 import { VARIANT_SCALE_MULT } from './utils/combatTuning';
 import DeathPopup from './components/DeathPopup';
+import LevelUpToast from './components/LevelUpToast';
 
 // Contexts
 import { useGameContext } from './hooks/useGameContext';
@@ -53,18 +53,18 @@ const RaidView = lazy(() => import('./components/RaidView'));
 // Main game content component that uses GameContext
 function GameContent() {
   const {
-    level,
-    currentXp,
-    xpToNextLevel,
-    reload: reloadPlayerStats,
-  } = usePlayerStats();
-  const {
     currentMode,
     monstersDefeated,
     isCurrentMonsterDefeated,
     spawnMonster,
     isPlayerDead,
     resetGameState,
+    level,
+    currentXp,
+    xpToNextLevel,
+    reloadPlayerStats,
+    levelUpEvent,
+    clearLevelUpEvent,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -258,6 +258,17 @@ function GameContent() {
 
         {/* Death popup when player dies */}
         {isPlayerDead && <DeathPopup onRestart={handleDeathRestart} />}
+
+        {/* Subtle level-up celebration (Endless, signed-in only) */}
+        <SignedIn>
+          {levelUpEvent?.leveledUp && (
+            <LevelUpToast
+              level={levelUpEvent.newLevel}
+              milestone={levelUpEvent.milestoneReached}
+              onDismiss={clearLevelUpEvent}
+            />
+          )}
+        </SignedIn>
       </div>
     </div>
   );
