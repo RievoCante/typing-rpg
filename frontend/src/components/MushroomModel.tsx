@@ -4,6 +4,7 @@ import type { MushroomTypeEnum } from '../types/MushroomTypes';
 import { MUSHROOM_CONFIGS, MUSHROOM_ANIMATIONS } from '../types/MushroomTypes';
 import type { MonsterVariant } from '../context/GameContext';
 import { useProceduralMonster } from '../hooks/useProceduralMonster';
+import MonsterEyes from './MonsterEyes';
 
 interface MushroomModelProps {
   mushroomType: MushroomTypeEnum;
@@ -87,15 +88,8 @@ export default function MushroomModel({
         </mesh>
       ))}
 
-      {/* Eyes on the stem */}
-      <mesh position={[-0.16, -0.42, 0.42]}>
-        <sphereGeometry args={[0.09, 12, 12]} />
-        <meshStandardMaterial color="#1a1a1a" transparent opacity={1} />
-      </mesh>
-      <mesh position={[0.16, -0.42, 0.42]}>
-        <sphereGeometry args={[0.09, 12, 12]} />
-        <meshStandardMaterial color="#1a1a1a" transparent opacity={1} />
-      </mesh>
+      {/* Angry eyes + slanted brows on the stem (mushrooms always glare). */}
+      <MonsterEyes style="angry" spacing={0.16} y={-0.42} z={0.42} size={0.1} />
     </group>
   );
 }

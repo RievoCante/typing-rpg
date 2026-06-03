@@ -15,6 +15,7 @@ import type { GolemTypeEnum } from '../types/GolemTypes';
 import type { MushroomTypeEnum } from '../types/MushroomTypes';
 import type { CrystalTypeEnum } from '../types/CrystalTypes';
 import type { MonsterVariant } from '../context/GameContext';
+import type { EyeStyle } from '../utils/eyeStyles';
 
 export type MonsterFamily = 'slime' | 'golem' | 'mushroom' | 'crystal';
 
@@ -39,6 +40,7 @@ interface MonsterProps {
   color?: string;
   scale?: number;
   shape?: SlimeShapeEnum; // For slimes only
+  eyeStyle?: EyeStyle;
 }
 
 function Monster({
@@ -50,6 +52,7 @@ function Monster({
   color,
   scale,
   shape,
+  eyeStyle = 'neutral',
 }: MonsterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
@@ -121,6 +124,7 @@ function Monster({
                 customColor={color}
                 customScale={scale}
                 shape={shape}
+                eyeStyle={eyeStyle}
               />
             ) : monsterFamily === 'golem' ? (
               <GolemModel
@@ -148,6 +152,7 @@ function Monster({
                 isDefeated={isDefeated}
                 customColor={color}
                 customScale={scale}
+                eyeStyle={eyeStyle}
               />
             )}
           </Canvas>
