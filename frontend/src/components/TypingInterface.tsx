@@ -284,6 +284,7 @@ export default function TypingInterface({
     setHasStartedTyping(false);
     setIsProcessingCompletion(false);
     setEarnedXp(0);
+    if (currentMode === 'daily') sessionMetrics.reset();
     if (containerRef.current) containerRef.current.focus();
   }, [
     text,
@@ -292,6 +293,7 @@ export default function TypingInterface({
     resetSession,
     resetForNewSession,
     setHasStartedTyping,
+    sessionMetrics,
   ]);
 
   // Endless: when the player exhausts a 50-word block but the monster is still
@@ -368,6 +370,7 @@ export default function TypingInterface({
     hasStartedTyping,
     charStatusRef,
     calculateFinalStats,
+    finalizeMetrics: sessionMetrics.finalize,
     currentMode,
     currentDifficulty,
     currentAttempts,

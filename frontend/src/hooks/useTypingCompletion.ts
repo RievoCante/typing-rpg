@@ -5,16 +5,10 @@ import type {
   CompletionContext,
   CompletionResult,
   CompletionStats,
+  SessionMetrics,
 } from '../types/completion';
 import type { CharStatus } from '../components/TypingText';
 import type { KillResult } from '../components/KillResultOverlay';
-
-// Word-level accuracy as a 0-100 integer. 100 when no words were typed (avoids
-// divide-by-zero and reads sensibly on an empty/instant completion).
-function computeAccuracy(correctWords: number, incorrectWords: number): number {
-  const total = correctWords + incorrectWords;
-  return total > 0 ? Math.round((correctWords / total) * 100) : 100;
-}
 
 interface Args {
   // completion-detection signals
@@ -28,6 +22,7 @@ interface Args {
   hasStartedTyping: boolean;
   charStatusRef: RefObject<CharStatus[]>;
   calculateFinalStats: () => CompletionStats | null;
+  finalizeMetrics: (elapsedMinutes: number) => SessionMetrics;
   // mode-specific context
   currentMode: 'daily' | 'endless' | 'raid';
   currentDifficulty: 'easy' | 'medium' | 'hard';
@@ -75,6 +70,7 @@ export function useTypingCompletion({
   hasStartedTyping,
   charStatusRef,
   calculateFinalStats,
+  finalizeMetrics,
   currentMode,
   currentDifficulty,
   currentAttempts,
@@ -141,6 +137,9 @@ export function useTypingCompletion({
       return;
     }
 
+    const metrics = finalizeMetrics(stats.elapsedMinutes);
+    const fullStats = { ...stats, metrics };
+
     const context: CompletionContext | undefined =
       currentMode === 'daily'
         ? {
@@ -153,7 +152,7 @@ export function useTypingCompletion({
 
     (async () => {
       const result: CompletionResult = await completionHandler.handleCompletion(
-        stats,
+        fullStats,
         context
       );
 
@@ -190,7 +189,7 @@ export function useTypingCompletion({
           setKillResult({
             title: getWpmTitle(stats.finalWpm),
             wpm: stats.finalWpm,
-            accuracy: computeAccuracy(stats.correctWords, stats.incorrectWords),
+            accuracy: metrics.accuracy,
             subline: result.message,
           });
           setAwaitingContinue(true);
@@ -224,6 +223,7 @@ export function useTypingCompletion({
     markAsProcessed,
     markSessionCompleted,
     calculateFinalStats,
+    finalizeMetrics,
     restartSession,
     completionHandler,
     reloadPlayerStats,
