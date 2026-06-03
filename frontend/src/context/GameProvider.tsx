@@ -45,6 +45,7 @@ export const GameProvider = ({
   const [killStreak, setKillStreak] = useState<number>(0);
   const [hasStartedTyping, setHasStartedTyping] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isManuallyPaused, setIsManuallyPaused] = useState<boolean>(false);
 
   // Endless monster HP (decoupled from words). Initialized to the normal tier;
   // each spawn resets it via spawnMonster. Daily/raid never touch these.
@@ -285,6 +286,8 @@ export const GameProvider = ({
       setHasStartedTyping,
       isPaused,
       setIsPaused,
+      isManuallyPaused,
+      setIsManuallyPaused,
       resetGameState,
     }),
     [
@@ -320,6 +323,7 @@ export const GameProvider = ({
       potion,
       hasStartedTyping,
       isPaused,
+      isManuallyPaused,
       resetGameState,
     ]
   );
