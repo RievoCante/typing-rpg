@@ -6,6 +6,10 @@ interface PerformanceStats {
   correctWords: number;
   incorrectWords: number;
   totalCharsIncludingSpaces: number;
+  correctChars: number;
+  incorrectChars: number;
+  extraChars: number;
+  missedChars: number;
   finalWpm: number;
   elapsedMinutes: number;
 }
@@ -48,8 +52,15 @@ export const usePerformanceTracking = ({
     }
 
     const elapsedMinutes = (Date.now() - startTime) / 60000;
-    const { correctWords, incorrectWords, totalCharsIncludingSpaces } =
-      analyzeWords(text, charStatus, overflow);
+    const {
+      correctWords,
+      incorrectWords,
+      totalCharsIncludingSpaces,
+      correctChars,
+      incorrectChars,
+      extraChars,
+      missedChars,
+    } = analyzeWords(text, charStatus, overflow);
     const calculatedWpm =
       elapsedMinutes > 0 ? totalCharsIncludingSpaces / 5 / elapsedMinutes : 0;
     const finalWpm = Math.round(calculatedWpm);
@@ -61,6 +72,10 @@ export const usePerformanceTracking = ({
       correctWords,
       incorrectWords,
       totalCharsIncludingSpaces,
+      correctChars,
+      incorrectChars,
+      extraChars,
+      missedChars,
       finalWpm,
       elapsedMinutes,
     };

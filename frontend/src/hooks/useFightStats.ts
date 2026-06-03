@@ -6,9 +6,21 @@ interface FightAccum {
   chars: number;
   correct: number;
   incorrect: number;
+  correctChars: number;
+  incorrectChars: number;
+  extraChars: number;
+  missedChars: number;
 }
 
-const EMPTY: FightAccum = { chars: 0, correct: 0, incorrect: 0 };
+const EMPTY: FightAccum = {
+  chars: 0,
+  correct: 0,
+  incorrect: 0,
+  correctChars: 0,
+  incorrectChars: 0,
+  extraChars: 0,
+  missedChars: 0,
+};
 
 // Pure: combine the fight's accumulated completed-block totals with the
 // in-progress block and elapsed time into CompletionStats. WPM uses the same
@@ -22,6 +34,10 @@ export function finalizeFightStats(
     accum.chars + current.totalCharsIncludingSpaces;
   const correctWords = accum.correct + current.correctWords;
   const incorrectWords = accum.incorrect + current.incorrectWords;
+  const correctChars = accum.correctChars + current.correctChars;
+  const incorrectChars = accum.incorrectChars + current.incorrectChars;
+  const extraChars = accum.extraChars + current.extraChars;
+  const missedChars = accum.missedChars + current.missedChars;
   const finalWpm =
     elapsedMinutes > 0
       ? Math.round(totalCharsIncludingSpaces / 5 / elapsedMinutes)
@@ -32,6 +48,10 @@ export function finalizeFightStats(
     totalCharsIncludingSpaces,
     finalWpm,
     elapsedMinutes,
+    correctChars,
+    incorrectChars,
+    extraChars,
+    missedChars,
   };
 }
 
@@ -50,6 +70,10 @@ export function useFightStats() {
       chars: accumRef.current.chars + block.totalCharsIncludingSpaces,
       correct: accumRef.current.correct + block.correctWords,
       incorrect: accumRef.current.incorrect + block.incorrectWords,
+      correctChars: accumRef.current.correctChars + block.correctChars,
+      incorrectChars: accumRef.current.incorrectChars + block.incorrectChars,
+      extraChars: accumRef.current.extraChars + block.extraChars,
+      missedChars: accumRef.current.missedChars + block.missedChars,
     };
   }, []);
 

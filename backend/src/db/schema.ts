@@ -43,6 +43,16 @@ export const gameSessions = sqliteTable(
     totalWords: integer('total_words').notNull(),
     correctWords: integer('correct_words').notNull(),
     incorrectWords: integer('incorrect_words').notNull(),
+    rawWpm: integer('raw_wpm'),
+    accuracy: integer('accuracy'),
+    consistency: integer('consistency'),
+    correctChars: integer('correct_chars'),
+    incorrectChars: integer('incorrect_chars'),
+    extraChars: integer('extra_chars'),
+    missedChars: integer('missed_chars'),
+    durationSeconds: integer('duration_seconds'),
+    afkSeconds: integer('afk_seconds'),
+    chartData: text('chart_data'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .default(sql`(strftime('%s', 'now'))`)
       .notNull(),

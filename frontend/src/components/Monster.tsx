@@ -7,6 +7,7 @@ import GolemModel from './GolemModel';
 import MushroomModel from './MushroomModel';
 import CrystalModel from './CrystalModel';
 import ParticleBurst from './ParticleBurst';
+import FrameLimiter from './FrameLimiter';
 import { useSfx } from '../hooks/useSfx';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
@@ -95,10 +96,12 @@ function Monster({
         {/* 3D Monster Model with 3:2 aspect ratio */}
         <div className="w-full aspect-[3/2] bg-transparent transition-opacity duration-300">
           <Canvas
+            frameloop="demand"
             camera={{ position: [0, 0, 4], fov: 50 }}
             dpr={CANVAS_DPR}
             gl={CANVAS_GL}
           >
+            <FrameLimiter />
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
             <pointLight position={[5, 5, 5]} intensity={0.8} />

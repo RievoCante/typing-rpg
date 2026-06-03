@@ -7,6 +7,7 @@ vi.mock('@react-three/fiber', () => ({
     <div data-boss-canvas="true">{children as never}</div>
   ),
   useFrame: () => {},
+  useThree: () => () => {},
 }));
 
 import RaidBoss3D from './RaidBoss3D';
