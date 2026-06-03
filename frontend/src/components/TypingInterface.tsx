@@ -63,8 +63,10 @@ interface TypingInterfaceProps {
 // so a block boundary is just a seamless text refill, never a monster kill).
 const ENDLESS_BLOCK_WORDS = 50;
 
-// Matches the monster death-animation window; the result overlay reveals after it.
-const DEATH_ANIM_MS = 1200;
+// Delay before the result overlay reveals, letting the death animation register
+// without making the player wait. Shorter than the full ~1.5s shrink on purpose —
+// the centered overlay covers the tail of the animation anyway.
+const DEATH_ANIM_MS = 550;
 
 // Word-level accuracy as a 0-100 integer (100 when nothing typed).
 function accuracyPct(correct: number, incorrect: number): number {
