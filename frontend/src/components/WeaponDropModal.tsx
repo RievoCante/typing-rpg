@@ -17,7 +17,7 @@ interface WeaponDropModalProps {
 
 // Center-screen weapon-drop celebration (Endless). Renders on top of the kill
 // flow (z-50) and gates the kill-result overlay until the player takes it via
-// Space/Enter (handled in TypingInterface) or this Take button. The icon is a
+// Enter (handled in TypingInterface) or this Take button. The icon is a
 // rarity-framed Lucide glyph — a drop-in slot for real art later.
 export default function WeaponDropModal({
   weapon,
@@ -54,7 +54,7 @@ export default function WeaponDropModal({
           Take
         </button>
         <span className="text-[0.7rem] text-gray-300 animate-pulse">
-          Press SPACE to take
+          Press ENTER to take
         </span>
       </div>
     </div>
