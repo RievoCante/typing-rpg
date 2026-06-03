@@ -12,6 +12,20 @@ function statLine(w: Weapon): string {
   return parts.join(' · ') || 'No bonuses';
 }
 
+// Fast, styled hover tooltip for a loadout chip. Replaces the native `title`
+// attribute (which has a ~0.5s browser delay and unstyled OS appearance) with
+// an instant CSS fade. Sits above the chip; parent chip must be `group relative`.
+function ChipTip({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-max max-w-[14rem] -translate-x-1/2 translate-y-1 rounded-md bg-gray-800/95 px-2.5 py-1.5 text-center text-xs font-medium text-gray-100 opacity-0 shadow-xl ring-1 ring-gray-700 transition duration-100 group-hover:translate-y-0 group-hover:opacity-100"
+    >
+      {children}
+    </span>
+  );
+}
+
 interface WeaponLoadoutPanelProps {
   // Called after the player picks a loadout chip — confirms the choice and
   // starts the run. When omitted, picking just sets the loadout (legacy inline use).
@@ -31,7 +45,7 @@ export default function WeaponLoadoutPanel({
   const unlockedSet = new Set(unlocked);
 
   const chipBase =
-    'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors';
+    'group relative flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors';
 
   return (
     <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20 rounded-lg pointer-events-auto">
@@ -52,13 +66,13 @@ export default function WeaponLoadoutPanel({
               setLoadout(null);
               onConfirm?.();
             }}
-            title="Fists — start with no weapon"
             className={`${chipBase} ${
               loadout === null
                 ? 'border-amber-400 bg-amber-900/40 text-amber-200'
                 : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-500'
             }`}
           >
+            <ChipTip>Fists — start with no weapon</ChipTip>
             <Hand size={14} aria-hidden />
             Fists
           </button>
@@ -70,9 +84,9 @@ export default function WeaponLoadoutPanel({
               return (
                 <span
                   key={w.id}
-                  title={`${w.name} — locked (find it in a run)`}
                   className={`${chipBase} cursor-not-allowed border-gray-800 bg-gray-900 text-gray-600`}
                 >
+                  <ChipTip>{w.name} — locked (find it in a run)</ChipTip>
                   <Lock size={14} aria-hidden />
                   {w.name}
                 </span>
@@ -86,13 +100,18 @@ export default function WeaponLoadoutPanel({
                   setLoadout(w.id);
                   onConfirm?.();
                 }}
-                title={`${w.name} — ${statLine(w)}`}
                 className={`${chipBase} ${
                   isSelected
                     ? 'border-amber-400 bg-amber-900/40'
                     : 'border-gray-700 bg-gray-800 hover:border-gray-500'
                 } ${RARITY_COLOR[w.rarity]}`}
               >
+                <ChipTip>
+                  <span className="font-semibold">{w.name}</span>
+                  <span className="mt-0.5 block text-gray-300">
+                    {statLine(w)}
+                  </span>
+                </ChipTip>
                 <Sword size={14} aria-hidden />
                 {w.name}
               </button>
