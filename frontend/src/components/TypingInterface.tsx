@@ -84,6 +84,7 @@ export default function TypingInterface({
     registerComboCorrect,
     registerComboWrong,
     comboCritChance,
+    appendRunFight,
     equippedWeapon,
     isPlayerDead,
     hasStartedTyping,
@@ -421,6 +422,12 @@ export default function TypingInterface({
     );
     const metrics = sessionMetrics.finalize(baseStats.elapsedMinutes);
     const stats = { ...baseStats, metrics };
+    // Battle Report: append this fight's per-second samples to the run timeline
+    // (Endless). elapsedSeconds derives from elapsedMinutes * 60.
+    appendRunFight(
+      metrics.chartData,
+      Math.round(baseStats.elapsedMinutes * 60)
+    );
     // Only compute + stash the result here. The 1.2s reveal is scheduled by a
     // separate effect keyed on `killResult` (stable state) — NOT here — so the
     // re-renders this async block triggers (setEarnedXp / setKillResult /
@@ -451,6 +458,7 @@ export default function TypingInterface({
     completionHandler,
     reloadPlayerStats,
     charStatusRef,
+    appendRunFight,
   ]);
 
   // Reveal the post-kill overlay DEATH_ANIM_MS after the result is computed.
