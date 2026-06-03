@@ -43,6 +43,7 @@ import VolumeControl from './components/VolumeControl';
 import SiteLogo from './components/SiteLogo';
 import LeftSidebar from './components/LeftSidebar';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { useScreenShake } from './hooks/useScreenShake';
 
 // Lazy-load the three.js-backed surfaces so three-vendor leaves the critical
 // path and streams in as an async chunk after first paint.
@@ -74,6 +75,8 @@ function GameContent() {
 
   // Use defeat state from context (tracks actual defeat moment, not derived health %)
   const isDefeated = isCurrentMonsterDefeated;
+
+  const shakeTransform = useScreenShake();
 
   // Monster randomization: 50/50 family, then random variation
   const [monsterFamily, setMonsterFamily] = useState<MonsterFamily>('slime');
@@ -160,6 +163,15 @@ function GameContent() {
     if (wasDefeatedRef.current && !isDefeated && monstersDefeated > 0) {
       generateNewMonster();
     }
+    // Defeat just started (false -> true): fire the kill event for screen shake
+    // + kill popup. Endless only — Daily/Raid juice is out of scope.
+    if (!wasDefeatedRef.current && isDefeated && currentMode === 'endless') {
+      window.dispatchEvent(
+        new CustomEvent('monster-killed', {
+          detail: { variant: monsterVariant },
+        })
+      );
+    }
     wasDefeatedRef.current = isDefeated;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDefeated, monstersDefeated]);
@@ -187,7 +199,10 @@ function GameContent() {
       <PixelArtBackground />
 
       {/* Game content layered on top */}
-      <div className="relative z-10">
+      <div
+        className="relative z-10"
+        style={{ transform: shakeTransform, willChange: 'transform' }}
+      >
         <SiteLogo />
         <LeftSidebar />
         <Header />
