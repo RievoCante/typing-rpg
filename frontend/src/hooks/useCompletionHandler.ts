@@ -7,6 +7,7 @@ import type {
   CompletionContext,
 } from '../types/completion';
 import type { EndlessDifficulty } from './useEndlessSettings';
+import type { MonsterVariant } from '../context/GameContext';
 import { useApi } from './useApi';
 
 interface UseCompletionHandlerProps {
@@ -45,14 +46,22 @@ export const useCompletionHandler = ({
   const handleCompletion = useCallback(
     (
       stats: CompletionStats,
-      context?: CompletionContext
+      context?: CompletionContext,
+      // Endless only: rarity of the just-killed monster. Passed as a call
+      // argument (not bound in the handler) so completionHandler identity stays
+      // stable across monster spawns — see the memo note below.
+      variant?: MonsterVariant
     ): CompletionResult | Promise<CompletionResult> => {
       if (currentMode === 'daily') {
         if (!context)
           throw new Error('CompletionContext is required for daily mode');
         return dailyHandler.handleCompletion(stats, context);
       } else {
-        return endlessHandler.handleCompletion(stats, endlessDifficulty);
+        return endlessHandler.handleCompletion(
+          stats,
+          endlessDifficulty,
+          variant
+        );
       }
     },
     [currentMode, endlessDifficulty, dailyHandler, endlessHandler]

@@ -17,6 +17,9 @@ export const sessionSchema = z.object({
   difficulty: z
     .enum(['beginner', 'common', 'intermediate', 'advanced'])
     .optional(),
+  // Endless monster rarity; scales XP. Optional so daily submissions and older
+  // clients (which omit it) default to common (1x) server-side.
+  variant: z.enum(['common', 'elite', 'rare']).optional(),
   // Extended typing metrics (all optional for backwards compat)
   rawWpm: z.number().int().nonnegative().max(600).optional(),
   accuracy: z.number().int().min(0).max(100).optional(),
@@ -60,6 +63,7 @@ export const createSession = async (c: AppContext) => {
     correctWords,
     incorrectWords,
     difficulty,
+    variant,
     rawWpm,
     accuracy,
     consistency,
@@ -127,7 +131,7 @@ export const createSession = async (c: AppContext) => {
     // Compute and apply XP
     let xpDelta = 0;
     if (user) {
-      xpDelta = calculateXpDelta(mode, incorrectWords, wpm, difficulty);
+      xpDelta = calculateXpDelta(mode, incorrectWords, wpm, difficulty, variant);
       if (xpDelta > 0) {
         const updated = applyXp(user.level, user.xp, xpDelta);
         await db
