@@ -84,6 +84,13 @@ interface GameContextType {
   resetKillStreak: () => void;
   // Full run reset (health, streaks, potions, monster, combo)
   resetGameState: () => void;
+  // Player progression (signed-in persistent level; drives HP/damage bonuses)
+  level: number;
+  currentXp: number;
+  xpToNextLevel: number;
+  reloadPlayerStats: () => Promise<void> | void;
+  levelUpEvent: import('../utils/combatTuning').LevelUpEvent | null;
+  clearLevelUpEvent: () => void;
 }
 
 export const GameContext = createContext<GameContextType>({
@@ -145,4 +152,11 @@ export const GameContext = createContext<GameContextType>({
   resetKillStreak: () => {},
   // Full run reset
   resetGameState: () => {},
+  // Player progression
+  level: 1,
+  currentXp: 0,
+  xpToNextLevel: 20,
+  reloadPlayerStats: () => {},
+  levelUpEvent: null,
+  clearLevelUpEvent: () => {},
 });

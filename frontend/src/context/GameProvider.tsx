@@ -11,11 +11,14 @@ import { useMonsterAttackLoop } from '../hooks/useMonsterAttackLoop';
 import { useComboSystem } from '../hooks/useComboSystem';
 import { useWeaponSystem } from '../hooks/useWeaponSystem';
 import { useWeaponVault } from '../hooks/useWeaponVault';
+import { usePlayerStats } from '../hooks/usePlayerStats';
 import { getWeaponById } from '../utils/weapons';
 import {
   MONSTER_MAX_HP,
   VARIANT_HP_MULT,
   VARIANT_COMBO_SURGE,
+  detectLevelUp,
+  type LevelUpEvent,
 } from '../utils/combatTuning';
 
 // GameProvider owns daily/endless game state. Raid state lives entirely inside
@@ -52,13 +55,47 @@ export const GameProvider = ({
     MONSTER_MAX_HP.normal
   );
   const [monsterHp, setMonsterHp] = useState<number>(MONSTER_MAX_HP.normal);
+
+  // Player progression ownership: GameProvider is the single source of `level`
+  // (it sits inside ClerkProvider) so it can thread the level into HP, damage,
+  // and level-up detection.
+  const {
+    level,
+    currentXp,
+    xpToNextLevel,
+    reload: reloadPlayerStatsRaw,
+  } = usePlayerStats();
+  const [levelUpEvent, setLevelUpEvent] = useState<LevelUpEvent | null>(null);
+  const clearLevelUpEvent = useCallback(() => setLevelUpEvent(null), []);
+  const prevLevelRef = useRef<number>(level);
+  const hydratedRef = useRef<boolean>(false);
+
+  // Detect level-ups on each /me sync. The first hydration (initial 1 -> real
+  // level) is swallowed so refreshing the page never fires a celebration.
+  // Signed-in only: guests have no persistent level (usePlayerStats stays at 1).
+  useEffect(() => {
+    if (!hydratedRef.current) {
+      hydratedRef.current = true;
+      prevLevelRef.current = level;
+      return;
+    }
+    const evt = detectLevelUp(prevLevelRef.current, level);
+    prevLevelRef.current = level;
+    if (evt.leveledUp) setLevelUpEvent(evt);
+  }, [level]);
+
+  const reloadPlayerStats = useCallback(
+    () => reloadPlayerStatsRaw(),
+    [reloadPlayerStatsRaw]
+  );
+
   const combo = useComboSystem();
   // Stable callbacks pulled out so the HP-defeat effect can depend on them
   // without depending on the whole (per-render) combo/potion objects.
   const { addStreak } = combo;
 
   const endlessSettings = useEndlessSettings();
-  const health = usePlayerHealth();
+  const health = usePlayerHealth(level);
   const potion = usePotionSystem(
     health.healPlayer,
     health.playerHealth,
@@ -218,7 +255,19 @@ export const GameProvider = ({
 
   const resetKillStreak = useCallback(() => setKillStreak(0), []);
 
+  // Bind the current player level into the combo damage roll so base damage
+  // includes the level bonus without TypingInterface needing to know about it.
+  const { registerCorrectWord: registerComboCorrectRaw } = combo;
+  const registerComboCorrect = useCallback(
+    (
+      weapon: Parameters<typeof registerComboCorrectRaw>[0] = null,
+      rng: Parameters<typeof registerComboCorrectRaw>[1] = Math.random
+    ) => registerComboCorrectRaw(weapon, rng, level),
+    [registerComboCorrectRaw, level]
+  );
+
   const resetGameState = useCallback(() => {
+    // Restores to the level-derived max HP (100 + hpBonus(level)) via usePlayerHealth.
     health.resetPlayerHealth();
     setMonstersDefeated(0);
     setKillStreak(0);
@@ -264,7 +313,7 @@ export const GameProvider = ({
       },
       comboStreak: combo.streak,
       comboCritChance: combo.critChance,
-      registerComboCorrect: combo.registerCorrectWord,
+      registerComboCorrect,
       registerComboWrong: combo.registerWrongWord,
       ...endlessSettings,
       playerHealth: health.playerHealth,
@@ -286,6 +335,12 @@ export const GameProvider = ({
       isPaused,
       setIsPaused,
       resetGameState,
+      level,
+      currentXp,
+      xpToNextLevel,
+      reloadPlayerStats,
+      levelUpEvent,
+      clearLevelUpEvent,
     }),
     [
       currentMode,
@@ -302,7 +357,7 @@ export const GameProvider = ({
       spawnMonster,
       combo.streak,
       combo.critChance,
-      combo.registerCorrectWord,
+      registerComboCorrect,
       combo.registerWrongWord,
       endlessSettings,
       health,
@@ -321,6 +376,12 @@ export const GameProvider = ({
       hasStartedTyping,
       isPaused,
       resetGameState,
+      level,
+      currentXp,
+      xpToNextLevel,
+      reloadPlayerStats,
+      levelUpEvent,
+      clearLevelUpEvent,
     ]
   );
 
