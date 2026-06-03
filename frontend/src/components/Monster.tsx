@@ -7,6 +7,7 @@ import GolemModel from './GolemModel';
 import MushroomModel from './MushroomModel';
 import CrystalModel from './CrystalModel';
 import ParticleBurst from './ParticleBurst';
+import VariantAura from './VariantAura';
 import FrameLimiter from './FrameLimiter';
 import { useSfx } from '../hooks/useSfx';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
@@ -115,6 +116,10 @@ function Monster({
               intensity={0.3}
               color="#ffffff"
             />
+
+            {/* Elite/rare glow: colored cast light + halo (hidden once defeated
+                so it doesn't linger through the crumble). */}
+            {!isDefeated && <VariantAura variant={variant} />}
 
             {/* Main monster model — one per family */}
             {monsterFamily === 'slime' ? (
