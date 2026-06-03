@@ -96,9 +96,19 @@ export function CombatPopups({ popups }: { popups: CombatPopupItem[] }) {
             <span
               className={`font-extrabold select-none drop-shadow ${
                 popup.kind === 'crit'
-                  ? 'text-pink-400 text-2xl'
-                  : 'text-gray-400 text-base'
+                  ? 'text-pink-400'
+                  : popup.kind === 'kill'
+                    ? 'text-2xl tracking-wider'
+                    : 'text-gray-400 text-base'
               }`}
+              style={{
+                ...(popup.kind === 'crit' && popup.sizePx
+                  ? { fontSize: `${popup.sizePx}px` }
+                  : {}),
+                ...(popup.kind === 'kill' && popup.color
+                  ? { color: popup.color }
+                  : {}),
+              }}
             >
               {popup.text}
             </span>
