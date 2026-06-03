@@ -16,8 +16,12 @@ export function HitPopups({ hits }: { hits: HitItem[] }) {
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <span className="text-red-500 font-extrabold text-xl select-none drop-shadow">
-              HIT
+            <span
+              className={`font-extrabold text-xl select-none drop-shadow ${
+                hit.crit ? 'text-pink-400' : 'text-red-500'
+              }`}
+            >
+              {hit.damage != null ? `-${hit.damage}` : 'HIT'}
             </span>
           </div>
         </div>
