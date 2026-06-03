@@ -545,11 +545,11 @@ export default function TypingInterface({
     }
     const { key } = e;
     // Top priority: a weapon just dropped. Capture all keys (no leak into the
-    // typing buffer); Space/Enter takes it and reveals the kill result next.
+    // typing buffer); Enter takes it and reveals the kill result next.
     if (pendingDrop) {
       if (key === 'Tab') return;
       e.preventDefault();
-      if (key === ' ' || key === 'Enter') handleTakeDrop();
+      if (key === 'Enter') handleTakeDrop();
       return;
     }
     // While the post-kill results panel is up, Space (or any typing key)
