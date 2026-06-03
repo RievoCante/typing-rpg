@@ -3,6 +3,8 @@
 // while VolumeControl owns the UI. Settings are seeded from localStorage and
 // kept in sync by the useSfx hook.
 
+import { critSfxParams, type ComboTier } from './sfxTier';
+
 export const SFX_VOLUME_KEY = 'sfx:volume';
 export const SFX_MUTED_KEY = 'sfx:muted';
 const DEFAULT_SFX_VOLUME = 0.25;
@@ -164,10 +166,21 @@ export function playPotionHeal() {
   playArpeggio([523, 659, 784, 1047], 0.09, 0.28);
 }
 
-// Short, bright punchy cue for a critical hit — two quick high notes with a
-// short decay so it punches without drowning out the gameplay.
-export function playCrit() {
-  playArpeggio([1047, 1568], 0.06, 0.35);
+// Short, bright punchy cue for a critical hit. The streak tier raises the pitch
+// (a hotter streak sounds hotter) and, at BLAZING, layers a brighter octave on
+// top. Defaults to 'combo' so callers that don't pass a tier behave as before.
+export function playCrit(tier: ComboTier = 'combo') {
+  const { pitchMult, extraLayer } = critSfxParams(tier);
+  const base = [1047, 1568].map(f => f * pitchMult);
+  playArpeggio(base, 0.06, 0.35);
+  if (extraLayer) {
+    // Brighter octave shimmer for the top tier.
+    playArpeggio(
+      base.map(f => f * 2),
+      0.05,
+      0.16
+    );
+  }
 }
 
 // Soft, low, descending cue for a broken combo — subtle so it informs without
