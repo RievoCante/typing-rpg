@@ -3,7 +3,7 @@ import { useThemeContext } from '../hooks/useThemeContext';
 
 // Tier purely for label/colour feel; crit math lives in combatTuning.
 function tier(streak: number, critChance: number) {
-  if (streak <= 0) return { label: '', color: '', fill: 0 };
+  if (streak <= 0) return { label: 'Combo', color: 'text-gray-500', fill: 0 };
   if (critChance >= 0.75)
     return { label: '🔥 BLAZING', color: 'text-pink-400', fill: 100 };
   if (critChance >= 0.4)
@@ -22,7 +22,6 @@ function tier(streak: number, critChance: number) {
 export default function ComboMeter() {
   const { comboStreak, comboCritChance } = useGameContext();
   const { theme } = useThemeContext();
-  if (comboStreak <= 0) return null;
   const t = tier(comboStreak, comboCritChance);
 
   return (
