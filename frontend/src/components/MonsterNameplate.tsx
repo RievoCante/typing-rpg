@@ -13,13 +13,17 @@ const FAMILY_LABEL: Record<MonsterFamily, string> = {
   crystal: 'Crystal',
 };
 
-// Per-variant badge styling. Common renders nothing (keeps the normal monster
-// flow uncluttered); elite/rare get a glowing label so a special spawn reads
-// instantly. Rare pulses for extra "jackpot" feel.
+// Per-variant badge styling. Common gets a muted label; elite/rare get a
+// glowing label so a special spawn reads instantly. Rare pulses for extra
+// "jackpot" feel.
 const VARIANT_STYLE: Record<
-  Exclude<MonsterVariant, 'common'>,
+  MonsterVariant,
   { prefix: string; className: string }
 > = {
+  common: {
+    prefix: '',
+    className: 'text-slate-300 border-slate-500/50 bg-slate-600/20',
+  },
   elite: {
     prefix: '⚡ Elite',
     className:
@@ -32,14 +36,12 @@ const VARIANT_STYLE: Record<
   },
 };
 
-// Floating label above the health bar naming the current monster. Only shown
-// for elite/rare variants (Endless) — common monsters show no badge.
+// Floating label above the health bar naming the current monster. Shown for
+// every variant — common is muted, elite/rare glow.
 export default function MonsterNameplate({
   family,
   variant,
 }: MonsterNameplateProps) {
-  if (variant === 'common') return null;
-
   const style = VARIANT_STYLE[variant];
 
   return (
@@ -47,7 +49,8 @@ export default function MonsterNameplate({
       <span
         className={`inline-flex items-center gap-1 rounded-full border px-3 py-0.5 text-xs font-bold uppercase tracking-wide ${style.className}`}
       >
-        {style.prefix} {FAMILY_LABEL[family]}
+        {style.prefix ? `${style.prefix} ` : ''}
+        {FAMILY_LABEL[family]}
       </span>
     </div>
   );
