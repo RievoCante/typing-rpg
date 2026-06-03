@@ -4,6 +4,7 @@ import type {
   SessionPayload,
 } from '../types/completion';
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { MonsterVariant } from '../context/GameContext';
 import { calculateEndlessXp } from '../utils/calculateXP';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
@@ -15,7 +16,8 @@ export class EndlessCompletionHandler {
 
   async handleCompletion(
     stats: CompletionStats,
-    difficulty: EndlessDifficulty = 'beginner'
+    difficulty: EndlessDifficulty = 'beginner',
+    variant: MonsterVariant = 'common'
   ): Promise<CompletionResult> {
     const totalWords = stats.correctWords + stats.incorrectWords;
     const payload: SessionPayload = {
@@ -25,6 +27,7 @@ export class EndlessCompletionHandler {
       correctWords: stats.correctWords,
       incorrectWords: stats.incorrectWords,
       difficulty,
+      variant,
       rawWpm: stats.metrics?.rawWpm,
       accuracy: stats.metrics?.accuracy,
       consistency: stats.metrics?.consistency,
@@ -47,7 +50,8 @@ export class EndlessCompletionHandler {
     const xpDelta = calculateEndlessXp(
       payload.incorrectWords,
       payload.wpm,
-      difficulty
+      difficulty,
+      variant
     );
 
     return {

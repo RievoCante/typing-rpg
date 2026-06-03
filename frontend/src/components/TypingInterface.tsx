@@ -94,6 +94,7 @@ export default function TypingInterface({
     drinkPotion,
     monsterHp,
     isCurrentMonsterDefeated,
+    currentMonsterVariant,
     resetDefeatState,
     pendingDrop,
     clearPendingDrop,
@@ -424,7 +425,13 @@ export default function TypingInterface({
     // re-renders this async block triggers (setEarnedXp / setKillResult /
     // reloadPlayerStats) can't re-fire this effect and cancel the reveal timer.
     (async () => {
-      const result = await completionHandler.handleCompletion(stats);
+      // currentMonsterVariant still holds the just-killed monster's rarity here;
+      // it only resets when the next monster spawns. Scales the awarded XP.
+      const result = await completionHandler.handleCompletion(
+        stats,
+        undefined,
+        currentMonsterVariant
+      );
       if (result.action === 'saveError') {
         setSaveError(result.message ?? 'Failed to save. Please retry.');
         setPendingRetrySave(() => result.retrySave ?? null);
@@ -449,6 +456,7 @@ export default function TypingInterface({
     completionHandler,
     reloadPlayerStats,
     charStatusRef,
+    currentMonsterVariant,
   ]);
 
   // Reveal the post-kill overlay DEATH_ANIM_MS after the result is computed.

@@ -1,4 +1,5 @@
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { MonsterVariant } from '../context/GameContext';
 
 /** Per-second history arrays for the future result graph. */
 export interface ChartData {
@@ -58,6 +59,8 @@ export interface SessionPayload {
   incorrectWords: number;
   /** Endless word-list difficulty; scales XP server-side. Omitted for daily. */
   difficulty?: EndlessDifficulty;
+  /** Endless monster rarity; scales XP server-side. Omitted for daily. */
+  variant?: MonsterVariant;
   // New metrics — all optional so older paths still compile.
   rawWpm?: number;
   accuracy?: number;
