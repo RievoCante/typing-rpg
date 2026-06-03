@@ -3,19 +3,27 @@ import { useThemeContext } from '../hooks/useThemeContext';
 
 // Tier purely for label/colour feel; crit math lives in combatTuning.
 function tier(streak: number, critChance: number) {
-  if (streak <= 0) return { label: 'Combo', color: 'text-gray-500', fill: 0 };
+  if (streak <= 0)
+    return { label: 'Combo', color: 'text-gray-500', fill: 0, glow: '' };
   if (critChance >= 0.75)
-    return { label: '🔥 BLAZING', color: 'text-pink-400', fill: 100 };
+    return {
+      label: '🔥 BLAZING',
+      color: 'text-pink-400',
+      fill: 100,
+      glow: 'combo-glow-blazing',
+    };
   if (critChance >= 0.4)
     return {
       label: '🔥 Hot',
       color: 'text-orange-400',
       fill: (critChance / 0.75) * 100,
+      glow: 'combo-glow-hot',
     };
   return {
     label: 'Heating',
     color: 'text-yellow-300',
     fill: (critChance / 0.75) * 100,
+    glow: '',
   };
 }
 
@@ -36,7 +44,7 @@ export default function ComboMeter() {
         </span>
       </div>
       <div
-        className={`h-2 w-full overflow-hidden rounded-full ${
+        className={`h-2 w-full overflow-hidden rounded-full ${t.glow} ${
           theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
         }`}
       >
