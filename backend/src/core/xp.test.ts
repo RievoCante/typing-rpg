@@ -50,6 +50,21 @@ describe("calculateXpDelta", () => {
       // base 100 * advanced 3.0 * 0.8 (1 mistake) * 1.25 (120 WPM cap) = 300
       expect(calculateXpDelta("endless", 1, 120, "advanced")).toBe(300);
     });
+
+    it("defaults to the common (1x) variant when variant omitted", () => {
+      expect(calculateXpDelta("endless", 0, 60, "beginner")).toBe(100);
+    });
+
+    it("applies the per-rarity variant multiplier (elite pays most)", () => {
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "common")).toBe(100); // *1.0
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "rare")).toBe(175); // *1.75
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "elite")).toBe(300); // *3.0
+    });
+
+    it("stacks variant with difficulty, WPM, and step penalties", () => {
+      // base 100 * common-diff 1.5 * 0.8 (1 mistake) * 1.25 (120 WPM cap) * elite 3.0 = 450
+      expect(calculateXpDelta("endless", 1, 120, "common", "elite")).toBe(450);
+    });
   });
 
   describe("Daily mode", () => {

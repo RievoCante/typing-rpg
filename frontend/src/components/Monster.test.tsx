@@ -7,6 +7,7 @@ vi.mock('@react-three/fiber', () => ({
     <div data-monster-canvas="true">{children as never}</div>
   ),
   useFrame: () => {},
+  useThree: () => () => {},
 }));
 vi.mock('../hooks/useSfx', () => ({
   useSfx: () => ({ playExplosion: () => {} }),

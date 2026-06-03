@@ -79,10 +79,12 @@ export default function PixelArtBackground() {
   );
 
   const drawFloatingPixels = useCallback(
-    (ctx: CanvasRenderingContext2D, time: number) => {
+    (ctx: CanvasRenderingContext2D, time: number, dtScale: number) => {
       for (const p of pixelsRef.current) {
-        p.x += p.speedX;
-        p.y += p.speedY;
+        // dtScale normalizes drift to a 60fps baseline so pixels move at the
+        // same speed regardless of the (capped) frame rate.
+        p.x += p.speedX * dtScale;
+        p.y += p.speedY * dtScale;
         const pulse = Math.sin(time * 0.002 + p.pulsePhase) * 0.2 + 0.8;
         if (p.x < -10) p.x = ctx.canvas.width + 10;
         if (p.x > ctx.canvas.width + 10) p.x = -10;
@@ -116,18 +118,28 @@ export default function PixelArtBackground() {
     resize();
     window.addEventListener('resize', resize);
 
+    // This ambient background is a full-screen 2D redraw every frame. Capping
+    // it to 30fps roughly halves its cost on 60Hz and quarters it on 120Hz
+    // ProMotion displays — imperceptible for slow drifting pixels and flicker.
+    const FRAME_MS = 1000 / 30;
     const startTime = Date.now();
-    const animate = () => {
+    let lastDraw = -Infinity;
+    const animate = (now: number) => {
+      animationRef.current = requestAnimationFrame(animate);
+      const elapsed = now - lastDraw;
+      if (elapsed < FRAME_MS) return;
+      const dtScale =
+        lastDraw === -Infinity ? 1 : Math.min(elapsed / 16.667, 4);
+      lastDraw = now;
       const time = Date.now() - startTime;
       const scene = sceneRef.current;
       const room = roomRef.current;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (scene) ctx.drawImage(scene, 0, 0);
       if (room) drawDynamicProps(ctx, room, time, pal);
-      drawFloatingPixels(ctx, time);
-      animationRef.current = requestAnimationFrame(animate);
+      drawFloatingPixels(ctx, time, dtScale);
     };
-    animate();
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resize);

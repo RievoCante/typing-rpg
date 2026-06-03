@@ -7,6 +7,7 @@ import {
   Suspense,
 } from 'react';
 import { SignedIn } from '@clerk/clerk-react';
+import { Pause } from 'lucide-react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import MilestoneProgress from './components/MilestoneProgress';
@@ -15,15 +16,12 @@ import TypingInterface from './components/TypingInterface';
 import PlayerLevel from './components/PlayerLevel';
 import PixelArtBackground from './components/PixelArtBackground';
 import { useDailyProgress } from './hooks/useDailyProgress';
-import {
-  SLIME_COLORS,
-  SLIME_SIZES,
-  type SlimeShapeEnum,
-} from './types/SlimeTypes';
-import { GOLEM_COLORS, GOLEM_SIZES } from './types/GolemTypes';
-import { MUSHROOM_COLORS, MUSHROOM_SIZES } from './types/MushroomTypes';
-import { CRYSTAL_COLORS, CRYSTAL_SIZES } from './types/CrystalTypes';
+import { SLIME_COLORS, type SlimeShapeEnum } from './types/SlimeTypes';
+import { GOLEM_COLORS } from './types/GolemTypes';
+import { MUSHROOM_COLORS } from './types/MushroomTypes';
+import { CRYSTAL_COLORS } from './types/CrystalTypes';
 import type { MonsterFamily } from './components/Monster';
+import { pickEyeStyle, type EyeStyle } from './utils/eyeStyles';
 import MonsterNameplate from './components/MonsterNameplate';
 import type { MonsterTypeEnum, MonsterVariant } from './context/GameContext';
 import {
@@ -31,7 +29,7 @@ import {
   pickMonsterVariant,
   pickMonsterFamily,
 } from './utils/monsterSpawn';
-import { VARIANT_SCALE_MULT } from './utils/combatTuning';
+import { VARIANT_SIZE } from './utils/combatTuning';
 import BattleReport from './components/BattleReport';
 import LevelUpToast from './components/LevelUpToast';
 
@@ -50,6 +48,15 @@ import { useScreenShake } from './hooks/useScreenShake';
 const Monster = lazy(() => import('./components/Monster'));
 const RaidView = lazy(() => import('./components/RaidView'));
 
+// Per-family base scale (the family's natural "medium" size). Multiplied by the
+// rarity size factor (VARIANT_SIZE) so size reads as rarity across families.
+const FAMILY_BASE_SCALE: Record<MonsterFamily, number> = {
+  slime: 0.8,
+  golem: 1.6,
+  mushroom: 1.0,
+  crystal: 1.2,
+};
+
 // Main game content component that uses GameContext
 function GameContent() {
   const {
@@ -66,6 +73,7 @@ function GameContent() {
     levelUpEvent,
     clearLevelUpEvent,
     addRunXp,
+    isManuallyPaused,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -87,66 +95,52 @@ function GameContent() {
     useState<MonsterVariant>('common');
 
   // Each new monster gets random family, type, color, size, and shape
-  const [monsterVisuals, setMonsterVisuals] = useState(() => ({
+  const [monsterVisuals, setMonsterVisuals] = useState<{
+    color: string;
+    scale: number;
+    eyeStyle: EyeStyle;
+  }>(() => ({
     color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
-    scale: SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)],
+    scale: FAMILY_BASE_SCALE.slime * VARIANT_SIZE.common,
+    eyeStyle: 'neutral',
   }));
 
   // Generate new monster on defeat. Visuals (family, color, size, shape) stay
   // random; the *type* (which drives attack DPS) is gated by run progress via
   // pickMonsterType so fresh runs start safe and difficulty ramps as the player
   // survives — a boss can no longer spawn on the first monster.
-  const generateNewMonster = () => {
+  const generateNewMonster = (progress: number = monstersDefeated) => {
     // Weighted family selection (slime/golem common, mushroom/crystal rarer).
     const family: MonsterFamily = pickMonsterFamily();
     setMonsterFamily(family);
 
-    const newMonsterType: MonsterTypeEnum = pickMonsterType(monstersDefeated);
+    const newMonsterType: MonsterTypeEnum = pickMonsterType(progress);
     setMonsterType(newMonsterType);
 
     // Variant (common/elite/rare): rarer + tougher + glows, gated by run
     // progress like the tier. Endless only — Daily monsters stay common.
     // Elite/rare also scale up the visual size.
     const variant: MonsterVariant =
-      currentMode === 'endless'
-        ? pickMonsterVariant(monstersDefeated)
-        : 'common';
+      currentMode === 'endless' ? pickMonsterVariant(progress) : 'common';
     setMonsterVariant(variant);
-    const scaleMult = VARIANT_SCALE_MULT[variant];
 
+    // Size is driven by rarity (variant), not random: common = small, rare =
+    // big. Color stays randomized per family for variety.
+    const scale = FAMILY_BASE_SCALE[family] * VARIANT_SIZE[variant];
+    let color: string;
     if (family === 'slime') {
       // 50/50 round or square shape, independent of type.
       setMonsterShape(Math.random() > 0.5 ? 'round' : 'square');
-      setMonsterVisuals({
-        color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
-        scale:
-          SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)] *
-          scaleMult,
-      });
+      color = SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)];
     } else if (family === 'golem') {
-      setMonsterVisuals({
-        color: GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)],
-        scale:
-          GOLEM_SIZES[Math.floor(Math.random() * GOLEM_SIZES.length)] *
-          scaleMult,
-      });
+      color = GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)];
     } else if (family === 'mushroom') {
-      setMonsterVisuals({
-        color:
-          MUSHROOM_COLORS[Math.floor(Math.random() * MUSHROOM_COLORS.length)],
-        scale:
-          MUSHROOM_SIZES[Math.floor(Math.random() * MUSHROOM_SIZES.length)] *
-          scaleMult,
-      });
+      color =
+        MUSHROOM_COLORS[Math.floor(Math.random() * MUSHROOM_COLORS.length)];
     } else {
-      setMonsterVisuals({
-        color:
-          CRYSTAL_COLORS[Math.floor(Math.random() * CRYSTAL_COLORS.length)],
-        scale:
-          CRYSTAL_SIZES[Math.floor(Math.random() * CRYSTAL_SIZES.length)] *
-          scaleMult,
-      });
+      color = CRYSTAL_COLORS[Math.floor(Math.random() * CRYSTAL_COLORS.length)];
     }
+    setMonsterVisuals({ color, scale, eyeStyle: pickEyeStyle(family) });
 
     // Spawn in context: sets type + variant for the attack/HP system AND resets
     // the monster's HP to full for its tier×variant (Endless). Atomic so a
@@ -177,9 +171,13 @@ function GameContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDefeated, monstersDefeated]);
 
-  // Handle player death - reset everything while preserving current mode
+  // Handle player death - reset everything while preserving current mode, then
+  // spawn a fresh random monster. resetGameState refills HP but keeps the dead
+  // run's monster type/visuals, so without this the same monster would persist
+  // into the new run. Pass progress 0 so the restart begins at the safe tier.
   const handleDeathRestart = () => {
     resetGameState();
+    generateNewMonster(0);
   };
 
   // Big "+N XP" reward under the Player Level card on monster kill.
@@ -220,23 +218,37 @@ function GameContent() {
           <>
             <MonsterNameplate family={monsterFamily} variant={monsterVariant} />
             <HealthBar />
-            <Suspense
-              fallback={
-                <div className="w-full max-w-md mx-auto py-4">
-                  <div className="w-full aspect-[3/2]" />
+            <div className="relative">
+              <Suspense
+                fallback={
+                  <div className="w-full max-w-md mx-auto py-4">
+                    <div className="w-full aspect-[3/2]" />
+                  </div>
+                }
+              >
+                <Monster
+                  monsterFamily={monsterFamily}
+                  monsterType={monsterType}
+                  variant={monsterVariant}
+                  isDefeated={isDefeated}
+                  color={monsterVisuals.color}
+                  scale={monsterVisuals.scale}
+                  shape={monsterShape}
+                  eyeStyle={monsterVisuals.eyeStyle}
+                  paused={isManuallyPaused}
+                />
+              </Suspense>
+              {isManuallyPaused && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Pause
+                    size={96}
+                    className="text-white/85 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+                    fill="currentColor"
+                    strokeWidth={0}
+                  />
                 </div>
-              }
-            >
-              <Monster
-                monsterFamily={monsterFamily}
-                monsterType={monsterType}
-                variant={monsterVariant}
-                isDefeated={isDefeated}
-                color={monsterVisuals.color}
-                scale={monsterVisuals.scale}
-                shape={monsterShape}
-              />
-            </Suspense>
+              )}
+            </div>
             <SignedIn>
               <PlayerLevel
                 level={level}

@@ -70,9 +70,12 @@ interface GameContextType {
   // Player typing state
   hasStartedTyping: boolean;
   setHasStartedTyping: (value: boolean) => void;
-  // Pause state (typing unfocused)
+  // Pause state (typing unfocused). isManuallyPaused is the player-driven pause
+  // (Esc / pause button); isPaused is the effective freeze (manual OR unfocused).
   isPaused: boolean;
   setIsPaused: (value: boolean) => void;
+  isManuallyPaused: boolean;
+  setIsManuallyPaused: (value: boolean) => void;
   // Endless potion inventory
   potionCount: number;
   maxPotions: number;
@@ -152,6 +155,8 @@ export const GameContext = createContext<GameContextType>({
   // Pause state
   isPaused: false,
   setIsPaused: () => {},
+  isManuallyPaused: false,
+  setIsManuallyPaused: () => {},
   // Endless potion inventory
   potionCount: 0,
   maxPotions: 3,

@@ -7,6 +7,8 @@ import GolemModel from './GolemModel';
 import MushroomModel from './MushroomModel';
 import CrystalModel from './CrystalModel';
 import ParticleBurst from './ParticleBurst';
+import VariantAura from './VariantAura';
+import FrameLimiter from './FrameLimiter';
 import { useSfx } from '../hooks/useSfx';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
@@ -14,6 +16,7 @@ import type { GolemTypeEnum } from '../types/GolemTypes';
 import type { MushroomTypeEnum } from '../types/MushroomTypes';
 import type { CrystalTypeEnum } from '../types/CrystalTypes';
 import type { MonsterVariant } from '../context/GameContext';
+import type { EyeStyle } from '../utils/eyeStyles';
 
 export type MonsterFamily = 'slime' | 'golem' | 'mushroom' | 'crystal';
 
@@ -38,6 +41,8 @@ interface MonsterProps {
   color?: string;
   scale?: number;
   shape?: SlimeShapeEnum; // For slimes only
+  eyeStyle?: EyeStyle;
+  paused?: boolean; // freeze the 3D animation when the game is paused
 }
 
 function Monster({
@@ -49,6 +54,8 @@ function Monster({
   color,
   scale,
   shape,
+  eyeStyle = 'neutral',
+  paused = false,
 }: MonsterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
@@ -95,10 +102,12 @@ function Monster({
         {/* 3D Monster Model with 3:2 aspect ratio */}
         <div className="w-full aspect-[3/2] bg-transparent transition-opacity duration-300">
           <Canvas
+            frameloop="demand"
             camera={{ position: [0, 0, 4], fov: 50 }}
             dpr={CANVAS_DPR}
             gl={CANVAS_GL}
           >
+            <FrameLimiter paused={paused} />
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
             <pointLight position={[5, 5, 5]} intensity={0.8} />
@@ -107,6 +116,10 @@ function Monster({
               intensity={0.3}
               color="#ffffff"
             />
+
+            {/* Elite/rare glow: colored cast light + halo (hidden once defeated
+                so it doesn't linger through the crumble). */}
+            {!isDefeated && <VariantAura variant={variant} />}
 
             {/* Main monster model — one per family */}
             {monsterFamily === 'slime' ? (
@@ -118,6 +131,7 @@ function Monster({
                 customColor={color}
                 customScale={scale}
                 shape={shape}
+                eyeStyle={eyeStyle}
               />
             ) : monsterFamily === 'golem' ? (
               <GolemModel
@@ -145,6 +159,7 @@ function Monster({
                 isDefeated={isDefeated}
                 customColor={color}
                 customScale={scale}
+                eyeStyle={eyeStyle}
               />
             )}
           </Canvas>

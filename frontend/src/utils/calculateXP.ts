@@ -3,6 +3,7 @@
 // MUST stay in sync with the backend formulas (see CLAUDE.md critical rule).
 
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { MonsterVariant } from '../context/GameContext';
 
 export const RAID_BASE_XP = 300;
 export const RAID_DAMAGE_MULTIPLIER = 5;
@@ -28,15 +29,26 @@ export const DIFFICULTY_XP_MULTIPLIER: Record<EndlessDifficulty, number> = {
   advanced: 3.0,
 };
 
+// Per-rarity XP multiplier for endless kills. Rarer monsters have more HP so
+// they take longer to kill; the reward scales to match. Elite is the prestige
+// tier and pays the most. MUST stay in sync with VARIANT_XP_MULTIPLIER in
+// backend/src/core/xp.ts (see CLAUDE.md XP-sync rule).
+export const VARIANT_XP_MULTIPLIER: Record<MonsterVariant, number> = {
+  common: 1.0,
+  elite: 3.0,
+  rare: 1.75,
+};
+
 // Per-session endless XP a player earns on a monster kill. Mirrors
-// calculateXpDelta('endless', incorrectWords, wpm, difficulty) on the backend,
-// including the step penalties for mistakes and the difficulty multiplier.
-// `wpm` should be the rounded WPM sent to the server so the previewed amount
-// matches the awarded amount.
+// calculateXpDelta('endless', incorrectWords, wpm, difficulty, variant) on the
+// backend, including the step penalties for mistakes, the difficulty multiplier,
+// and the monster-rarity multiplier. `wpm` should be the rounded WPM sent to the
+// server so the previewed amount matches the awarded amount.
 export function calculateEndlessXp(
   incorrectWords: number,
   wpm: number,
-  difficulty: EndlessDifficulty = 'beginner'
+  difficulty: EndlessDifficulty = 'beginner',
+  variant: MonsterVariant = 'common'
 ): number {
   let base = ENDLESS_BASE_XP;
   if (incorrectWords > 8) base = 0;
@@ -46,10 +58,11 @@ export function calculateEndlessXp(
   else if (incorrectWords >= 1) base *= 0.8;
 
   const difficultyMult = DIFFICULTY_XP_MULTIPLIER[difficulty] ?? 1;
+  const variantMult = VARIANT_XP_MULTIPLIER[variant] ?? 1;
 
   const wpmMult = Math.max(
     ENDLESS_WPM_FLOOR,
     Math.min(ENDLESS_WPM_CAP, wpm / ENDLESS_TARGET_WPM)
   );
-  return Math.floor(base * difficultyMult * wpmMult);
+  return Math.floor(base * difficultyMult * wpmMult * variantMult);
 }

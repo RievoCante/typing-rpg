@@ -23,6 +23,23 @@ export const DIFFICULTY_XP_MULTIPLIER: Record<EndlessDifficulty, number> = {
 
 const DEFAULT_DIFFICULTY: EndlessDifficulty = 'beginner';
 
+// Monster rarity tier (endless). MUST stay in sync with MonsterVariant in
+// frontend/src/context/GameContext.ts.
+export type MonsterVariant = 'common' | 'elite' | 'rare';
+
+// Per-rarity XP multiplier for endless kills. Rarer monsters carry more HP
+// (VARIANT_HP_MULT in frontend combatTuning.ts) so they take longer to kill —
+// the reward scales to match the effort. Elite is the prestige/jackpot tier and
+// pays the most. MUST stay in sync with VARIANT_XP_MULTIPLIER in
+// frontend/src/utils/calculateXP.ts (see CLAUDE.md XP-sync rule).
+export const VARIANT_XP_MULTIPLIER: Record<MonsterVariant, number> = {
+  common: 1.0,
+  elite: 3.0,
+  rare: 1.75,
+};
+
+const DEFAULT_VARIANT: MonsterVariant = 'common';
+
 // Per-mode config
 const MODE_CONFIG: Record<Mode, {
   base: number;                     // base XP before multipliers
@@ -31,11 +48,12 @@ const MODE_CONFIG: Record<Mode, {
   wpmFloor: number;                 // minimum WPM multiplier
   useStepPenalties: boolean;        // whether to apply mistake-based step penalties
   useDifficultyMultiplier: boolean; // whether word-list difficulty scales XP
+  useVariantMultiplier: boolean;    // whether monster rarity scales XP
 }> = {
-  // Endless: keep step penalties; modest WPM boost; difficulty-scaled reward
-  endless: { base: 100, targetWpm: 60, wpmCap: 1.25, wpmFloor: 0.5, useStepPenalties: true, useDifficultyMultiplier: true },
-  // Daily: base XP with WPM multiplier; no step penalties (expects wpm to be AVERAGE across 3 difficulties); not difficulty-scaled
-  daily:   { base: 500,  targetWpm: 60, wpmCap: 1.5,  wpmFloor: 0.5, useStepPenalties: false, useDifficultyMultiplier: false },
+  // Endless: keep step penalties; modest WPM boost; difficulty-scaled reward; rarity-scaled reward
+  endless: { base: 100, targetWpm: 60, wpmCap: 1.25, wpmFloor: 0.5, useStepPenalties: true, useDifficultyMultiplier: true, useVariantMultiplier: true },
+  // Daily: base XP with WPM multiplier; no step penalties (expects wpm to be AVERAGE across 3 difficulties); not difficulty-scaled; no monster rarity
+  daily:   { base: 500,  targetWpm: 60, wpmCap: 1.5,  wpmFloor: 0.5, useStepPenalties: false, useDifficultyMultiplier: false, useVariantMultiplier: false },
 };
 
 function clamp(n: number, lo: number, hi: number) {
@@ -46,7 +64,8 @@ export function calculateXpDelta(
   mode: Mode,
   incorrectWords: number,
   wpm: number,
-  difficulty: EndlessDifficulty = DEFAULT_DIFFICULTY
+  difficulty: EndlessDifficulty = DEFAULT_DIFFICULTY,
+  variant: MonsterVariant = DEFAULT_VARIANT
 ): number {
   const cfg = MODE_CONFIG[mode];
 
@@ -67,10 +86,15 @@ export function calculateXpDelta(
     ? (DIFFICULTY_XP_MULTIPLIER[difficulty] ?? 1)
     : 1;
 
+  // Monster rarity multiplier (endless only)
+  const variantMult = cfg.useVariantMultiplier
+    ? (VARIANT_XP_MULTIPLIER[variant] ?? 1)
+    : 1;
+
   // WPM multiplier (smooth, bounded)
   const wpmMult = clamp(wpm / cfg.targetWpm, cfg.wpmFloor, cfg.wpmCap);
 
-  return Math.floor(base * difficultyMult * wpmMult);
+  return Math.floor(base * difficultyMult * wpmMult * variantMult);
 }
 
 // Raid XP — awarded only on victory, only to authenticated players.

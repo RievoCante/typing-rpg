@@ -22,6 +22,7 @@ import PotionSlot from './PotionSlot';
 import WeaponSlot from './WeaponSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
 import TypingRestartButton from './TypingRestartButton';
+import TypingPauseButton from './TypingPauseButton';
 import {
   HitPopups,
   AttackPopups,
@@ -64,8 +65,10 @@ interface TypingInterfaceProps {
 // so a block boundary is just a seamless text refill, never a monster kill).
 const ENDLESS_BLOCK_WORDS = 50;
 
-// Matches the monster death-animation window; the result overlay reveals after it.
-const DEATH_ANIM_MS = 1200;
+// Delay before the result overlay reveals, letting the death animation register
+// without making the player wait. Shorter than the full ~1.5s shrink on purpose —
+// the centered overlay covers the tail of the animation anyway.
+const DEATH_ANIM_MS = 550;
 
 export default function TypingInterface({
   dailyProgress,
@@ -90,10 +93,13 @@ export default function TypingInterface({
     hasStartedTyping,
     setHasStartedTyping,
     setIsPaused,
+    isManuallyPaused,
+    setIsManuallyPaused,
     registerCorrectWord,
     drinkPotion,
     monsterHp,
     isCurrentMonsterDefeated,
+    currentMonsterVariant,
     resetDefeatState,
     pendingDrop,
     clearPendingDrop,
@@ -163,12 +169,13 @@ export default function TypingInterface({
   }, [earnedXp, onXpGain]);
 
   const handleWordCompleted = useCallback(() => {
-    triggerHit();
     if (currentMode === 'endless') {
       // Combo-driven damage to the monster's HP. Endless HP is decoupled from
       // the word pool, so we no longer decrement remainingWords here. The
       // equipped weapon (if any) raises crit chance / damage.
       const { damage, crit } = registerComboCorrect(equippedWeapon);
+      // Float the actual damage dealt (crit-colored on crits).
+      triggerHit(damage, crit);
       damageMonster(damage);
       window.dispatchEvent(
         new CustomEvent('combat-hit', {
@@ -179,6 +186,7 @@ export default function TypingInterface({
       registerCorrectWord();
     } else {
       // Daily/raid: words drive the HP bar, so each correct word drains one.
+      triggerHit();
       decrementRemainingWords();
     }
     // Also notify slime model to flash red
@@ -274,8 +282,28 @@ export default function TypingInterface({
   ]);
 
   const restartSession = useCallback(() => {
+    setIsManuallyPaused(false);
     setRestartKey(prev => prev + 1);
-  }, []);
+  }, [setIsManuallyPaused]);
+
+  // Player-driven pause toggle (Esc / pause button). Refocus on resume so typing
+  // resumes immediately.
+  const togglePause = useCallback(() => {
+    const next = !isManuallyPaused;
+    setIsManuallyPaused(next);
+    if (!next) containerRef.current?.focus();
+  }, [isManuallyPaused, setIsManuallyPaused]);
+
+  // Effective freeze = player paused OR the typing surface lost focus. This is the
+  // single source of truth for isPaused (drives the monster attack loop).
+  useEffect(() => {
+    setIsPaused(isManuallyPaused || !isFocused);
+  }, [isManuallyPaused, isFocused, setIsPaused]);
+
+  // A dead player can't reach the resume control, so clear any manual pause.
+  useEffect(() => {
+    if (isPlayerDead) setIsManuallyPaused(false);
+  }, [isPlayerDead, setIsManuallyPaused]);
 
   // When the text actually changes, reset all per-session state.
   useEffect(() => {
@@ -433,7 +461,13 @@ export default function TypingInterface({
     // re-renders this async block triggers (setEarnedXp / setKillResult /
     // reloadPlayerStats) can't re-fire this effect and cancel the reveal timer.
     (async () => {
-      const result = await completionHandler.handleCompletion(stats);
+      // currentMonsterVariant still holds the just-killed monster's rarity here;
+      // it only resets when the next monster spawns. Scales the awarded XP.
+      const result = await completionHandler.handleCompletion(
+        stats,
+        undefined,
+        currentMonsterVariant
+      );
       if (result.action === 'saveError') {
         setSaveError(result.message ?? 'Failed to save. Please retry.');
         setPendingRetrySave(() => result.retrySave ?? null);
@@ -459,6 +493,7 @@ export default function TypingInterface({
     reloadPlayerStats,
     charStatusRef,
     appendRunFight,
+    currentMonsterVariant,
   ]);
 
   // Reveal the post-kill overlay DEATH_ANIM_MS after the result is computed.
@@ -554,12 +589,24 @@ export default function TypingInterface({
       return;
     }
     const { key } = e;
+    // Esc toggles pause (endless only). Handled before everything else so the
+    // player can always pause/resume.
+    if (currentMode === 'endless' && key === 'Escape') {
+      e.preventDefault();
+      togglePause();
+      return;
+    }
+    // While manually paused, swallow all other keys — no typing, no commands.
+    if (isManuallyPaused) {
+      e.preventDefault();
+      return;
+    }
     // Top priority: a weapon just dropped. Capture all keys (no leak into the
-    // typing buffer); Space/Enter takes it and reveals the kill result next.
+    // typing buffer); Enter takes it and reveals the kill result next.
     if (pendingDrop) {
       if (key === 'Tab') return;
       e.preventDefault();
-      if (key === ' ' || key === 'Enter') handleTakeDrop();
+      if (key === 'Enter') handleTakeDrop();
       return;
     }
     // While the post-kill results panel is up, Space (or any typing key)
@@ -637,7 +684,16 @@ export default function TypingInterface({
     isPlayerDead ||
     dailyLocked ||
     loadoutPending ||
+    isManuallyPaused ||
     (currentMode === 'endless' && isCurrentMonsterDefeated);
+  // The pause button is only meaningful in endless, and hidden during the
+  // pre-fight/loadout/death/results states where there's nothing to pause.
+  const canPause =
+    currentMode === 'endless' &&
+    !isPlayerDead &&
+    !loadoutPending &&
+    !awaitingContinue &&
+    !isCurrentMonsterDefeated;
 
   return (
     <>
@@ -656,14 +712,8 @@ export default function TypingInterface({
           <div
             ref={containerRef}
             onKeyDown={handleKeyDown}
-            onFocus={() => {
-              setIsFocused(true);
-              setIsPaused(false);
-            }}
-            onBlur={() => {
-              setIsFocused(false);
-              setIsPaused(true);
-            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             tabIndex={0}
             className={`px-12 py-8 rounded-lg shadow-xl flex flex-col space-y-6 focus:outline-none transition-all duration-300 ${
               theme === 'dark'
@@ -691,15 +741,34 @@ export default function TypingInterface({
               />
             </div>
 
-            <TypingRestartButton onRestart={restartSession} />
+            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
+              {canPause && (
+                <TypingPauseButton
+                  paused={isManuallyPaused}
+                  onToggle={togglePause}
+                />
+              )}
+              <TypingRestartButton onRestart={restartSession} />
+            </div>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
             <OverlayBanner
-              visible={!isFocused && !dailyLocked && !loadoutPending}
+              visible={
+                !isFocused &&
+                !isManuallyPaused &&
+                !dailyLocked &&
+                !loadoutPending
+              }
               message="Click to start fighting!"
               tone="info"
               onClick={() => containerRef.current?.focus()}
+            />
+            <OverlayBanner
+              visible={canPause && isManuallyPaused}
+              message="Paused — press Esc to resume"
+              tone="info"
+              onClick={togglePause}
             />
           </div>
 
