@@ -4,6 +4,10 @@ import { useFrame } from '@react-three/fiber';
 import { Group, Mesh, Color, MeshStandardMaterial } from 'three';
 import type { MonsterVariant } from '../context/GameContext';
 import { VARIANT_GLOW, glowIntensity } from '../utils/variantGlow';
+import {
+  captureOriginalTransforms,
+  restoreAliveTransforms,
+} from '../utils/monsterTransforms';
 
 const HIT_FLASH_COLOR = new Color('#ff6b6b');
 
@@ -45,39 +49,30 @@ export function useProceduralMonster(
   // once when switching to a common monster instead of traversing every frame.
   const glowAppliedRef = useRef(false);
 
-  // Capture each material's base color once so flash/restore is color-accurate.
+  // Capture each mesh's original transform + base color once so the defeat
+  // animation can be undone on respawn and flash/restore stays color-accurate.
   useEffect(() => {
     const group = groupRef.current;
     if (!group) return;
-    group.traverse(child => {
-      if ((child as Mesh).isMesh) {
-        const mat = (child as Mesh).material as MeshStandardMaterial;
-        if (mat && !mat.userData.origColor) {
-          mat.userData.origColor = mat.color.clone();
-        }
-      }
-    });
+    captureOriginalTransforms(group);
   }, [groupRef]);
 
   useEffect(() => {
     if (isHit) setHitFlashTime(Date.now());
   }, [isHit]);
 
-  // Restore transforms/opacity when the monster is alive (the defeat animation
-  // mutates these cumulatively, and a respawn can briefly mount while still
-  // flagged defeated).
+  // Restore transforms/opacity when the monster is alive. The defeat animation
+  // mutates each child mesh's position/rotation (and the group scale)
+  // cumulatively and never undoes it; since the same instance is reused when
+  // consecutive monsters share a family, without a full per-mesh restore the
+  // next monster inherits the previous one's sunk/toppled meshes and renders
+  // off-screen (looks like it vanished while its health bar still shows). A
+  // respawn can also briefly mount while still flagged defeated.
   useEffect(() => {
     const group = groupRef.current;
     if (isDefeated || !group) return;
-    group.position.set(0, 0, 0);
-    group.rotation.set(0, 0, 0);
-    group.scale.setScalar(scale);
-    group.traverse(child => {
-      if ((child as Mesh).isMesh) {
-        const mat = (child as Mesh).material as MeshStandardMaterial;
-        if (mat && mat.transparent) mat.opacity = 1.0;
-      }
-    });
+    captureOriginalTransforms(group);
+    restoreAliveTransforms(group, scale);
   }, [isDefeated, scale, groupRef]);
 
   // Flash on the global 'word-hit' event so we don't rely solely on props.
