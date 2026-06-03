@@ -22,10 +22,13 @@ export const VARIANT_HP_MULT: Record<MonsterVariant, number> = {
   rare: 2,
 };
 
-export const VARIANT_SCALE_MULT: Record<MonsterVariant, number> = {
-  common: 1,
+// Visual size by rarity. Size now *encodes* rarity (common = small, rare =
+// big) instead of being a random per-spawn roll, so the player can read a
+// monster's tier at a glance. Multiplies the family's base scale (see App).
+export const VARIANT_SIZE: Record<MonsterVariant, number> = {
+  common: 0.8,
   elite: 1.15,
-  rare: 1.3,
+  rare: 1.55,
 };
 
 // Combo streak granted when a variant monster is killed (0 for common).

@@ -5,6 +5,8 @@ import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import { SLIME_CONFIGS, SLIME_ANIMATIONS } from '../types/SlimeTypes';
 import type { MonsterVariant } from '../context/GameContext';
 import { VARIANT_GLOW, glowIntensity } from '../utils/variantGlow';
+import type { EyeStyle } from '../utils/eyeStyles';
+import MonsterEyes from './MonsterEyes';
 
 const HIT_FLASH_COLOR = new Color('#ff4d4d');
 
@@ -16,6 +18,7 @@ interface SlimeModelProps {
   customColor?: string;
   customScale?: number;
   shape?: SlimeShapeEnum; // Override shape if provided
+  eyeStyle?: EyeStyle;
 }
 
 export default function SlimeModel({
@@ -26,11 +29,10 @@ export default function SlimeModel({
   customColor,
   customScale,
   shape: shapeProp,
+  eyeStyle = 'neutral',
 }: SlimeModelProps) {
   const meshRef = useRef<Mesh>(null);
   const bodyMatRef = useRef<MeshPhongMaterial | null>(null);
-  const leftEyeRef = useRef<Mesh>(null);
-  const rightEyeRef = useRef<Mesh>(null);
   const [hitFlashTime, setHitFlashTime] = useState(0);
 
   const config = SLIME_CONFIGS[slimeType];
@@ -57,18 +59,17 @@ export default function SlimeModel({
     }
   }, [isHit]);
 
-  // Reset opacity when monster spawns (not defeated)
+  // Reset opacity when monster spawns (not defeated). The body fades on defeat
+  // and so do its eye meshes (children); restore both so a respawn isn't ghosted.
   useEffect(() => {
-    if (!isDefeated && meshRef.current) {
-      const material = meshRef.current.material as { opacity: number };
-      material.opacity = 0.95;
-    }
-    if (!isDefeated && leftEyeRef.current && rightEyeRef.current) {
-      const leftMaterial = leftEyeRef.current.material as { opacity: number };
-      const rightMaterial = rightEyeRef.current.material as { opacity: number };
-      leftMaterial.opacity = 1.0;
-      rightMaterial.opacity = 1.0;
-    }
+    const mesh = meshRef.current;
+    if (isDefeated || !mesh) return;
+    (mesh.material as { opacity: number }).opacity = 0.95;
+    mesh.traverse(child => {
+      if ((child as Mesh).isMesh && child !== mesh) {
+        ((child as Mesh).material as { opacity: number }).opacity = 1.0;
+      }
+    });
   }, [isDefeated]);
 
   // Also flash on global 'word-hit' event so we don't rely on parent props
@@ -131,31 +132,24 @@ export default function SlimeModel({
 
     if (isDefeated) {
       const material = mesh.material as { opacity: number };
-      if (material.opacity > 0) {
-        material.opacity -= 0.05;
-      }
-      if (leftEyeRef.current && rightEyeRef.current) {
-        const leftMaterial = leftEyeRef.current.material as { opacity: number };
-        const rightMaterial = rightEyeRef.current.material as {
-          opacity: number;
-        };
-        if (leftMaterial.opacity > 0) leftMaterial.opacity -= 0.05;
-        if (rightMaterial.opacity > 0) rightMaterial.opacity -= 0.05;
-      }
+      if (material.opacity > 0) material.opacity -= 0.05;
+      // Fade every eye mesh (children of the body) in lockstep with the body.
+      mesh.traverse(child => {
+        if ((child as Mesh).isMesh && child !== mesh) {
+          const m = (child as Mesh).material as { opacity: number };
+          if (m.opacity > 0) m.opacity -= 0.05;
+        }
+      });
     } else {
       // Ensure opacity is reset when not defeated
       const material = mesh.material as { opacity: number };
-      if (material.opacity < 0.95) {
-        material.opacity = 0.95;
-      }
-      if (leftEyeRef.current && rightEyeRef.current) {
-        const leftMaterial = leftEyeRef.current.material as { opacity: number };
-        const rightMaterial = rightEyeRef.current.material as {
-          opacity: number;
-        };
-        if (leftMaterial.opacity < 1.0) leftMaterial.opacity = 1.0;
-        if (rightMaterial.opacity < 1.0) rightMaterial.opacity = 1.0;
-      }
+      if (material.opacity < 0.95) material.opacity = 0.95;
+      mesh.traverse(child => {
+        if ((child as Mesh).isMesh && child !== mesh) {
+          const m = (child as Mesh).material as { opacity: number };
+          if (m.opacity < 1.0) m.opacity = 1.0;
+        }
+      });
     }
   });
 
@@ -179,16 +173,15 @@ export default function SlimeModel({
           emissiveIntensity={0.25}
         />
 
-        {/* Eyes are children of the body so they move/scale automatically */}
-        <mesh ref={leftEyeRef} position={[-0.3, 0.2, 0.95]}>
-          <sphereGeometry args={[0.15, 12, 12]} />
-          <meshPhongMaterial color="#000000" transparent={true} opacity={1.0} />
-        </mesh>
-
-        <mesh ref={rightEyeRef} position={[0.3, 0.2, 0.95]}>
-          <sphereGeometry args={[0.15, 12, 12]} />
-          <meshPhongMaterial color="#000000" transparent={true} opacity={1.0} />
-        </mesh>
+        {/* Eyes are children of the body so they move/scale automatically.
+            Expression varies per spawn for visual variety. */}
+        <MonsterEyes
+          style={eyeStyle}
+          spacing={0.3}
+          y={0.2}
+          z={0.92}
+          size={0.16}
+        />
       </mesh>
     </group>
   );

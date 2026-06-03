@@ -16,15 +16,12 @@ import PlayerLevel from './components/PlayerLevel';
 import PixelArtBackground from './components/PixelArtBackground';
 import { usePlayerStats } from './hooks/usePlayerStats';
 import { useDailyProgress } from './hooks/useDailyProgress';
-import {
-  SLIME_COLORS,
-  SLIME_SIZES,
-  type SlimeShapeEnum,
-} from './types/SlimeTypes';
-import { GOLEM_COLORS, GOLEM_SIZES } from './types/GolemTypes';
-import { MUSHROOM_COLORS, MUSHROOM_SIZES } from './types/MushroomTypes';
-import { CRYSTAL_COLORS, CRYSTAL_SIZES } from './types/CrystalTypes';
+import { SLIME_COLORS, type SlimeShapeEnum } from './types/SlimeTypes';
+import { GOLEM_COLORS } from './types/GolemTypes';
+import { MUSHROOM_COLORS } from './types/MushroomTypes';
+import { CRYSTAL_COLORS } from './types/CrystalTypes';
 import type { MonsterFamily } from './components/Monster';
+import { pickEyeStyle, type EyeStyle } from './utils/eyeStyles';
 import MonsterNameplate from './components/MonsterNameplate';
 import type { MonsterTypeEnum, MonsterVariant } from './context/GameContext';
 import {
@@ -32,7 +29,7 @@ import {
   pickMonsterVariant,
   pickMonsterFamily,
 } from './utils/monsterSpawn';
-import { VARIANT_SCALE_MULT } from './utils/combatTuning';
+import { VARIANT_SIZE } from './utils/combatTuning';
 import DeathPopup from './components/DeathPopup';
 
 // Contexts
@@ -48,6 +45,15 @@ import { useDocumentTitle } from './hooks/useDocumentTitle';
 // path and streams in as an async chunk after first paint.
 const Monster = lazy(() => import('./components/Monster'));
 const RaidView = lazy(() => import('./components/RaidView'));
+
+// Per-family base scale (the family's natural "medium" size). Multiplied by the
+// rarity size factor (VARIANT_SIZE) so size reads as rarity across families.
+const FAMILY_BASE_SCALE: Record<MonsterFamily, number> = {
+  slime: 0.8,
+  golem: 1.6,
+  mushroom: 1.0,
+  crystal: 1.2,
+};
 
 // Main game content component that uses GameContext
 function GameContent() {
@@ -83,9 +89,14 @@ function GameContent() {
     useState<MonsterVariant>('common');
 
   // Each new monster gets random family, type, color, size, and shape
-  const [monsterVisuals, setMonsterVisuals] = useState(() => ({
+  const [monsterVisuals, setMonsterVisuals] = useState<{
+    color: string;
+    scale: number;
+    eyeStyle: EyeStyle;
+  }>(() => ({
     color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
-    scale: SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)],
+    scale: FAMILY_BASE_SCALE.slime * VARIANT_SIZE.common,
+    eyeStyle: 'neutral',
   }));
 
   // Generate new monster on defeat. Visuals (family, color, size, shape) stay
@@ -106,41 +117,24 @@ function GameContent() {
     const variant: MonsterVariant =
       currentMode === 'endless' ? pickMonsterVariant(progress) : 'common';
     setMonsterVariant(variant);
-    const scaleMult = VARIANT_SCALE_MULT[variant];
 
+    // Size is driven by rarity (variant), not random: common = small, rare =
+    // big. Color stays randomized per family for variety.
+    const scale = FAMILY_BASE_SCALE[family] * VARIANT_SIZE[variant];
+    let color: string;
     if (family === 'slime') {
       // 50/50 round or square shape, independent of type.
       setMonsterShape(Math.random() > 0.5 ? 'round' : 'square');
-      setMonsterVisuals({
-        color: SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)],
-        scale:
-          SLIME_SIZES[Math.floor(Math.random() * SLIME_SIZES.length)] *
-          scaleMult,
-      });
+      color = SLIME_COLORS[Math.floor(Math.random() * SLIME_COLORS.length)];
     } else if (family === 'golem') {
-      setMonsterVisuals({
-        color: GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)],
-        scale:
-          GOLEM_SIZES[Math.floor(Math.random() * GOLEM_SIZES.length)] *
-          scaleMult,
-      });
+      color = GOLEM_COLORS[Math.floor(Math.random() * GOLEM_COLORS.length)];
     } else if (family === 'mushroom') {
-      setMonsterVisuals({
-        color:
-          MUSHROOM_COLORS[Math.floor(Math.random() * MUSHROOM_COLORS.length)],
-        scale:
-          MUSHROOM_SIZES[Math.floor(Math.random() * MUSHROOM_SIZES.length)] *
-          scaleMult,
-      });
+      color =
+        MUSHROOM_COLORS[Math.floor(Math.random() * MUSHROOM_COLORS.length)];
     } else {
-      setMonsterVisuals({
-        color:
-          CRYSTAL_COLORS[Math.floor(Math.random() * CRYSTAL_COLORS.length)],
-        scale:
-          CRYSTAL_SIZES[Math.floor(Math.random() * CRYSTAL_SIZES.length)] *
-          scaleMult,
-      });
+      color = CRYSTAL_COLORS[Math.floor(Math.random() * CRYSTAL_COLORS.length)];
     }
+    setMonsterVisuals({ color, scale, eyeStyle: pickEyeStyle(family) });
 
     // Spawn in context: sets type + variant for the attack/HP system AND resets
     // the monster's HP to full for its tier×variant (Endless). Atomic so a
@@ -217,6 +211,7 @@ function GameContent() {
                 color={monsterVisuals.color}
                 scale={monsterVisuals.scale}
                 shape={monsterShape}
+                eyeStyle={monsterVisuals.eyeStyle}
               />
             </Suspense>
             <SignedIn>
