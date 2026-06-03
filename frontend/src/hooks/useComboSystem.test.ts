@@ -61,3 +61,12 @@ describe('rollDamage (streak 0, rng=0.99)', () => {
     expect(rollDamage(0, () => 0.99)).toEqual({ damage: 1, crit: false });
   });
 });
+
+describe('rollDamage with level bonus (streak 0, rng=0.99)', () => {
+  it('level 20 adds +1.0 → damage=2', () => {
+    expect(rollDamage(0, () => 0.99, null, 20)).toEqual({
+      damage: 2,
+      crit: false,
+    });
+  });
+});

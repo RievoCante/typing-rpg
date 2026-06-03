@@ -56,12 +56,13 @@ export function useComboSystem() {
   const registerCorrectWord = useCallback(
     (
       weapon: Weapon | null = null,
-      rng: () => number = Math.random
+      rng: () => number = Math.random,
+      level: number = 1
     ): DamageRoll => {
       // Roll BEFORE dispatching so the roll uses the current streak value.
       // useReducer dispatch is synchronous for the state snapshot we read here.
-      // An equipped weapon raises crit chance / damage (see rollDamage).
-      const roll = rollDamage(state.streak, rng, weapon);
+      // `level` adds the faint level-derived base-damage bonus (see rollDamage).
+      const roll = rollDamage(state.streak, rng, weapon, level);
       dispatch({ type: 'CORRECT_WORD' });
       return roll;
     },
