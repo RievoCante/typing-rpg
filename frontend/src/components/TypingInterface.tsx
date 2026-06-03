@@ -15,6 +15,7 @@ import { trackEvent } from '../utils/trackEvent';
 import CongratsModal from './CongratsModal';
 import OverlayBanner from './OverlayBanner';
 import KillResultOverlay, { type KillResult } from './KillResultOverlay';
+import WeaponDropModal from './WeaponDropModal';
 import WPMDisplay from './WPMDisplay';
 import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import PotionSlot from './PotionSlot';
@@ -25,7 +26,6 @@ import {
   HitPopups,
   AttackPopups,
   PotionPopups,
-  WeaponPopups,
   CombatPopups,
   SaveErrorBanner,
 } from './TypingPopups';
@@ -39,7 +39,6 @@ import { useCompletionHandler } from '../hooks/useCompletionHandler';
 import { useHitPopups } from '../hooks/useHitPopups';
 import { useAttackPopups } from '../hooks/useAttackPopups';
 import { usePotionPopups } from '../hooks/usePotionPopups';
-import { useWeaponPopups } from '../hooks/useWeaponPopups';
 import { useCombatPopups } from '../hooks/useCombatPopups';
 import { useTypingCompletion } from '../hooks/useTypingCompletion';
 import type { DailyProgressType } from '../hooks/useDailyProgress';
@@ -94,6 +93,8 @@ export default function TypingInterface({
     monsterHp,
     isCurrentMonsterDefeated,
     resetDefeatState,
+    pendingDrop,
+    clearPendingDrop,
   } = useGameContext();
   const { theme } = useThemeContext();
 
@@ -143,7 +144,6 @@ export default function TypingInterface({
   const { hits, triggerHit } = useHitPopups();
   const attacks = useAttackPopups();
   const potionPopups = usePotionPopups();
-  const weaponPopups = useWeaponPopups();
   const combatPopups = useCombatPopups();
 
   const fightStats = useFightStats();
@@ -457,12 +457,14 @@ export default function TypingInterface({
   useEffect(() => {
     if (currentMode !== 'endless') return;
     if (!killResult || awaitingContinue) return;
+    // Hold the post-kill overlay until the player takes any dropped weapon.
+    if (pendingDrop) return;
     const id = window.setTimeout(
       () => setAwaitingContinue(true),
       DEATH_ANIM_MS
     );
     return () => window.clearTimeout(id);
-  }, [currentMode, killResult, awaitingContinue]);
+  }, [currentMode, killResult, awaitingContinue, pendingDrop]);
 
   // Dismiss the post-kill results panel and advance. Endless drives the next
   // fight: reset fight state, clear the defeat flag (App spawns the next
@@ -491,6 +493,13 @@ export default function TypingInterface({
     resetDefeatState,
     restartSession,
   ]);
+
+  // Acknowledge the dropped weapon. Clicking the Take button can drop focus off
+  // the typing surface, so restore it — the kill-result overlay reveals next.
+  const handleTakeDrop = useCallback(() => {
+    clearPendingDrop();
+    containerRef.current?.focus();
+  }, [clearPendingDrop]);
 
   // Show the loadout picker at the start of every endless run: on entering
   // endless, and again after a death reset (revive). Reset fight stats too.
@@ -533,6 +542,14 @@ export default function TypingInterface({
       return;
     }
     const { key } = e;
+    // Top priority: a weapon just dropped. Capture all keys (no leak into the
+    // typing buffer); Space/Enter takes it and reveals the kill result next.
+    if (pendingDrop) {
+      if (key === 'Tab') return;
+      e.preventDefault();
+      if (key === ' ' || key === 'Enter') handleTakeDrop();
+      return;
+    }
     // While the post-kill results panel is up, Space (or any typing key)
     // advances to the next monster/quote instead of feeding the input.
     if (awaitingContinue) {
@@ -686,6 +703,10 @@ export default function TypingInterface({
             />
           </div>
 
+          {currentMode === 'endless' && pendingDrop && (
+            <WeaponDropModal weapon={pendingDrop} onTake={handleTakeDrop} />
+          )}
+
           {dailyLocked && (
             <DailyCompletedOverlay resetTimeLeft={resetTimeLeft} />
           )}
@@ -715,7 +736,6 @@ export default function TypingInterface({
       <HitPopups hits={hits} />
       <AttackPopups attacks={attacks} />
       <PotionPopups popups={potionPopups} />
-      <WeaponPopups popups={weaponPopups} />
       <CombatPopups popups={combatPopups} />
     </>
   );
