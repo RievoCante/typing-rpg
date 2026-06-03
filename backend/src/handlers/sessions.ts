@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { eq, desc, and } from 'drizzle-orm';
 import { applyXp, calculateXpDelta } from '../core/xp';
 
-const sessionSchema = z.object({
+export const sessionSchema = z.object({
   mode: z.enum(['daily', 'endless']),
   wpm: z.number().int().nonnegative().max(300),
   totalWords: z.number().int().nonnegative().max(2000),
@@ -16,6 +16,23 @@ const sessionSchema = z.object({
   // (which omit it) and older clients default to beginner (1x) server-side.
   difficulty: z
     .enum(['beginner', 'common', 'intermediate', 'advanced'])
+    .optional(),
+  // Extended typing metrics (all optional for backwards compat)
+  rawWpm: z.number().int().nonnegative().max(600).optional(),
+  accuracy: z.number().int().min(0).max(100).optional(),
+  consistency: z.number().int().min(0).max(100).optional(),
+  correctChars: z.number().int().nonnegative().max(10000).optional(),
+  incorrectChars: z.number().int().nonnegative().max(10000).optional(),
+  extraChars: z.number().int().nonnegative().max(10000).optional(),
+  missedChars: z.number().int().nonnegative().max(10000).optional(),
+  durationSeconds: z.number().int().nonnegative().max(3600).optional(),
+  afkSeconds: z.number().int().nonnegative().max(3600).optional(),
+  chartData: z
+    .object({
+      wpm: z.array(z.number().int()).max(300),
+      raw: z.array(z.number().int()).max(300),
+      err: z.array(z.number().int()).max(300),
+    })
     .optional(),
 });
 
@@ -36,8 +53,24 @@ export const createSession = async (c: AppContext) => {
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.format() }, 400);
   }
-  const { mode, wpm, totalWords, correctWords, incorrectWords, difficulty } =
-    parsed.data;
+  const {
+    mode,
+    wpm,
+    totalWords,
+    correctWords,
+    incorrectWords,
+    difficulty,
+    rawWpm,
+    accuracy,
+    consistency,
+    correctChars,
+    incorrectChars,
+    extraChars,
+    missedChars,
+    durationSeconds,
+    afkSeconds,
+    chartData,
+  } = parsed.data;
 
   const db = c.get('db');
   try {
@@ -64,7 +97,24 @@ export const createSession = async (c: AppContext) => {
     // Insert session
     const [inserted] = await db
       .insert(gameSessions)
-      .values({ userId, mode, wpm, totalWords, correctWords, incorrectWords })
+      .values({
+          userId,
+          mode,
+          wpm,
+          totalWords,
+          correctWords,
+          incorrectWords,
+          rawWpm,
+          accuracy,
+          consistency,
+          correctChars,
+          incorrectChars,
+          extraChars,
+          missedChars,
+          durationSeconds,
+          afkSeconds,
+          chartData: chartData ? JSON.stringify(chartData) : null,
+        })
       .returning();
 
     // Load or create user
