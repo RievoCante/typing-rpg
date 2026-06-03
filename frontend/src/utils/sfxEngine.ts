@@ -175,3 +175,72 @@ export function playCrit() {
 export function playComboBreak() {
   playArpeggio([330, 220, 165], 0.08, 0.18);
 }
+
+// Short, punchy "hit" for when a monster attacks the player: a low square-wave
+// thud that drops in pitch plus a brief noise crunch, both with stepped 8-bit
+// envelopes so it lands as a retro impact. ~0.2s — quick so the periodic
+// attacks don't get grating.
+export function playMonsterAttack() {
+  if (settings.muted || settings.volume <= 0) return;
+  const audio = getCtx();
+  if (!audio) return;
+
+  const now = audio.currentTime;
+  const vol = settings.volume;
+  const duration = 0.2;
+  const sr = audio.sampleRate;
+
+  // Stepped decay helper — discrete drops for the chiptune feel.
+  const steppedDecay = (
+    param: AudioParam,
+    peak: number,
+    steps: number,
+    span: number
+  ) => {
+    for (let s = 0; s <= steps; s++) {
+      const level = peak * (1 - s / steps);
+      param.setValueAtTime(Math.max(0.0001, level), now + (span * s) / steps);
+    }
+  };
+
+  // --- Short crunchy noise burst for the impact transient ---
+  const bufferSize = Math.floor(sr * duration);
+  const buffer = audio.createBuffer(1, bufferSize, sr);
+  const data = buffer.getChannelData(0);
+  const hold = Math.max(1, Math.floor(sr / 7000));
+  let held = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    if (i % hold === 0) held = Math.random() * 2 - 1;
+    data[i] = Math.round(held * 5) / 5;
+  }
+  const noise = audio.createBufferSource();
+  noise.buffer = buffer;
+
+  const noiseFilter = audio.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.setValueAtTime(1600, now);
+  noiseFilter.frequency.linearRampToValueAtTime(300, now + duration);
+
+  const noiseGain = audio.createGain();
+  steppedDecay(noiseGain.gain, vol * 0.5, 6, duration);
+  noise.connect(noiseFilter).connect(noiseGain).connect(audio.destination);
+
+  // --- Low square-wave thud dropping in pitch ---
+  const osc = audio.createOscillator();
+  osc.type = 'square';
+  const toneSteps = 6;
+  const startF = 200;
+  const endF = 60;
+  for (let s = 0; s <= toneSteps; s++) {
+    const f = startF * Math.pow(endF / startF, s / toneSteps);
+    osc.frequency.setValueAtTime(f, now + (duration * s) / toneSteps);
+  }
+  const oscGain = audio.createGain();
+  steppedDecay(oscGain.gain, vol * 0.45, 6, duration);
+  osc.connect(oscGain).connect(audio.destination);
+
+  noise.start(now);
+  noise.stop(now + duration);
+  osc.start(now);
+  osc.stop(now + duration);
+}
