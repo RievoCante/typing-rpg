@@ -1,21 +1,13 @@
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useGameContext } from '../hooks/useGameContext';
-import { useEffect, useState } from 'react';
 import EndlessOptions from './EndlessOptions';
 
 export default function ModeSelector() {
   const { theme } = useThemeContext();
   const { currentMode, setCurrentMode } = useGameContext();
-  const [, setTick] = useState(0);
 
   const activeIndex =
     currentMode === 'raid' ? 2 : currentMode === 'daily' ? 1 : 0;
-
-  // Live ticking countdown without heavy re-renders
-  useEffect(() => {
-    const id = setInterval(() => setTick(n => (n + 1) % 60), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   return (
     <div className="flex flex-col items-center w-full py-4">

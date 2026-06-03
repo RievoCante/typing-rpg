@@ -4,6 +4,7 @@ import { Group, Color, MeshPhongMaterial } from 'three';
 import type { PlayerAvatarConfig } from '../utils/avatarConfig';
 import { isCriticalHp } from '../utils/raidHp';
 import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
+import FrameLimiter from './FrameLimiter';
 
 const HURT_COLOR = new Color('#ff4d4d');
 const GRAY = new Color('#6b7280');
@@ -291,11 +292,13 @@ function PlayerAvatar3D({
 }: PlayerAvatar3DProps) {
   return (
     <Canvas
+      frameloop="demand"
       camera={{ position: [0, 0, 3.6], fov: 50 }}
       dpr={CANVAS_DPR}
       gl={CANVAS_GL}
       style={{ width: '100%', height: '100%' }}
     >
+      <FrameLimiter />
       <ambientLight intensity={0.6} />
       <pointLight position={[3, 4, 5]} intensity={0.9} />
       <pointLight position={[-3, -2, -3]} intensity={0.25} color="#ffffff" />
