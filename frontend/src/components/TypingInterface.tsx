@@ -167,12 +167,13 @@ export default function TypingInterface({
   }, [earnedXp, onXpGain]);
 
   const handleWordCompleted = useCallback(() => {
-    triggerHit();
     if (currentMode === 'endless') {
       // Combo-driven damage to the monster's HP. Endless HP is decoupled from
       // the word pool, so we no longer decrement remainingWords here. The
       // equipped weapon (if any) raises crit chance / damage.
       const { damage, crit } = registerComboCorrect(equippedWeapon);
+      // Float the actual damage dealt (crit-colored on crits).
+      triggerHit(damage, crit);
       damageMonster(damage);
       window.dispatchEvent(
         new CustomEvent('combat-hit', { detail: { damage, crit } })
@@ -181,6 +182,7 @@ export default function TypingInterface({
       registerCorrectWord();
     } else {
       // Daily/raid: words drive the HP bar, so each correct word drains one.
+      triggerHit();
       decrementRemainingWords();
     }
     // Also notify slime model to flash red
