@@ -32,7 +32,7 @@ import {
   pickMonsterFamily,
 } from './utils/monsterSpawn';
 import { VARIANT_SCALE_MULT } from './utils/combatTuning';
-import DeathPopup from './components/DeathPopup';
+import BattleReport from './components/BattleReport';
 import LevelUpToast from './components/LevelUpToast';
 
 // Contexts
@@ -65,6 +65,7 @@ function GameContent() {
     reloadPlayerStats,
     levelUpEvent,
     clearLevelUpEvent,
+    addRunXp,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -185,11 +186,15 @@ function GameContent() {
   // Nonce bumps every award so equal back-to-back amounts still animate.
   const [xpGain, setXpGain] = useState(0);
   const [xpGainNonce, setXpGainNonce] = useState(0);
-  const handleXpGain = useCallback((xp: number) => {
-    if (xp <= 0) return;
-    setXpGain(xp);
-    setXpGainNonce(n => n + 1);
-  }, []);
+  const handleXpGain = useCallback(
+    (xp: number) => {
+      if (xp <= 0) return;
+      addRunXp(xp);
+      setXpGain(xp);
+      setXpGainNonce(n => n + 1);
+    },
+    [addRunXp]
+  );
 
   if (bootstrapping) return <LoadingScreen />;
 
@@ -256,8 +261,8 @@ function GameContent() {
         )}
         <VolumeControl />
 
-        {/* Death popup when player dies */}
-        {isPlayerDead && <DeathPopup onRestart={handleDeathRestart} />}
+        {/* Battle Report (full run recap) when the player dies */}
+        {isPlayerDead && <BattleReport onRestart={handleDeathRestart} />}
 
         {/* Subtle level-up celebration (Endless, signed-in only) */}
         <SignedIn>
