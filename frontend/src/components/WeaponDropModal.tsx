@@ -1,9 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { RARITY_COLOR, type Weapon, type WeaponRarity } from '../utils/weapons';
-import {
-  weaponDropIcon,
-  weaponEffectLines,
-} from '../utils/weaponDropDisplay';
+import { weaponDropIcon, weaponEffectLines } from '../utils/weaponDropDisplay';
 
 // Rarity -> icon frame border/glow classes.
 const RARITY_FRAME: Record<WeaponRarity, string> = {
