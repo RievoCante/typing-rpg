@@ -25,10 +25,16 @@ describe('comboReducer', () => {
     expect(state.streak).toBe(2);
   });
 
-  it('resets streak to 0 on WRONG_WORD', () => {
-    let state: ComboState = { streak: 2 };
-    state = comboReducer(state, { type: 'WRONG_WORD' });
-    expect(state.streak).toBe(0);
+  it('halves streak (floored) on WRONG_WORD', () => {
+    expect(comboReducer({ streak: 40 }, { type: 'WRONG_WORD' }).streak).toBe(
+      20
+    );
+    expect(comboReducer({ streak: 3 }, { type: 'WRONG_WORD' }).streak).toBe(1);
+  });
+
+  it('drops to 0 on WRONG_WORD from streak 1 or 0', () => {
+    expect(comboReducer({ streak: 1 }, { type: 'WRONG_WORD' }).streak).toBe(0);
+    expect(comboReducer({ streak: 0 }, { type: 'WRONG_WORD' }).streak).toBe(0);
   });
 
   it('resets streak to 0 on RESET', () => {

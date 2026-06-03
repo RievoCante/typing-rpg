@@ -42,7 +42,7 @@ export const monsterMaxHp = (
 ): number => Math.round(MONSTER_MAX_HP[type] * VARIANT_HP_MULT[variant]);
 
 // Crit chance rises 1.5% per consecutive correct word, capped at 75% (reached
-// at streak 50). A wrong word resets the streak to 0 (see useComboSystem).
+// at streak 50). A wrong word halves the streak (see useComboSystem).
 const CRIT_RAMP_PER_WORD = 0.015;
 const CRIT_CHANCE_CAP = 0.75;
 // Hard ceiling once a weapon's crit bonus is added on top of the streak chance.

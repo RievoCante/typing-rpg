@@ -26,6 +26,9 @@ export function comboReducer(
     case 'CORRECT_WORD':
       return { streak: state.streak + 1 };
     case 'WRONG_WORD':
+      // A typo HALVES the streak (floored) rather than wiping it, so one slip on
+      // a long run costs momentum without erasing it. Streak 1 or 0 → 0.
+      return { streak: Math.floor(state.streak / 2) };
     case 'RESET':
       return { streak: 0 };
     case 'BONUS':
@@ -40,9 +43,10 @@ export function comboReducer(
 // --- Hook ---
 
 // Endless combo streak: consecutive correct words raise crit chance. A wrong
-// word resets it to 0. The streak deliberately PERSISTS across monster kills —
-// it represents the player's typing flow, not a monster's state — so nothing
-// here resets on defeat; only registerWrongWord() and reset() (run restart) do.
+// word halves it (floored), softening a single slip. The streak deliberately
+// PERSISTS across monster kills — it represents the player's typing flow, not a
+// monster's state — so nothing here resets on defeat; only registerWrongWord()
+// (halve) and reset() (run restart, zero) change it.
 export function useComboSystem() {
   const [state, dispatch] = useReducer(comboReducer, { streak: 0 });
 
