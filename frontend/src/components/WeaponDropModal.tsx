@@ -26,7 +26,7 @@ export default function WeaponDropModal({
   const Icon: LucideIcon = weaponDropIcon(weapon.id);
   const lines = weaponEffectLines(weapon);
   return (
-    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 rounded-lg pointer-events-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] pointer-events-auto">
       <div className="px-8 py-6 rounded-xl backdrop-blur-sm bg-black/40 flex flex-col items-center gap-4 drop-shadow text-center max-w-sm">
         <span className="text-[0.7rem] uppercase tracking-widest text-gray-300">
           Weapon dropped
