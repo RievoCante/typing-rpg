@@ -73,7 +73,12 @@ export const GameProvider = ({
     [weaponVault.loadout]
   );
   const weapon = useWeaponSystem(loadoutWeapon);
-  const { tryDrop: tryDropWeapon, equipLoadout } = weapon;
+  const {
+    tryDrop: tryDropWeapon,
+    equipLoadout,
+    pendingDrop,
+    clearPendingDrop,
+  } = weapon;
 
   useMonsterAttackLoop({
     currentMode,
@@ -145,7 +150,8 @@ export const GameProvider = ({
       if (surge > 0) addStreak(surge);
       if (currentMonsterVariant === 'rare') addPotion();
       // Weapon loot: every kill rolls a drop (chance + rarity scale with the
-      // variant); a strictly-better weapon auto-equips. Fires its own popup.
+      // variant). A hit becomes a pending drop surfaced by the weapon-drop modal
+      // (no auto-equip — the loadout stays fixed for the run).
       tryDropWeapon(currentMonsterVariant);
     }
   }, [
@@ -248,6 +254,8 @@ export const GameProvider = ({
       spawnMonster,
       currentMonsterVariant,
       equippedWeapon: weapon.equippedWeapon,
+      pendingDrop,
+      clearPendingDrop,
       weaponVault: {
         unlocked: weaponVault.unlocked,
         loadout: weaponVault.loadout,
@@ -301,6 +309,8 @@ export const GameProvider = ({
       currentMonsterType,
       currentMonsterVariant,
       weapon.equippedWeapon,
+      pendingDrop,
+      clearPendingDrop,
       weaponVault.unlocked,
       weaponVault.loadout,
       weaponVault.setLoadout,

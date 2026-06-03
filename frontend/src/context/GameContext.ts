@@ -33,6 +33,10 @@ interface GameContextType {
   currentMonsterVariant: MonsterVariant;
   // Per-run equipped weapon (Endless loot); null = Fists. Modifies combat damage.
   equippedWeapon: Weapon | null;
+  // Pending Endless weapon drop awaiting the player's "Take" (the drop modal);
+  // null = none. Gates the kill-result overlay until acknowledged.
+  pendingDrop: Weapon | null;
+  clearPendingDrop: () => void;
   // Persistent weapon vault (Phase 3b): unlocked collection + chosen loadout.
   // The pre-run loadout panel reads/writes this; logged-out = empty + read-only.
   weaponVault: {
@@ -101,6 +105,8 @@ export const GameContext = createContext<GameContextType>({
   spawnMonster: () => {},
   currentMonsterVariant: 'common',
   equippedWeapon: null,
+  pendingDrop: null,
+  clearPendingDrop: () => {},
   weaponVault: {
     unlocked: [],
     loadout: null,
