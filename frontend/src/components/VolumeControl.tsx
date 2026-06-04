@@ -123,7 +123,6 @@ export default function VolumeControl() {
             muted={sfx.muted}
             toggleMute={sfx.toggleMute}
             onInteract={sfx.playExplosion}
-            onCommit={sfx.playExplosion}
             isDark={isDark}
             iconColor={iconColor}
           />
