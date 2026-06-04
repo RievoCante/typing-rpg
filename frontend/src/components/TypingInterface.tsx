@@ -21,7 +21,6 @@ import VerticalPlayerHealthBar from './VerticalPlayerHealthBar';
 import PotionSlot from './PotionSlot';
 import WeaponSlot from './WeaponSlot';
 import DailyCompletedOverlay from './DailyCompletedOverlay';
-import TypingRestartButton from './TypingRestartButton';
 import TypingPauseButton from './TypingPauseButton';
 import {
   HitPopups,
@@ -293,6 +292,13 @@ export default function TypingInterface({
     setIsManuallyPaused(next);
     if (!next) containerRef.current?.focus();
   }, [isManuallyPaused, setIsManuallyPaused]);
+
+  // Resume from the paused overlay — covers both a manual pause and a plain
+  // focus-loss. Clears any manual pause and refocuses the typing surface.
+  const resume = useCallback(() => {
+    setIsManuallyPaused(false);
+    containerRef.current?.focus();
+  }, [setIsManuallyPaused]);
 
   // Effective freeze = player paused OR the typing surface lost focus. This is the
   // single source of truth for isPaused (drives the monster attack loop).
@@ -741,34 +747,30 @@ export default function TypingInterface({
               />
             </div>
 
-            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
-              {canPause && (
+            {canPause && (
+              <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
                 <TypingPauseButton
                   paused={isManuallyPaused}
                   onToggle={togglePause}
                 />
-              )}
-              <TypingRestartButton onRestart={restartSession} />
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
             <OverlayBanner
               visible={
-                !isFocused &&
-                !isManuallyPaused &&
+                (isManuallyPaused || !isFocused) &&
+                !awaitingContinue &&
+                !isProcessingCompletion &&
+                !isPlayerDead &&
                 !dailyLocked &&
-                !loadoutPending
+                !loadoutPending &&
+                !(currentMode === 'endless' && isCurrentMonsterDefeated)
               }
-              message="Click to start fighting!"
-              tone="info"
-              onClick={() => containerRef.current?.focus()}
-            />
-            <OverlayBanner
-              visible={canPause && isManuallyPaused}
               message="Paused — press Esc to resume"
               tone="info"
-              onClick={togglePause}
+              onClick={resume}
             />
           </div>
 
