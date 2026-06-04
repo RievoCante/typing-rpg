@@ -1,13 +1,13 @@
-// Handles initial bootstrap: ensure user exists, fetch daily status, set mode, and enforce splash duration
+// Handles initial bootstrap: ensure user exists, fetch daily status, and enforce splash duration.
+// Note: this intentionally does NOT set the game mode — the app always lands in the
+// default 'endless' mode (see GameProvider). Mode only changes by user action.
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useApi } from './useApi';
-import { useGameContext } from './useGameContext';
 
 export function useBootstrap(markCompletedToday: () => void) {
   const { isSignedIn } = useAuth();
   const { getMe, createMe, getDailyStatus } = useApi();
-  const { setCurrentMode } = useGameContext();
   const alreadyBootstrapped =
     typeof window !== 'undefined' &&
     sessionStorage.getItem('bootstrap_done') === '1';
@@ -48,13 +48,8 @@ export function useBootstrap(markCompletedToday: () => void) {
             const { completedToday } = await r2.json();
             if (completedToday) {
               markCompletedToday();
-              setCurrentMode('endless');
-            } else {
-              setCurrentMode('daily');
             }
           }
-        } else {
-          setCurrentMode('daily');
         }
       } catch {
         // ignore
@@ -66,14 +61,7 @@ export function useBootstrap(markCompletedToday: () => void) {
     return () => {
       cancelled = true;
     };
-  }, [
-    isSignedIn,
-    getMe,
-    createMe,
-    getDailyStatus,
-    setCurrentMode,
-    markCompletedToday,
-  ]);
+  }, [isSignedIn, getMe, createMe, getDailyStatus, markCompletedToday]);
 
   return { bootstrapping };
 }
