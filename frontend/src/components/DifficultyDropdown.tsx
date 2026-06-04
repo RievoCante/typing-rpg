@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useThemeContext } from '../hooks/useThemeContext';
 import { useGameContext } from '../hooks/useGameContext';
 import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import { resolveDifficultySelection } from '../hooks/useEndlessSettings';
 import { DIFFICULTY_XP_MULTIPLIER } from '../utils/calculateXP';
+import ConfirmDialog from './ConfirmDialog';
 
 const DIFFICULTY_OPTIONS: EndlessDifficulty[] = [
   'beginner',
@@ -67,9 +69,19 @@ function MultiplierBadge({
 
 export default function DifficultyDropdown() {
   const { theme } = useThemeContext();
-  const { endlessDifficulty, setEndlessDifficulty } = useGameContext();
+  const {
+    endlessDifficulty,
+    setEndlessDifficulty,
+    hasStartedTyping,
+    monstersDefeated,
+  } = useGameContext();
   const [isOpen, setIsOpen] = useState(false);
+  // The difficulty awaiting restart confirmation; null when no dialog is open.
+  const [pendingDifficulty, setPendingDifficulty] =
+    useState<EndlessDifficulty | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const runStarted = hasStartedTyping || monstersDefeated > 0;
 
   const isDark = theme === 'dark';
   const accent = isDark ? 'text-yellow-400' : 'text-blue-600';
@@ -91,9 +103,32 @@ export default function DifficultyDropdown() {
     };
   }, [isOpen]);
 
-  const select = (difficulty: EndlessDifficulty) => {
+  // Apply a difficulty and restart the run on the new word pool. GameContent
+  // owns the monster-generation logic, so we signal it via a window event
+  // (same pattern as 'monster-killed'); it runs the death-restart flow.
+  const applyAndRestart = (difficulty: EndlessDifficulty) => {
     setEndlessDifficulty(difficulty);
+    window.dispatchEvent(new CustomEvent('restart-run'));
+  };
+
+  const select = (difficulty: EndlessDifficulty) => {
+    const action = resolveDifficultySelection(
+      endlessDifficulty,
+      difficulty,
+      runStarted
+    );
+    if (action === 'confirm') {
+      setPendingDifficulty(difficulty);
+    } else if (action === 'apply') {
+      setEndlessDifficulty(difficulty);
+    }
+    // 'noop' and the two handled cases all close the dropdown.
     setIsOpen(false);
+  };
+
+  const confirmRestart = () => {
+    if (pendingDifficulty) applyAndRestart(pendingDifficulty);
+    setPendingDifficulty(null);
   };
 
   return (
@@ -172,6 +207,17 @@ export default function DifficultyDropdown() {
             );
           })}
         </ul>
+      )}
+
+      {pendingDifficulty && (
+        <ConfirmDialog
+          title="Restart run?"
+          message="Changing difficulty will restart your current run. Your progress this run will be lost."
+          confirmLabel="Restart"
+          cancelLabel="Keep playing"
+          onConfirm={confirmRestart}
+          onCancel={() => setPendingDifficulty(null)}
+        />
       )}
     </div>
   );

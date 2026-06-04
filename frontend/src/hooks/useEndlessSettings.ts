@@ -6,6 +6,23 @@ export type EndlessDifficulty =
   | 'intermediate'
   | 'advanced';
 
+// Difficulty is Endless-only and can't change mid-run: changing it restarts the
+// run. This decides what a selection should do, kept pure so it's testable
+// without a DOM and out of the component file (avoids fast-refresh churn).
+//   'noop'    — same difficulty (nothing to do)
+//   'apply'   — different, but the run hasn't started, so switch silently
+//   'confirm' — different and the run is underway; ask before restarting
+export type DifficultySelectionAction = 'noop' | 'apply' | 'confirm';
+
+export function resolveDifficultySelection(
+  current: EndlessDifficulty,
+  next: EndlessDifficulty,
+  runStarted: boolean
+): DifficultySelectionAction {
+  if (next === current) return 'noop';
+  return runStarted ? 'confirm' : 'apply';
+}
+
 const DIFFICULTY_KEY = 'endless_difficulty';
 const DEFAULT_DIFFICULTY: EndlessDifficulty = 'beginner';
 const VALID_DIFFICULTIES: EndlessDifficulty[] = [
