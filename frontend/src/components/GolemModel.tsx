@@ -1,14 +1,24 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { Mesh, Color, Group, MeshStandardMaterial } from 'three';
+import {
+  Mesh,
+  Color,
+  Group,
+  MeshStandardMaterial,
+  Vector3,
+  Euler,
+} from 'three';
 import type { GolemTypeEnum } from '../types/GolemTypes';
 import { GOLEM_CONFIGS, GOLEM_ANIMATIONS } from '../types/GolemTypes';
+import type { MonsterVariant } from '../context/GameContext';
+import { VARIANT_GLOW, glowIntensity } from '../utils/variantGlow';
 
 const HIT_FLASH_COLOR = new Color('#ff6b6b');
 
 interface GolemModelProps {
   golemType: GolemTypeEnum;
+  variant?: MonsterVariant;
   isHit: boolean;
   isDefeated: boolean;
   customColor?: string;
@@ -20,6 +30,7 @@ useGLTF.preload('/models/GolemMiniboss.glb');
 
 export default function GolemModel({
   golemType,
+  variant = 'common',
   isHit,
   isDefeated,
   customColor,
@@ -27,6 +38,9 @@ export default function GolemModel({
 }: GolemModelProps) {
   const groupRef = useRef<Group>(null);
   const [hitFlashTime, setHitFlashTime] = useState(0);
+  // Tracks whether a variant aura is currently applied, so we clear it exactly
+  // once when switching to a common monster instead of traversing every frame.
+  const glowAppliedRef = useRef(false);
 
   // Load the GLB model
   const { scene } = useGLTF('/models/GolemMiniboss.glb');
@@ -59,6 +73,17 @@ export default function GolemModel({
       });
     }
 
+    // Remember each mesh's original transform so we can restore it after the
+    // crumble (defeat) animation mutates rotation/position. A freshly spawned
+    // monster can briefly mount while still flagged defeated, so without this
+    // the model stays toppled on the ground for the rest of its life.
+    cloned.traverse(child => {
+      if ((child as Mesh).isMesh) {
+        child.userData.origPosition = child.position.clone();
+        child.userData.origRotation = child.rotation.clone();
+      }
+    });
+
     return cloned;
   }, [scene, customColor]);
 
@@ -76,20 +101,32 @@ export default function GolemModel({
     }
   }, [isHit]);
 
-  // Reset opacity when monster spawns (not defeated)
+  // Reset transforms + opacity when the monster is alive (not defeated).
+  // The crumble animation mutates each mesh's rotation/position cumulatively
+  // and never undoes it; restore the originals here so a respawned golem
+  // stands upright instead of staying toppled from the previous defeat.
   useEffect(() => {
-    if (!isDefeated && groupRef.current) {
-      groupRef.current.traverse(child => {
-        if ((child as Mesh).isMesh) {
-          const mesh = child as Mesh;
-          const mat = mesh.material as MeshStandardMaterial;
-          if (mat && mat.transparent) {
-            mat.opacity = 1.0;
-          }
+    const group = groupRef.current;
+    if (isDefeated || !group) return;
+
+    group.position.set(0, 0, 0);
+    group.rotation.set(0, 0, 0);
+    group.scale.setScalar(activeScale);
+
+    group.traverse(child => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh;
+        const origPos = mesh.userData.origPosition as Vector3 | undefined;
+        const origRot = mesh.userData.origRotation as Euler | undefined;
+        if (origPos) mesh.position.copy(origPos);
+        if (origRot) mesh.rotation.copy(origRot);
+        const mat = mesh.material as MeshStandardMaterial;
+        if (mat && mat.transparent) {
+          mat.opacity = 1.0;
         }
-      });
-    }
-  }, [isDefeated]);
+      }
+    });
+  }, [isDefeated, activeScale]);
 
   // Flash on global 'word-hit' event
   useEffect(() => {
@@ -147,6 +184,36 @@ export default function GolemModel({
           }
         });
         setHitFlashTime(0);
+      }
+    } else if (!isDefeated) {
+      // Resting state: elite/rare wear a variant-colored aura (rare pulses).
+      const glow = VARIANT_GLOW[variant];
+      if (glow) {
+        const intensity = glowIntensity(glow, time);
+        group.traverse(child => {
+          if ((child as Mesh).isMesh) {
+            const mat = (child as Mesh).material as MeshStandardMaterial;
+            if (mat) {
+              mat.emissive.copy(glow.color);
+              mat.emissiveIntensity = intensity;
+            }
+          }
+        });
+        glowAppliedRef.current = true;
+      } else if (glowAppliedRef.current) {
+        // Switched to a common monster: clear the leftover aura once so it
+        // doesn't persist (e.g. when the GLB clone is reused for the same
+        // color). Common golems otherwise skip the per-frame traverse.
+        group.traverse(child => {
+          if ((child as Mesh).isMesh) {
+            const mat = (child as Mesh).material as MeshStandardMaterial;
+            if (mat) {
+              mat.emissive.setHex(0x000000);
+              mat.emissiveIntensity = 0;
+            }
+          }
+        });
+        glowAppliedRef.current = false;
       }
     }
 

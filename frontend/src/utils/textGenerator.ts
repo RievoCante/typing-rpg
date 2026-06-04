@@ -1,9 +1,11 @@
 // This utility provides functions for generating text for the typing game.
 
 import dailyQuotesData from '../static/english/english_quotes_1.json';
+import englishData from '../static/english/english.json';
 import english1kData from '../static/english/english_1k.json';
 import english5kData from '../static/english/english_5k.json';
 import english10kData from '../static/english/english_10k.json';
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
 
 interface DailyQuotesData {
   easy: string[];
@@ -16,6 +18,7 @@ interface WordListData {
 }
 
 const typedDailyQuotesData = dailyQuotesData as DailyQuotesData;
+const typedEnglishData = englishData as WordListData;
 const typedEnglish1kData = english1kData as WordListData;
 const typedEnglish5kData = english5kData as WordListData;
 const typedEnglish10kData = english10kData as WordListData;
@@ -68,7 +71,7 @@ export const generateText = (
   mode: 'daily' | 'endless',
   difficulty?: 'easy' | 'medium' | 'hard',
   endlessWordCount?: number,
-  endlessDifficulty?: 'beginner' | 'intermediate' | 'advanced'
+  endlessDifficulty?: EndlessDifficulty
 ): string => {
   if (mode === 'daily') {
     return getDailyQuote(difficulty ?? 'easy');
@@ -82,6 +85,9 @@ export const generateText = (
   let wordList: string[];
   switch (difficultyLevel) {
     case 'beginner':
+      wordList = typedEnglishData.words;
+      break;
+    case 'common':
       wordList = typedEnglish1kData.words;
       break;
     case 'intermediate':
@@ -91,7 +97,7 @@ export const generateText = (
       wordList = typedEnglish10kData.words;
       break;
     default:
-      wordList = typedEnglish1kData.words;
+      wordList = typedEnglishData.words;
   }
 
   if (!wordList || wordList.length === 0)

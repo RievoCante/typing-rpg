@@ -76,6 +76,16 @@ export class DailyCompletionHandler {
       totalWords,
       correctWords: stats.correctWords,
       incorrectWords: stats.incorrectWords,
+      rawWpm: stats.metrics?.rawWpm,
+      accuracy: stats.metrics?.accuracy,
+      consistency: stats.metrics?.consistency,
+      correctChars: stats.correctChars,
+      incorrectChars: stats.incorrectChars,
+      extraChars: stats.extraChars,
+      missedChars: stats.missedChars,
+      durationSeconds: Math.round(stats.elapsedMinutes * 60),
+      afkSeconds: stats.metrics?.afkSeconds,
+      chartData: stats.metrics?.chartData,
     };
 
     // Build a closure that does the save AND the post-save side-effects.

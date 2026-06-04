@@ -6,10 +6,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [theme, setTheme] = useState<ThemeType>(() => {
     const savedTheme = localStorage.getItem('theme');
-    return (savedTheme as ThemeType) ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
+    // Respect an explicit saved choice; otherwise default to the dark dungeon.
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    return 'dark';
   });
 
   useEffect(() => {

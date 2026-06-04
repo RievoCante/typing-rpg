@@ -142,3 +142,35 @@ canvas {
   -moz-user-select: none;
   -ms-user-select: none;
 }
+
+/* Combo meter glow/pulse at Hot / BLAZING tiers (combat juice). */
+@keyframes combo-pulse-hot {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 1px rgba(251, 146, 60, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 12px 3px rgba(251, 146, 60, 0.85);
+  }
+}
+@keyframes combo-pulse-blazing {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px rgba(244, 114, 182, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 18px 5px rgba(244, 114, 182, 1);
+  }
+}
+.combo-glow-hot {
+  animation: combo-pulse-hot 1.1s ease-in-out infinite;
+}
+.combo-glow-blazing {
+  animation: combo-pulse-blazing 0.7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .combo-glow-hot,
+  .combo-glow-blazing {
+    animation: none;
+  }
+}

@@ -1,7 +1,14 @@
 import { useEffect } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { getWpmTitle } from '../utils/wpmTitle';
-import type { CompletionContext, CompletionResult } from '../types/completion';
+import type {
+  CompletionContext,
+  CompletionResult,
+  CompletionStats,
+  SessionMetrics,
+} from '../types/completion';
+import type { CharStatus } from '../components/TypingText';
+import type { KillResult } from '../components/KillResultOverlay';
 
 interface Args {
   // completion-detection signals
@@ -13,20 +20,21 @@ interface Args {
   startTime: number | null;
   text: string;
   hasStartedTyping: boolean;
-  charStatusRef: MutableRefObject<('correct' | 'incorrect' | 'pending')[]>;
-  calculateFinalStats: () => { finalWpm: number } | null;
+  charStatusRef: RefObject<CharStatus[]>;
+  calculateFinalStats: () => CompletionStats | null;
+  finalizeMetrics: (elapsedMinutes: number) => SessionMetrics;
   // mode-specific context
   currentMode: 'daily' | 'endless' | 'raid';
-  currentDifficulty: string;
+  currentDifficulty: 'easy' | 'medium' | 'hard';
   currentAttempts: number;
-  completedQuotes: unknown[];
+  completedQuotes: number;
   hasShownDailyCompletion: boolean;
   // outputs / side effects
   completionHandler: {
     handleCompletion: (
-      stats: { finalWpm: number },
-      context: CompletionContext | undefined
-    ) => Promise<CompletionResult>;
+      stats: CompletionStats,
+      context?: CompletionContext
+    ) => CompletionResult | Promise<CompletionResult>;
   };
   damagePlayerFromMistake: () => void;
   incrementMonstersDefeated: () => void;
@@ -37,8 +45,9 @@ interface Args {
   isProcessingCompletion: boolean;
   setEarnedXp: Dispatch<SetStateAction<number>>;
   setCurrentAttempts: Dispatch<SetStateAction<number>>;
-  setCelebrating: Dispatch<SetStateAction<boolean>>;
-  setCelebrateText: Dispatch<SetStateAction<string>>;
+  // Post-kill results panel: held on screen until the player presses Space.
+  setKillResult: Dispatch<SetStateAction<KillResult | null>>;
+  setAwaitingContinue: Dispatch<SetStateAction<boolean>>;
   setSaveError: Dispatch<SetStateAction<string | null>>;
   setPendingRetrySave: Dispatch<
     SetStateAction<(() => Promise<CompletionResult>) | null>
@@ -47,7 +56,7 @@ interface Args {
 
 // Orchestrates everything that happens once the user finishes the prompt:
 // final-word mistake penalty, stats computation, persistence, XP grant,
-// next-monster spawn, and the post-completion UX (celebrate banner, daily
+// next-monster spawn, and the post-completion UX (kill-result panel, daily
 // modal, retry, etc.). Extracted from TypingInterface to keep that file at
 // a reviewable size; the dep graph is intentionally explicit.
 export function useTypingCompletion({
@@ -61,6 +70,7 @@ export function useTypingCompletion({
   hasStartedTyping,
   charStatusRef,
   calculateFinalStats,
+  finalizeMetrics,
   currentMode,
   currentDifficulty,
   currentAttempts,
@@ -75,13 +85,20 @@ export function useTypingCompletion({
   setIsProcessingCompletion,
   setEarnedXp,
   setCurrentAttempts,
-  setCelebrating,
-  setCelebrateText,
+  setKillResult,
+  setAwaitingContinue,
   setSaveError,
   setPendingRetrySave,
 }: Args) {
   useEffect(() => {
     if (!isCompleted || isProcessingCompletion) return;
+
+    // Endless: block/text completion is a SILENT buffer refill, not a kill.
+    // Kills are HP-based and finalized in TypingInterface's death handler
+    // (save + XP + overlay happen there). The block-refill effect in
+    // TypingInterface owns markAsProcessed + restartSession for endless.
+    if (currentMode === 'endless') return;
+
     setIsProcessingCompletion(true);
     markAsProcessed();
     // Final word never produced a space, so the health bar wouldn't fully
@@ -120,6 +137,9 @@ export function useTypingCompletion({
       return;
     }
 
+    const metrics = finalizeMetrics(stats.elapsedMinutes);
+    const fullStats = { ...stats, metrics };
+
     const context: CompletionContext | undefined =
       currentMode === 'daily'
         ? {
@@ -132,7 +152,7 @@ export function useTypingCompletion({
 
     (async () => {
       const result: CompletionResult = await completionHandler.handleCompletion(
-        stats,
+        fullStats,
         context
       );
 
@@ -144,6 +164,8 @@ export function useTypingCompletion({
       }
 
       if (typeof result.xpDelta === 'number') setEarnedXp(result.xpDelta);
+      // Daily/raid defeat the monster by finishing the text. (Endless returns
+      // early above — its kills are HP-based and counted in GameProvider.)
       incrementMonstersDefeated();
       reloadPlayerStats();
 
@@ -159,21 +181,25 @@ export function useTypingCompletion({
         case 'nextQuote':
           if (result.newAttempts !== undefined)
             setCurrentAttempts(result.newAttempts);
+          // The next quote regenerates on its own (completeCurrentQuote bumps
+          // currentDifficulty). Hold the results panel until the player
+          // presses Space; the Daily handler awards XP only on the final quote,
+          // so no XP figure is shown here.
           setIsProcessingCompletion(false);
-          setCelebrateText('Next challenge!');
-          setCelebrating(true);
-          setTimeout(() => setCelebrating(false), 400);
+          setKillResult({
+            title: getWpmTitle(stats.finalWpm),
+            wpm: stats.finalWpm,
+            accuracy: metrics.accuracy,
+            subline: result.message,
+          });
+          setAwaitingContinue(true);
           break;
         case 'showModal':
           setIsProcessingCompletion(false);
           break;
         case 'loadNewText':
         default:
-          if (currentMode === 'endless') {
-            setCelebrateText(getWpmTitle(stats.finalWpm));
-            setCelebrating(true);
-            setTimeout(() => setCelebrating(false), 400);
-          }
+          // Raid (and any other auto-advancing mode): keep the brief pause.
           setTimeout(() => {
             setIsProcessingCompletion(false);
             restartSession();
@@ -197,6 +223,7 @@ export function useTypingCompletion({
     markAsProcessed,
     markSessionCompleted,
     calculateFinalStats,
+    finalizeMetrics,
     restartSession,
     completionHandler,
     reloadPlayerStats,
@@ -206,8 +233,8 @@ export function useTypingCompletion({
     setIsProcessingCompletion,
     setEarnedXp,
     setCurrentAttempts,
-    setCelebrating,
-    setCelebrateText,
+    setKillResult,
+    setAwaitingContinue,
     setSaveError,
     setPendingRetrySave,
     charStatusRef,

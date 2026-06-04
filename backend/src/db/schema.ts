@@ -20,6 +20,11 @@ export const users = sqliteTable('users', {
   // JSON-encoded cosmetic avatar config (see core/character.ts). Null until the
   // user customizes their character.
   character: text('character'),
+  // Persistent weapon vault (Phase 3b). JSON array of unlocked weapon ids (see
+  // core/weapons.ts WEAPON_IDS). Defaults to an empty collection.
+  unlockedWeapons: text('unlocked_weapons').default('[]').notNull(),
+  // Selected loadout weapon id (the Endless starting weapon); null = Fists.
+  loadoutWeapon: text('loadout_weapon'),
 });
 
 /**
@@ -38,6 +43,16 @@ export const gameSessions = sqliteTable(
     totalWords: integer('total_words').notNull(),
     correctWords: integer('correct_words').notNull(),
     incorrectWords: integer('incorrect_words').notNull(),
+    rawWpm: integer('raw_wpm'),
+    accuracy: integer('accuracy'),
+    consistency: integer('consistency'),
+    correctChars: integer('correct_chars'),
+    incorrectChars: integer('incorrect_chars'),
+    extraChars: integer('extra_chars'),
+    missedChars: integer('missed_chars'),
+    durationSeconds: integer('duration_seconds'),
+    afkSeconds: integer('afk_seconds'),
+    chartData: text('chart_data'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .default(sql`(strftime('%s', 'now'))`)
       .notNull(),
@@ -92,6 +107,27 @@ export const raidPlayers = sqliteTable(
     index('idx_raid_players_user').on(table.userId),
     index('idx_raid_players_session').on(table.sessionId),
   ]
+);
+
+/**
+ * The `analytics_events` table logs lightweight funnel beacons fired from the
+ * client (`reached_game`, `started_typing`). Public + anonymous-friendly: keyed
+ * by a client-generated `anon_id`; `user_id` is captured opportunistically only
+ * when a Clerk token rides along. See handlers/events.ts.
+ */
+export const analyticsEvents = sqliteTable(
+  'analytics_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    event: text('event', { enum: ['reached_game', 'started_typing'] }).notNull(),
+    anonId: text('anon_id').notNull(),
+    userId: text('user_id'),
+    mode: text('mode', { enum: ['daily', 'endless', 'raid'] }),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(strftime('%s', 'now'))`)
+      .notNull(),
+  },
+  table => [index('idx_analytics_events').on(table.event, table.createdAt)]
 );
 
 /**

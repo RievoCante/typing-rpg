@@ -7,18 +7,24 @@ interface HealthBarProps {
 
 export default function HealthBar({ isAnimating = false }: HealthBarProps) {
   const { theme } = useThemeContext();
-  const { totalWords, remainingWords } = useGameContext();
+  const { currentMode, totalWords, remainingWords, monsterHp, monsterMaxHp } =
+    useGameContext();
 
-  // Calculate health percentage based on remaining words
-  // Health = (remainingWords / totalWords) * 100
-  const validRemainingWords = Math.max(0, Math.min(remainingWords, totalWords));
-  const healthPercentage =
-    totalWords > 0 ? (validRemainingWords / totalWords) * 100 : 0;
-  const clampedHealth = Math.max(0, Math.min(100, healthPercentage));
-
-  // Health parts logic based on mode (for future use)
-  // In daily mode: health parts = length of current quote
-  // In endless mode: health parts = 25 (fixed)
+  // Endless: monster has real HP (combat damage). Daily/Raid: HP tracks the
+  // remaining words in the current quote/text (unchanged behavior).
+  let clampedHealth: number;
+  if (currentMode === 'endless') {
+    const validHp = Math.max(0, Math.min(monsterHp, monsterMaxHp));
+    const pct = monsterMaxHp > 0 ? (validHp / monsterMaxHp) * 100 : 0;
+    clampedHealth = Math.max(0, Math.min(100, pct));
+  } else {
+    const validRemainingWords = Math.max(
+      0,
+      Math.min(remainingWords, totalWords)
+    );
+    const pct = totalWords > 0 ? (validRemainingWords / totalWords) * 100 : 0;
+    clampedHealth = Math.max(0, Math.min(100, pct));
+  }
 
   return (
     <div className="w-full max-w-xs mx-auto mb-4">

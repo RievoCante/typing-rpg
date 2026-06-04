@@ -1,6 +1,7 @@
 import type { HitItem } from '../hooks/useHitPopups';
 import type { AttackItem } from '../hooks/useAttackPopups';
-import type { XpPopupState } from '../hooks/useXpPopup';
+import type { PotionPopupItem } from '../hooks/usePotionPopups';
+import type { CombatPopupItem } from '../hooks/useCombatPopups';
 
 export function HitPopups({ hits }: { hits: HitItem[] }) {
   return (
@@ -15,8 +16,12 @@ export function HitPopups({ hits }: { hits: HitItem[] }) {
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <span className="text-red-500 font-extrabold text-xl select-none drop-shadow">
-              HIT
+            <span
+              className={`font-extrabold text-xl select-none drop-shadow ${
+                hit.crit ? 'text-pink-400' : 'text-red-500'
+              }`}
+            >
+              {hit.damage != null ? `-${hit.damage}` : 'HIT'}
             </span>
           </div>
         </div>
@@ -48,29 +53,73 @@ export function AttackPopups({ attacks }: { attacks: AttackItem[] }) {
   );
 }
 
-export function XpPopup({
-  state,
-  earnedXp,
-}: {
-  state: XpPopupState;
-  earnedXp: number;
-}) {
-  if (!state.visible || earnedXp <= 0) return null;
+export function PotionPopups({ popups }: { popups: PotionPopupItem[] }) {
   return (
-    <div className="fixed inset-0 pointer-events-none z-50">
-      <div
-        className={`absolute transition-all ${state.show ? 'opacity-100 -translate-y-2' : 'opacity-0 translate-y-1'} duration-300 ease-out`}
-        style={{
-          top: `${state.topPct}%`,
-          left: `${state.leftPct}%`,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        <span className="text-yellow-400 font-bold text-xl select-none drop-shadow">
-          +{earnedXp} XP
-        </span>
-      </div>
-    </div>
+    <>
+      {popups.map(popup => (
+        <div key={popup.id} className="fixed inset-0 pointer-events-none z-40">
+          <div
+            className={`absolute transition-all ${popup.show ? 'opacity-100 -translate-y-2 scale-110' : 'opacity-0 translate-y-0 scale-95'} duration-500 ease-out`}
+            style={{
+              top: `${popup.topPct}%`,
+              left: `${popup.leftPct}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <span
+              className={`font-extrabold text-xl select-none drop-shadow ${
+                popup.kind === 'heal'
+                  ? 'text-green-400'
+                  : popup.kind === 'warn'
+                    ? 'text-amber-400'
+                    : 'text-pink-400'
+              }`}
+            >
+              {popup.text}
+            </span>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function CombatPopups({ popups }: { popups: CombatPopupItem[] }) {
+  return (
+    <>
+      {popups.map(popup => (
+        <div key={popup.id} className="fixed inset-0 pointer-events-none z-40">
+          <div
+            className={`absolute transition-all ${popup.show ? 'opacity-100 -translate-y-3 scale-125' : 'opacity-0 translate-y-0 scale-95'} duration-500 ease-out`}
+            style={{
+              top: `${popup.topPct}%`,
+              left: `${popup.leftPct}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <span
+              className={`font-extrabold select-none drop-shadow ${
+                popup.kind === 'crit'
+                  ? 'text-pink-400'
+                  : popup.kind === 'kill'
+                    ? 'text-2xl tracking-wider'
+                    : 'text-gray-400 text-base'
+              }`}
+              style={{
+                ...(popup.kind === 'crit' && popup.sizePx
+                  ? { fontSize: `${popup.sizePx}px` }
+                  : {}),
+                ...(popup.kind === 'kill' && popup.color
+                  ? { color: popup.color }
+                  : {}),
+              }}
+            >
+              {popup.text}
+            </span>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 

@@ -50,6 +50,27 @@
       "when": 1780067674596,
       "tag": "0006_condemned_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1780292330368,
+      "tag": "0007_bored_khan",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1780401394914,
+      "tag": "0008_curious_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1780473752342,
+      "tag": "0009_careless_microbe",
+      "breakpoints": true
     }
   ]
 }

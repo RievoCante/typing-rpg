@@ -1,6 +1,15 @@
 import { createContext } from 'react';
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { Weapon } from '../utils/weapons';
+import type { RunMetricsState } from '../hooks/useRunMetrics';
+import type { ChartData } from '../types/completion';
 
 export type MonsterTypeEnum = 'normal' | 'mini-boss' | 'boss';
+
+// Endless monster variant, layered on top of family + tier. Elite/rare are
+// rarer, tougher (HP ×), glow, and reward the player on kill (see combatTuning
+// + GameProvider). Daily/raid are always 'common'.
+export type MonsterVariant = 'common' | 'elite' | 'rare';
 
 interface GameContextType {
   currentMode: 'daily' | 'endless' | 'raid';
@@ -15,22 +24,94 @@ interface GameContextType {
   // Monster defeat state tracking
   isCurrentMonsterDefeated: boolean;
   resetDefeatState: () => void;
-  endlessWordCount: number;
-  setEndlessWordCount: (count: number) => void;
-  endlessDifficulty: 'beginner' | 'intermediate' | 'advanced';
-  setEndlessDifficulty: (
-    difficulty: 'beginner' | 'intermediate' | 'advanced'
-  ) => void;
+  // Endless monster HP (decoupled from words; see utils/combatTuning.ts)
+  monsterHp: number;
+  monsterMaxHp: number;
+  damageMonster: (amount: number) => void;
+  // Spawn a fresh monster of `type` + `variant` at full HP (Endless). HP scales
+  // by variant on top of the tier HP.
+  spawnMonster: (type: MonsterTypeEnum, variant?: MonsterVariant) => void;
+  // Current monster variant (common/elite/rare) — drives glow, nameplate, HP.
+  currentMonsterVariant: MonsterVariant;
+  // Per-run equipped weapon (Endless loot); null = Fists. Modifies combat damage.
+  equippedWeapon: Weapon | null;
+  // Pending Endless weapon drop awaiting the player's "Take" (the drop modal);
+  // null = none. Gates the kill-result overlay until acknowledged.
+  pendingDrop: Weapon | null;
+  clearPendingDrop: () => void;
+  // Persistent weapon vault (Phase 3b): unlocked collection + chosen loadout.
+  // The pre-run loadout panel reads/writes this; logged-out = empty + read-only.
+  weaponVault: {
+    unlocked: string[];
+    loadout: string | null;
+    setLoadout: (id: string | null) => void;
+    isSignedIn: boolean;
+  };
+  // Endless combo streak
+  comboStreak: number;
+  comboCritChance: number;
+  registerComboCorrect: (
+    weapon?: Weapon | null,
+    rng?: () => number
+  ) => {
+    damage: number;
+    crit: boolean;
+  };
+  registerComboWrong: () => void;
+  // Run-level metrics for the Battle Report (Endless). Accumulated across kills,
+  // reset in resetGameState.
+  runMetrics: RunMetricsState;
+  /** Forward a finished fight's per-second samples + elapsed seconds. */
+  appendRunFight: (chart: ChartData, seconds: number) => void;
+  /** Add per-kill XP to the run total. */
+  addRunXp: (amount: number) => void;
+  endlessDifficulty: EndlessDifficulty;
+  setEndlessDifficulty: (difficulty: EndlessDifficulty) => void;
   // Player typing state
   hasStartedTyping: boolean;
   setHasStartedTyping: (value: boolean) => void;
-  // Pause state (typing unfocused)
+  // Pause state (typing unfocused). isManuallyPaused is the player-driven pause
+  // (Esc / pause button); isPaused is the effective freeze (manual OR unfocused).
   isPaused: boolean;
   setIsPaused: (value: boolean) => void;
+  isManuallyPaused: boolean;
+  setIsManuallyPaused: (value: boolean) => void;
+  // True only while the "Paused — press Esc to resume" overlay is up (manual
+  // pause OR focus-loss, minus pre-fight/loadout/death/results states). Drives
+  // the monster animation freeze + centered pause icon so focus-loss matches Esc.
+  pauseOverlayActive: boolean;
+  setPauseOverlayActive: (value: boolean) => void;
+  // Endless potion inventory
+  potionCount: number;
+  maxPotions: number;
+  registerCorrectWord: () => void;
+  drinkPotion: () => void;
+  // Current monster tier (drives HP + 3D model)
+  currentMonsterType: MonsterTypeEnum;
+  // Player health (Endless monster attacks)
+  playerHealth: number;
+  maxPlayerHealth: number;
+  damagePlayer: (amount: number) => void;
+  healPlayer: (amount: number) => void;
+  resetPlayerHealth: () => void;
+  isPlayerDead: boolean;
+  damagePlayerFromMistake: () => void;
+  // Kill streak (consecutive kills this run)
+  killStreak: number;
+  resetKillStreak: () => void;
+  // Full run reset (health, streaks, potions, monster, combo)
+  resetGameState: () => void;
+  // Player progression (signed-in persistent level; drives HP/damage bonuses)
+  level: number;
+  currentXp: number;
+  xpToNextLevel: number;
+  reloadPlayerStats: () => Promise<void> | void;
+  levelUpEvent: import('../utils/combatTuning').LevelUpEvent | null;
+  clearLevelUpEvent: () => void;
 }
 
 export const GameContext = createContext<GameContextType>({
-  currentMode: 'daily',
+  currentMode: 'endless',
   setCurrentMode: () => {},
   totalWords: 0,
   remainingWords: 0,
@@ -42,8 +123,35 @@ export const GameContext = createContext<GameContextType>({
   // Monster defeat state tracking
   isCurrentMonsterDefeated: false,
   resetDefeatState: () => {},
-  endlessWordCount: 25,
-  setEndlessWordCount: () => {},
+  monsterHp: 0,
+  monsterMaxHp: 0,
+  damageMonster: () => {},
+  spawnMonster: () => {},
+  currentMonsterVariant: 'common',
+  equippedWeapon: null,
+  pendingDrop: null,
+  clearPendingDrop: () => {},
+  weaponVault: {
+    unlocked: [],
+    loadout: null,
+    setLoadout: () => {},
+    isSignedIn: false,
+  },
+  comboStreak: 0,
+  comboCritChance: 0,
+  registerComboCorrect: () => ({ damage: 1, crit: false }),
+  registerComboWrong: () => {},
+  runMetrics: {
+    chart: { wpm: [], raw: [], err: [] },
+    critCount: 0,
+    totalXp: 0,
+    monstersDefeated: 0,
+    bestWpm: 0,
+    elapsedSeconds: 0,
+    loot: [],
+  },
+  appendRunFight: () => {},
+  addRunXp: () => {},
   endlessDifficulty: 'beginner',
   setEndlessDifficulty: () => {},
   // Player typing state
@@ -52,4 +160,35 @@ export const GameContext = createContext<GameContextType>({
   // Pause state
   isPaused: false,
   setIsPaused: () => {},
+  isManuallyPaused: false,
+  setIsManuallyPaused: () => {},
+  pauseOverlayActive: false,
+  setPauseOverlayActive: () => {},
+  // Endless potion inventory
+  potionCount: 0,
+  maxPotions: 3,
+  registerCorrectWord: () => {},
+  drinkPotion: () => {},
+  // Current monster tier
+  currentMonsterType: 'normal',
+  // Player health
+  playerHealth: 100,
+  maxPlayerHealth: 100,
+  damagePlayer: () => {},
+  healPlayer: () => {},
+  resetPlayerHealth: () => {},
+  isPlayerDead: false,
+  damagePlayerFromMistake: () => {},
+  // Kill streak
+  killStreak: 0,
+  resetKillStreak: () => {},
+  // Full run reset
+  resetGameState: () => {},
+  // Player progression
+  level: 1,
+  currentXp: 0,
+  xpToNextLevel: 20,
+  reloadPlayerStats: () => {},
+  levelUpEvent: null,
+  clearLevelUpEvent: () => {},
 });

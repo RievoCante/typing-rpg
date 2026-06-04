@@ -29,3 +29,13 @@ dist-ssr
 .env.local
 .env.*.local
 .gstack/
+
+# Brainstorm visual companion
+.superpowers/
+
+# Claude Code local artifacts
+.claude/worktrees/
+.claude/settings.json
+
+# Local analytics exports
+web-analytics-*.pdf

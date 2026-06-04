@@ -1,11 +1,15 @@
 import { useCallback, useState } from 'react';
+import { hpBonus } from '../utils/combatTuning';
 
-const MAX_PLAYER_HEALTH = 100;
+const BASE_PLAYER_HEALTH = 100;
 const MISTAKE_DAMAGE_MIN = 2;
 const MISTAKE_DAMAGE_MAX = 5;
 
-export function usePlayerHealth() {
-  const [playerHealth, setPlayerHealth] = useState<number>(MAX_PLAYER_HEALTH);
+// `level` adds the faint level-derived max-HP bonus (+1 per 5 levels, uncapped).
+// Defaults to 1 (no bonus) for guests / pre-load. Max HP = 100 + hpBonus(level).
+export function usePlayerHealth(level: number = 1) {
+  const maxPlayerHealth = BASE_PLAYER_HEALTH + hpBonus(level);
+  const [playerHealth, setPlayerHealth] = useState<number>(maxPlayerHealth);
   const [isPlayerDead, setIsPlayerDead] = useState<boolean>(false);
 
   const damagePlayer = useCallback((amount: number) => {
@@ -16,14 +20,17 @@ export function usePlayerHealth() {
     });
   }, []);
 
-  const healPlayer = useCallback((amount: number) => {
-    setPlayerHealth(prev => Math.min(MAX_PLAYER_HEALTH, prev + amount));
-  }, []);
+  const healPlayer = useCallback(
+    (amount: number) => {
+      setPlayerHealth(prev => Math.min(maxPlayerHealth, prev + amount));
+    },
+    [maxPlayerHealth]
+  );
 
   const resetPlayerHealth = useCallback(() => {
-    setPlayerHealth(MAX_PLAYER_HEALTH);
+    setPlayerHealth(maxPlayerHealth);
     setIsPlayerDead(false);
-  }, []);
+  }, [maxPlayerHealth]);
 
   const damagePlayerFromMistake = useCallback(() => {
     const damage =
@@ -35,7 +42,7 @@ export function usePlayerHealth() {
 
   return {
     playerHealth,
-    maxPlayerHealth: MAX_PLAYER_HEALTH,
+    maxPlayerHealth,
     isPlayerDead,
     damagePlayer,
     healPlayer,

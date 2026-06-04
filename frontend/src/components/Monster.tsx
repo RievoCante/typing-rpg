@@ -1,43 +1,73 @@
 // inlucde name, monster model, HP number (from top to bottom)
 
-import { useRef, useState, useEffect } from 'react';
+import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import SlimeModel from './SlimeModel';
 import GolemModel from './GolemModel';
+import MushroomModel from './MushroomModel';
+import CrystalModel from './CrystalModel';
 import ParticleBurst from './ParticleBurst';
+import VariantAura from './VariantAura';
+import FrameLimiter from './FrameLimiter';
+import { useSfx } from '../hooks/useSfx';
+import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
 import type { SlimeTypeEnum, SlimeShapeEnum } from '../types/SlimeTypes';
 import type { GolemTypeEnum } from '../types/GolemTypes';
+import type { MushroomTypeEnum } from '../types/MushroomTypes';
+import type { CrystalTypeEnum } from '../types/CrystalTypes';
+import type { MonsterVariant } from '../context/GameContext';
+import type { EyeStyle } from '../utils/eyeStyles';
 
-export type MonsterFamily = 'slime' | 'golem';
+export type MonsterFamily = 'slime' | 'golem' | 'mushroom' | 'crystal';
+
+// Elite/rare kills get a bigger, variant-colored death burst for spectacle.
+const VARIANT_BURST: Record<MonsterVariant, { count: number; color?: string }> =
+  {
+    common: { count: 45 },
+    elite: { count: 75, color: '#fbbf24' }, // amber
+    rare: { count: 110, color: '#a78bfa' }, // violet
+  };
 
 interface MonsterProps {
   monsterFamily: MonsterFamily;
-  monsterType: SlimeTypeEnum | GolemTypeEnum;
+  monsterType:
+    | SlimeTypeEnum
+    | GolemTypeEnum
+    | MushroomTypeEnum
+    | CrystalTypeEnum;
+  variant?: MonsterVariant;
   isHit?: boolean;
   isDefeated?: boolean;
   color?: string;
   scale?: number;
   shape?: SlimeShapeEnum; // For slimes only
+  eyeStyle?: EyeStyle;
+  paused?: boolean; // freeze the 3D animation when the game is paused
 }
 
-export default function Monster({
+function Monster({
   monsterFamily,
   monsterType,
+  variant = 'common',
   isHit = false,
   isDefeated = false,
   color,
   scale,
   shape,
+  eyeStyle = 'neutral',
+  paused = false,
 }: MonsterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [burstOrigin, setBurstOrigin] = useState({ x: 0, y: 0 });
   const [showBurst, setShowBurst] = useState(false);
   const hasBurstedRef = useRef(false);
+  const { playExplosion } = useSfx();
 
   // Trigger particle burst when slime is defeated
   useEffect(() => {
     if (isDefeated && !hasBurstedRef.current) {
       hasBurstedRef.current = true;
+      playExplosion();
 
       // Calculate the slime's position on screen
       if (containerRef.current) {
@@ -55,11 +85,13 @@ export default function Monster({
       hasBurstedRef.current = false;
       setShowBurst(false);
     }
-  }, [isDefeated]);
+  }, [isDefeated, playExplosion]);
 
-  const handleBurstComplete = () => {
+  // Stable identity so ParticleBurst's animation effect (which depends on
+  // onComplete) doesn't re-run — and restart its rAF loop — on every render.
+  const handleBurstComplete = useCallback(() => {
     setShowBurst(false);
-  };
+  }, []);
 
   return (
     <>
@@ -70,9 +102,12 @@ export default function Monster({
         {/* 3D Monster Model with 3:2 aspect ratio */}
         <div className="w-full aspect-[3/2] bg-transparent transition-opacity duration-300">
           <Canvas
+            frameloop="demand"
             camera={{ position: [0, 0, 4], fov: 50 }}
-            gl={{ alpha: true, antialias: true }}
+            dpr={CANVAS_DPR}
+            gl={CANVAS_GL}
           >
+            <FrameLimiter paused={paused} />
             {/* Lighting setup for monster appearance */}
             <ambientLight intensity={0.4} />
             <pointLight position={[5, 5, 5]} intensity={0.8} />
@@ -82,37 +117,66 @@ export default function Monster({
               color="#ffffff"
             />
 
-            {/* Main monster model */}
+            {/* Elite/rare glow: colored cast light + halo (hidden once defeated
+                so it doesn't linger through the crumble). */}
+            {!isDefeated && <VariantAura variant={variant} />}
+
+            {/* Main monster model — one per family */}
             {monsterFamily === 'slime' ? (
               <SlimeModel
                 slimeType={monsterType as SlimeTypeEnum}
+                variant={variant}
                 isHit={isHit}
                 isDefeated={isDefeated}
                 customColor={color}
                 customScale={scale}
                 shape={shape}
+                eyeStyle={eyeStyle}
               />
-            ) : (
+            ) : monsterFamily === 'golem' ? (
               <GolemModel
                 golemType={monsterType as GolemTypeEnum}
+                variant={variant}
                 isHit={isHit}
                 isDefeated={isDefeated}
                 customColor={color}
                 customScale={scale}
+              />
+            ) : monsterFamily === 'mushroom' ? (
+              <MushroomModel
+                mushroomType={monsterType as MushroomTypeEnum}
+                variant={variant}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+              />
+            ) : (
+              <CrystalModel
+                crystalType={monsterType as CrystalTypeEnum}
+                variant={variant}
+                isHit={isHit}
+                isDefeated={isDefeated}
+                customColor={color}
+                customScale={scale}
+                eyeStyle={eyeStyle}
               />
             )}
           </Canvas>
         </div>
       </div>
 
-      {/* Particle burst overlay */}
+      {/* Particle burst overlay — bigger + variant-colored for elite/rare */}
       <ParticleBurst
         isActive={showBurst}
         originX={burstOrigin.x}
         originY={burstOrigin.y}
-        color={color || '#87CEEB'}
+        color={VARIANT_BURST[variant].color || color || '#87CEEB'}
+        particleCount={VARIANT_BURST[variant].count}
         onComplete={handleBurstComplete}
       />
     </>
   );
 }
+
+export default memo(Monster);

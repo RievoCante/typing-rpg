@@ -61,14 +61,6 @@ export default function DeathPopup({ onRestart }: DeathPopupProps) {
           </div>
         </div>
 
-        <div
-          className={`text-sm mb-6 text-center ${
-            theme === 'dark' ? 'text-red-300' : 'text-red-600'
-          }`}
-        >
-          <p>All progress lost. Starting fresh...</p>
-        </div>
-
         <button
           onClick={onRestart}
           className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${
@@ -78,7 +70,7 @@ export default function DeathPopup({ onRestart }: DeathPopupProps) {
           }`}
         >
           <RotateCcw size={20} />
-          Try Again
+          New Run
         </button>
       </div>
     </div>

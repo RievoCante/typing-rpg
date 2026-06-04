@@ -3,6 +3,9 @@ import type {
   CompletionResult,
   SessionPayload,
 } from '../types/completion';
+import type { EndlessDifficulty } from '../hooks/useEndlessSettings';
+import type { MonsterVariant } from '../context/GameContext';
+import { calculateEndlessXp } from '../utils/calculateXP';
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
 
@@ -11,7 +14,11 @@ export class EndlessCompletionHandler {
     private createSession: (body: SessionPayload) => Promise<Response>
   ) {}
 
-  async handleCompletion(stats: CompletionStats): Promise<CompletionResult> {
+  async handleCompletion(
+    stats: CompletionStats,
+    difficulty: EndlessDifficulty = 'beginner',
+    variant: MonsterVariant = 'common'
+  ): Promise<CompletionResult> {
     const totalWords = stats.correctWords + stats.incorrectWords;
     const payload: SessionPayload = {
       mode: 'endless',
@@ -19,16 +26,38 @@ export class EndlessCompletionHandler {
       totalWords,
       correctWords: stats.correctWords,
       incorrectWords: stats.incorrectWords,
+      difficulty,
+      variant,
+      rawWpm: stats.metrics?.rawWpm,
+      accuracy: stats.metrics?.accuracy,
+      consistency: stats.metrics?.consistency,
+      correctChars: stats.correctChars,
+      incorrectChars: stats.incorrectChars,
+      extraChars: stats.extraChars,
+      missedChars: stats.missedChars,
+      durationSeconds: Math.round(stats.elapsedMinutes * 60),
+      afkSeconds: stats.metrics?.afkSeconds,
+      chartData: stats.metrics?.chartData,
     };
 
     // Fire save in background with retries — don't block UI.
-    // xpDelta not shown for endless; stats update via reloadPlayerStats.
+    // The authoritative XP is awarded server-side; we preview the same amount
+    // client-side (mirrors backend formula) so the "+N XP" reward can show
+    // immediately without waiting on the network. reloadPlayerStats then syncs
+    // the real total.
     void this.saveWithRetry(payload);
+
+    const xpDelta = calculateEndlessXp(
+      payload.incorrectWords,
+      payload.wpm,
+      difficulty,
+      variant
+    );
 
     return {
       action: 'loadNewText',
       message: 'Session completed!',
-      xpDelta: 0,
+      xpDelta,
     };
   }
 

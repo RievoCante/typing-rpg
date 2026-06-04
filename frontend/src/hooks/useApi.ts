@@ -2,6 +2,7 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useCallback, useMemo } from 'react';
 import type { PlayerAvatarConfig } from '../utils/avatarConfig';
+import type { SessionPayload } from '../types/completion';
 
 export function useApi() {
   const { getToken } = useAuth();
@@ -34,13 +35,7 @@ export function useApi() {
   );
 
   const createSession = useCallback(
-    (body: {
-      mode: 'daily' | 'endless';
-      wpm: number;
-      totalWords: number;
-      correctWords: number;
-      incorrectWords: number;
-    }) =>
+    (body: SessionPayload) =>
       authFetch('/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,6 +46,29 @@ export function useApi() {
 
   const getRecentSessions = useCallback(
     (limit = 20) => authFetch(`/sessions?limit=${encodeURIComponent(limit)}`),
+    [authFetch]
+  );
+
+  // Persistent weapon vault (Phase 3b).
+  const getWeaponVault = useCallback(() => authFetch('/me/vault'), [authFetch]);
+
+  const unlockWeapons = useCallback(
+    (weaponIds: string[]) =>
+      authFetch('/me/vault/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weaponIds }),
+      }),
+    [authFetch]
+  );
+
+  const selectLoadout = useCallback(
+    (weaponId: string | null) =>
+      authFetch('/me/vault/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weaponId }),
+      }),
     [authFetch]
   );
 
@@ -84,5 +102,8 @@ export function useApi() {
     getDailyStatus,
     getLeaderboardLevels,
     getLeaderboardTodayWpm,
+    getWeaponVault,
+    unlockWeapons,
+    selectLoadout,
   };
 }

@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import {
-  avatarConfigFromSeed,
-  BODY_SHAPES,
-  BODY_COLORS,
-  EYE_STYLES,
-  ACCESSORIES,
-  ACCESSORY_COLORS,
+  DEFAULT_AVATAR_CONFIG,
+  ARMOR_TYPES,
+  ARMOR_COLORS,
+  HELMET_TYPES,
+  HELMET_COLORS,
+  SKIN_TONES,
   type PlayerAvatarConfig,
 } from '../utils/avatarConfig';
 import { useCharacter } from '../hooks/useCharacter';
@@ -22,7 +22,7 @@ export default function CharacterCustomizer({ onClose }: Props) {
   const { config, save } = useCharacter();
   const { theme } = useThemeContext();
   const [draft, setDraft] = useState<PlayerAvatarConfig>(
-    config ?? avatarConfigFromSeed('preview')
+    config ?? DEFAULT_AVATAR_CONFIG
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,60 +88,59 @@ export default function CharacterCustomizer({ onClose }: Props) {
           <PlayerAvatar3D config={draft} isAlive hpPercent={100} />
         </div>
 
-        <Knob label="Body">
-          {BODY_SHAPES.map(s => (
+        <Knob label="Armor">
+          {ARMOR_TYPES.map(s => (
             <Choice
               key={s}
-              active={draft.bodyShape === s}
-              onClick={() => set('bodyShape', s)}
+              active={draft.armorType === s}
+              onClick={() => set('armorType', s)}
             >
               {s}
             </Choice>
           ))}
         </Knob>
 
-        <Knob label="Body Color">
-          {BODY_COLORS.map(c => (
+        <Knob label="Armor Color">
+          {ARMOR_COLORS.map(c => (
             <Swatch
               key={c}
               color={c}
-              active={draft.bodyColor === c}
-              onClick={() => set('bodyColor', c)}
+              active={draft.armorColor === c}
+              onClick={() => set('armorColor', c)}
             />
           ))}
         </Knob>
 
-        <Knob label="Eyes">
-          {EYE_STYLES.map(s => (
+        <Knob label="Helmet">
+          {HELMET_TYPES.map(s => (
             <Choice
               key={s}
-              active={draft.eyeStyle === s}
-              onClick={() => set('eyeStyle', s)}
+              active={draft.helmetType === s}
+              onClick={() => set('helmetType', s)}
             >
               {s}
             </Choice>
           ))}
         </Knob>
 
-        <Knob label="Accessory">
-          {ACCESSORIES.map(a => (
-            <Choice
-              key={a}
-              active={draft.accessory === a}
-              onClick={() => set('accessory', a)}
-            >
-              {a}
-            </Choice>
-          ))}
-        </Knob>
-
-        <Knob label="Accessory Color">
-          {ACCESSORY_COLORS.map(c => (
+        <Knob label="Helmet Color">
+          {HELMET_COLORS.map(c => (
             <Swatch
               key={c}
               color={c}
-              active={draft.accessoryColor === c}
-              onClick={() => set('accessoryColor', c)}
+              active={draft.helmetColor === c}
+              onClick={() => set('helmetColor', c)}
+            />
+          ))}
+        </Knob>
+
+        <Knob label="Skin">
+          {SKIN_TONES.map(c => (
+            <Swatch
+              key={c}
+              color={c}
+              active={draft.skinTone === c}
+              onClick={() => set('skinTone', c)}
             />
           ))}
         </Knob>

@@ -1,4 +1,6 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useThemeContext } from '../hooks/useThemeContext';
+import { buildTypingLines } from '../utils/typingLines';
 
 export type CharStatus =
   | 'pending'
@@ -13,6 +15,8 @@ interface TypingTextProps {
   typedChars: (string | null)[];
   cursorPosition: number;
   hasStartedTyping: boolean;
+  /** Extra letters typed past a word's end, keyed by boundary space index. */
+  overflow?: Record<number, string[]>;
 }
 
 export default function TypingText({
@@ -21,11 +25,48 @@ export default function TypingText({
   typedChars,
   cursorPosition,
   hasStartedTyping,
+  overflow = {},
 }: TypingTextProps) {
   const { theme } = useThemeContext();
 
-  // ADJUST THIS NUMBER to change max characters per line
-  const MAX_CHARS_PER_LINE = 43;
+  // Chars-per-line is measured from the live container width instead of being
+  // hardcoded, so a full line always fits no matter the screen size. We size a
+  // line to the actual available width divided by the actual rendered width of
+  // one monospace glyph (which includes tracking). `whitespace-nowrap` +
+  // `overflow-hidden` on each line below remain the hard guard if a single
+  // token (e.g. a long overflow run) ever exceeds the width.
+  const widthRef = useRef<HTMLDivElement>(null);
+  const charRef = useRef<HTMLSpanElement>(null);
+  // Conservative starting value: small enough to never overflow on first paint
+  // before measurement runs; corrected synchronously via useLayoutEffect.
+  const [maxCharsPerLine, setMaxCharsPerLine] = useState(20);
+
+  // Drives the re-measure when text first arrives (see effect deps below).
+  const hasText = text.length > 0;
+
+  useLayoutEffect(() => {
+    const widthEl = widthRef.current;
+    const charEl = charRef.current;
+    if (!widthEl || !charEl) return;
+
+    const SAMPLE_LEN = 20;
+    const recompute = () => {
+      const available = widthEl.clientWidth;
+      const charWidth = charEl.getBoundingClientRect().width / SAMPLE_LEN;
+      if (available <= 0 || charWidth <= 0) return;
+      // floor() guarantees the line fits; -1 char absorbs sub-pixel rounding
+      // and the cursor's 2px border. Clamp so we never produce empty lines.
+      const fit = Math.floor(available / charWidth) - 1;
+      setMaxCharsPerLine(Math.max(8, fit));
+    };
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(widthEl);
+    return () => observer.disconnect();
+    // Re-run when text first appears: the measured refs only mount in the
+    // non-loading branch, so the initial run is a no-op until text exists.
+  }, [hasText]);
 
   if (!text) {
     return (
@@ -65,23 +106,25 @@ export default function TypingText({
     return originalChar;
   };
 
-  // Helper function to check if a character is part of a word with errors
+  // Helper function to check if a character is part of a word with errors.
+  // A word is an error word if any of its characters are incorrect/skipped, or
+  // it carries overflow (extra) characters at its trailing boundary.
   const isInErrorWord = (index: number): boolean => {
-    // Find word boundaries
     let wordStart = index;
     let wordEnd = index;
 
-    // Find start of word
     while (wordStart > 0 && !/\s/.test(text[wordStart - 1])) {
       wordStart--;
     }
-
-    // Find end of word
     while (wordEnd < text.length - 1 && !/\s/.test(text[wordEnd + 1])) {
       wordEnd++;
     }
 
-    // Check if any character in this word has errors
+    // Overflow lives at the space right after the word.
+    if ((overflow[wordEnd + 1]?.length ?? 0) > 0) {
+      return true;
+    }
+
     for (let i = wordStart; i <= wordEnd; i++) {
       const status = charStatus[i];
       if (status === 'incorrect' || status === 'skipped') {
@@ -92,59 +135,13 @@ export default function TypingText({
     return false;
   };
 
-  // Split text into fixed lines based on character limit (word-aware)
-  const createFixedLines = () => {
-    const lines: { chars: string[]; startIndex: number }[] = [];
-    const words = text.split(/(\s+)/); // Split by spaces but keep the spaces
-
-    let currentLineChars: string[] = [];
-    let currentLineStartIndex = 0;
-    let currentCharIndex = 0;
-
-    for (const word of words) {
-      // Check if adding this word would exceed the line limit
-      const wouldExceed =
-        currentLineChars.length + word.length > MAX_CHARS_PER_LINE;
-
-      if (wouldExceed && currentLineChars.length > 0) {
-        // Start a new line with this word
-        lines.push({
-          chars: [...currentLineChars],
-          startIndex: currentLineStartIndex,
-        });
-
-        // Start new line
-        currentLineChars = [];
-        currentLineStartIndex = currentCharIndex;
-      }
-
-      // Add the word to current line
-      for (const char of word) {
-        currentLineChars.push(char);
-      }
-
-      currentCharIndex += word.length;
-    }
-
-    // Add the last line if it has content
-    if (currentLineChars.length > 0) {
-      lines.push({
-        chars: currentLineChars,
-        startIndex: currentLineStartIndex,
-      });
-    }
-
-    return lines;
-  };
-
-  const textLines = createFixedLines();
+  const textLines = buildTypingLines(text, overflow, maxCharsPerLine);
 
   // Find which line contains the cursor position
   const getCursorLineIndex = () => {
     for (let i = 0; i < textLines.length; i++) {
       const line = textLines[i];
-      const lineEndIndex = line.startIndex + line.chars.length;
-      if (cursorPosition >= line.startIndex && cursorPosition < lineEndIndex) {
+      if (cursorPosition >= line.origStart && cursorPosition < line.origEnd) {
         return i;
       }
     }
@@ -171,26 +168,50 @@ export default function TypingText({
   ];
 
   return (
-    <div className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-center">
-      <div className="space-y-0 h-[4.5em] overflow-hidden flex flex-col items-center justify-center">
+    <div
+      ref={widthRef}
+      className="text-2xl my-6 leading-relaxed font-mono tracking-wider transition-opacity duration-300 ease-in-out text-left"
+    >
+      {/* Hidden probe: one rendered monospace glyph's width (incl. tracking),
+          measured live so chars-per-line adapts to the font and zoom level. */}
+      <span
+        ref={charRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute -z-10 select-none whitespace-pre opacity-0"
+      >
+        00000000000000000000
+      </span>
+      <div className="space-y-0 h-[5.25em] overflow-hidden flex flex-col items-start justify-center">
         {' '}
         {/* Fixed height for exactly 3 lines */}
         {visibleLines.map((line, lineIndex) => (
           <div
             key={`line-${viewportStartIndex}-${lineIndex}`}
-            className="block h-[1.5em]"
+            className="block h-[1.75em] overflow-hidden whitespace-nowrap"
           >
             {' '}
-            {/* Each line is exactly 1.5em tall */}
+            {/* Each line is exactly 1.75em tall */}
             {line ? (
-              line.chars.map((char, charIndexInLine) => {
-                const absoluteIndex = line.startIndex + charIndexInLine;
+              line.tokens.map(token => {
+                if (token.kind === 'overflow') {
+                  // Extra (overflow) letter: always rendered as an error.
+                  return (
+                    <span
+                      key={`overflow-${token.boundary}-${token.ordinal}`}
+                      className="text-red-500 underline decoration-red-500 decoration-2 underline-offset-2 relative"
+                    >
+                      {token.char}
+                    </span>
+                  );
+                }
+
+                const absoluteIndex = token.origIndex;
                 const charStyle = getCharStyle(
                   charStatus[absoluteIndex] || 'pending'
                 );
-                const displayChar = getDisplayChar(char, absoluteIndex);
+                const displayChar = getDisplayChar(token.char, absoluteIndex);
                 const isInError =
-                  !/\s/.test(char) && isInErrorWord(absoluteIndex);
+                  !/\s/.test(token.char) && isInErrorWord(absoluteIndex);
                 const underlineClass = isInError
                   ? 'underline decoration-red-500 decoration-2 underline-offset-2'
                   : '';

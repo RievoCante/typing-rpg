@@ -4,22 +4,18 @@
 // frontend/src/utils/avatarConfig.ts.
 import { z } from 'zod';
 
+// Shared 5-color palette for armor + helmet (matches ARMOR_COLORS in the
+// frontend). Skin tones are a separate 5-value palette.
+const METAL_COLORS = ['#9aa4b2', '#d4af37', '#b23a48', '#3b5bdb', '#2f9e69'] as const;
+const SKIN_TONES = ['#f1c9a5', '#e0a878', '#c68642', '#8d5524', '#5c3317'] as const;
+
 export const characterConfigSchema = z
   .object({
-    bodyShape: z.enum(['round', 'square']),
-    bodyColor: z.enum([
-      '#38bdf8',
-      '#34d399',
-      '#a78bfa',
-      '#fbbf24',
-      '#f472b6',
-      '#22d3ee',
-      '#fb923c',
-      '#4ade80',
-    ]),
-    eyeStyle: z.enum(['dot', 'wide', 'sleepy']),
-    accessory: z.enum(['none', 'antenna', 'horn', 'crown']),
-    accessoryColor: z.enum(['#f8fafc', '#fde047', '#fca5a5', '#c4b5fd']),
+    armorType: z.enum(['plate', 'tunic', 'heavy']),
+    armorColor: z.enum(METAL_COLORS),
+    helmetType: z.enum(['barbute', 'horned', 'crowned']),
+    helmetColor: z.enum(METAL_COLORS),
+    skinTone: z.enum(SKIN_TONES),
   })
   .strict();
 

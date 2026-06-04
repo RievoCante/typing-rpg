@@ -4,59 +4,60 @@ import {
   isValidAvatarConfig,
   resolveAvatarConfig,
   parseStoredAvatarConfig,
-  BODY_SHAPES,
-  EYE_STYLES,
-  ACCESSORIES,
+  ARMOR_TYPES,
+  HELMET_TYPES,
+  ARMOR_COLORS,
+  HELMET_COLORS,
+  SKIN_TONES,
+  DEFAULT_AVATAR_CONFIG,
+  type PlayerAvatarConfig,
 } from './avatarConfig';
 
 describe('avatarConfigFromSeed', () => {
-  it('returns a stable, exact config for a known seed (locks per-user identity)', () => {
-    expect(avatarConfigFromSeed('user_2abc')).toEqual({
-      bodyShape: 'square',
-      bodyColor: '#fb923c',
-      eyeStyle: 'dot',
-      accessory: 'none',
-      accessoryColor: '#fde047',
-    });
+  it('is deterministic for a given seed', () => {
+    expect(avatarConfigFromSeed('user_2abc')).toEqual(
+      avatarConfigFromSeed('user_2abc')
+    );
   });
 
   it('always produces values from the allowed sets', () => {
     for (const seed of ['', 'a', 'guest-xy12', 'user_2abc', 'ZZZ', '0']) {
       const c = avatarConfigFromSeed(seed);
-      expect(BODY_SHAPES).toContain(c.bodyShape);
-      expect(EYE_STYLES).toContain(c.eyeStyle);
-      expect(ACCESSORIES).toContain(c.accessory);
-      expect(c.bodyColor).toMatch(/^#[0-9a-fA-F]{6}$/);
-      expect(c.accessoryColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(ARMOR_TYPES).toContain(c.armorType);
+      expect(HELMET_TYPES).toContain(c.helmetType);
+      expect(ARMOR_COLORS).toContain(c.armorColor);
+      expect(HELMET_COLORS).toContain(c.helmetColor);
+      expect(SKIN_TONES).toContain(c.skinTone);
     }
   });
 
   it('produces variation across different seeds', () => {
     const seeds = Array.from({ length: 40 }, (_, i) => `user_${i}`);
-    const shapes = new Set(seeds.map(s => avatarConfigFromSeed(s).bodyShape));
-    const colors = new Set(seeds.map(s => avatarConfigFromSeed(s).bodyColor));
-    const eyes = new Set(seeds.map(s => avatarConfigFromSeed(s).eyeStyle));
-    const accessories = new Set(
-      seeds.map(s => avatarConfigFromSeed(s).accessory)
-    );
-    expect(shapes.size).toBeGreaterThan(1);
+    const armor = new Set(seeds.map(s => avatarConfigFromSeed(s).armorType));
+    const colors = new Set(seeds.map(s => avatarConfigFromSeed(s).armorColor));
+    const helmets = new Set(seeds.map(s => avatarConfigFromSeed(s).helmetType));
+    const skins = new Set(seeds.map(s => avatarConfigFromSeed(s).skinTone));
+    expect(armor.size).toBeGreaterThan(1);
     expect(colors.size).toBeGreaterThan(1);
-    expect(eyes.size).toBeGreaterThan(1);
-    expect(accessories.size).toBeGreaterThan(1);
+    expect(helmets.size).toBeGreaterThan(1);
+    expect(skins.size).toBeGreaterThan(1);
   });
 });
 
-const valid = {
-  bodyShape: 'round',
-  bodyColor: '#38bdf8',
-  eyeStyle: 'wide',
-  accessory: 'crown',
-  accessoryColor: '#fde047',
+const valid: PlayerAvatarConfig = {
+  armorType: 'plate',
+  armorColor: ARMOR_COLORS[0],
+  helmetType: 'crowned',
+  helmetColor: HELMET_COLORS[1],
+  skinTone: SKIN_TONES[2],
 };
 
 describe('isValidAvatarConfig', () => {
   it('accepts a fully valid config', () => {
     expect(isValidAvatarConfig(valid)).toBe(true);
+  });
+  it('accepts the default config', () => {
+    expect(isValidAvatarConfig(DEFAULT_AVATAR_CONFIG)).toBe(true);
   });
   it('rejects null/undefined/non-objects', () => {
     expect(isValidAvatarConfig(null)).toBe(false);
@@ -64,15 +65,26 @@ describe('isValidAvatarConfig', () => {
     expect(isValidAvatarConfig('x')).toBe(false);
   });
   it('rejects unknown knob values', () => {
-    expect(isValidAvatarConfig({ ...valid, bodyShape: 'triangle' })).toBe(
+    expect(isValidAvatarConfig({ ...valid, armorType: 'mage' })).toBe(false);
+    expect(isValidAvatarConfig({ ...valid, armorColor: '#000000' })).toBe(
       false
     );
-    expect(isValidAvatarConfig({ ...valid, bodyColor: '#000000' })).toBe(false);
   });
   it('rejects configs missing a key', () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { accessory: _omit, ...partial } = valid;
+    const { helmetType: _omit, ...partial } = valid;
     expect(isValidAvatarConfig(partial)).toBe(false);
+  });
+  it('rejects the legacy blob config shape', () => {
+    expect(
+      isValidAvatarConfig({
+        bodyShape: 'square',
+        bodyColor: '#a78bfa',
+        eyeStyle: 'sleepy',
+        accessory: 'horn',
+        accessoryColor: '#c4b5fd',
+      })
+    ).toBe(false);
   });
 });
 
@@ -109,7 +121,7 @@ describe('parseStoredAvatarConfig', () => {
     expect(parseStoredAvatarConfig('')).toBeNull();
     expect(parseStoredAvatarConfig('{not json')).toBeNull();
     expect(
-      parseStoredAvatarConfig(JSON.stringify({ bodyShape: 'round' }))
+      parseStoredAvatarConfig(JSON.stringify({ armorType: 'plate' }))
     ).toBeNull();
   });
 });

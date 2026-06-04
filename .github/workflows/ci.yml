@@ -41,9 +41,11 @@ jobs:
         run: bun run format:check
 
       # Step 6: Type-check TypeScript
+      # `tsc -b` builds the project references (app + node configs); plain
+      # `tsc --noEmit` resolves the solution tsconfig and checks 0 files.
       - name: Type check
         working-directory: ./frontend
-        run: bunx tsc --noEmit
+        run: bunx tsc -b
 
       # Step 6.5: Run frontend tests
       - name: Run tests

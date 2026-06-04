@@ -1,0 +1,162 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { finalizeFightStats, useFightStats } from './useFightStats';
+import type { WordAnalysisResult } from '../utils/wordAnalysis';
+
+const block = (over: Partial<WordAnalysisResult>): WordAnalysisResult => ({
+  correctWords: 0,
+  incorrectWords: 0,
+  totalCharsIncludingSpaces: 0,
+  correctChars: 0,
+  incorrectChars: 0,
+  extraChars: 0,
+  missedChars: 0,
+  ...over,
+});
+
+describe('finalizeFightStats', () => {
+  it('sums accumulated blocks with the in-progress block', () => {
+    const stats = finalizeFightStats(
+      {
+        chars: 100,
+        correct: 20,
+        incorrect: 2,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 50,
+        correctWords: 10,
+        incorrectWords: 1,
+      }),
+      1 // minute
+    );
+    expect(stats.totalCharsIncludingSpaces).toBe(150);
+    expect(stats.correctWords).toBe(30);
+    expect(stats.incorrectWords).toBe(3);
+    expect(stats.finalWpm).toBe(30); // 150 / 5 / 1
+    expect(stats.elapsedMinutes).toBe(1);
+  });
+
+  it('returns 0 wpm when no time elapsed', () => {
+    const stats = finalizeFightStats(
+      {
+        chars: 0,
+        correct: 0,
+        incorrect: 0,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 25,
+        correctWords: 5,
+        incorrectWords: 0,
+      }),
+      0
+    );
+    expect(stats.finalWpm).toBe(0);
+  });
+
+  it('handles a fast kill that fits in a single block (no accumulation)', () => {
+    const stats = finalizeFightStats(
+      {
+        chars: 0,
+        correct: 0,
+        incorrect: 0,
+        correctChars: 0,
+        incorrectChars: 0,
+        extraChars: 0,
+        missedChars: 0,
+      },
+      block({
+        totalCharsIncludingSpaces: 60,
+        correctWords: 12,
+        incorrectWords: 0,
+      }),
+      0.5
+    );
+    expect(stats.totalCharsIncludingSpaces).toBe(60);
+    expect(stats.correctWords).toBe(12);
+    expect(stats.finalWpm).toBe(24); // 60 / 5 / 0.5
+  });
+});
+
+describe('finalizeFightStats char breakdown', () => {
+  it('sums char breakdown across accumulated blocks + current', () => {
+    const accum = {
+      chars: 10,
+      correct: 2,
+      incorrect: 1,
+      correctChars: 8,
+      incorrectChars: 2,
+      extraChars: 1,
+      missedChars: 0,
+    };
+    const current = block({
+      correctChars: 4,
+      incorrectChars: 1,
+      extraChars: 0,
+      missedChars: 3,
+    });
+    const r = finalizeFightStats(accum, current, 1);
+    expect(r.correctChars).toBe(12);
+    expect(r.incorrectChars).toBe(3);
+    expect(r.extraChars).toBe(1);
+    expect(r.missedChars).toBe(3);
+  });
+});
+
+// @vitest-environment jsdom
+describe('useFightStats pause compensation', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const oneBlock = (chars: number): WordAnalysisResult =>
+    block({ totalCharsIncludingSpaces: chars });
+
+  it('excludes paused time from elapsed (WPM not penalized)', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.startFightIfNeeded()); // t=0
+    act(() => vi.advanceTimersByTime(60_000)); // 1 min typing
+    act(() => vi.advanceTimersByTime(120_000)); // 2 min paused...
+    act(() => result.current.addPausedTime(120_000)); // ...credited back
+    // 300 chars / 5 = 60 words over 1 real typing-minute => 60 wpm
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(60);
+  });
+
+  it('without compensation the same gap would tank WPM (control)', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.startFightIfNeeded());
+    act(() => vi.advanceTimersByTime(180_000)); // 1 typing + 2 paused, uncredited
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(20); // 300/5 / 3min — the bug
+  });
+
+  it('no-ops when the fight has not started', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.addPausedTime(5_000)); // startRef still null
+    act(() => result.current.startFightIfNeeded());
+    act(() => vi.advanceTimersByTime(60_000));
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(60);
+  });
+});

@@ -33,6 +33,38 @@ describe("calculateXpDelta", () => {
       const xp = calculateXpDelta("endless", 0, 30);
       expect(xp).toBe(50); // 100 * 0.5 (floored)
     });
+
+    it("defaults to the beginner (1x) multiplier when difficulty omitted", () => {
+      const xp = calculateXpDelta("endless", 0, 60);
+      expect(xp).toBe(100); // 100 * 1.0 difficulty * 1.0 WPM
+    });
+
+    it("applies the per-difficulty multiplier", () => {
+      expect(calculateXpDelta("endless", 0, 60, "beginner")).toBe(100); // *1.0
+      expect(calculateXpDelta("endless", 0, 60, "common")).toBe(150); // *1.5
+      expect(calculateXpDelta("endless", 0, 60, "intermediate")).toBe(200); // *2.0
+      expect(calculateXpDelta("endless", 0, 60, "advanced")).toBe(300); // *3.0
+    });
+
+    it("stacks difficulty with WPM and step penalties", () => {
+      // base 100 * advanced 3.0 * 0.8 (1 mistake) * 1.25 (120 WPM cap) = 300
+      expect(calculateXpDelta("endless", 1, 120, "advanced")).toBe(300);
+    });
+
+    it("defaults to the common (1x) variant when variant omitted", () => {
+      expect(calculateXpDelta("endless", 0, 60, "beginner")).toBe(100);
+    });
+
+    it("applies the per-rarity variant multiplier (elite pays most)", () => {
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "common")).toBe(100); // *1.0
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "rare")).toBe(175); // *1.75
+      expect(calculateXpDelta("endless", 0, 60, "beginner", "elite")).toBe(300); // *3.0
+    });
+
+    it("stacks variant with difficulty, WPM, and step penalties", () => {
+      // base 100 * common-diff 1.5 * 0.8 (1 mistake) * 1.25 (120 WPM cap) * elite 3.0 = 450
+      expect(calculateXpDelta("endless", 1, 120, "common", "elite")).toBe(450);
+    });
   });
 
   describe("Daily mode", () => {
@@ -49,6 +81,11 @@ describe("calculateXpDelta", () => {
     it("should cap WPM multiplier at 1.5x", () => {
       const xp = calculateXpDelta("daily", 0, 200);
       expect(xp).toBe(750); // 500 * 1.5 (capped)
+    });
+
+    it("ignores difficulty multiplier (daily is not difficulty-scaled)", () => {
+      const xp = calculateXpDelta("daily", 0, 60, "advanced");
+      expect(xp).toBe(500); // 500 * 1.0 WPM, advanced multiplier NOT applied
     });
   });
 });

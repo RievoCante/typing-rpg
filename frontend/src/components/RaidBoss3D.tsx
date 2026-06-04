@@ -1,6 +1,8 @@
 import { memo, useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Group, Color, MeshPhongMaterial } from 'three';
+import { CANVAS_DPR, CANVAS_GL } from '../utils/canvas';
+import FrameLimiter from './FrameLimiter';
 
 const BODY_COLOR = new Color('#7f1d1d'); // dark blood red
 const HIT_COLOR = new Color('#fca5a5');
@@ -76,7 +78,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
     <group ref={groupRef}>
       {/* Body */}
       <mesh>
-        <sphereGeometry args={[1.1, 32, 32]} />
+        <sphereGeometry args={[1.1, 24, 24]} />
         <meshPhongMaterial
           ref={bodyMatRef}
           color="#7f1d1d"
@@ -85,7 +87,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
         />
         {/* Eyes */}
         <mesh position={[-0.4, 0.2, 0.95]}>
-          <sphereGeometry args={[0.16, 16, 16]} />
+          <sphereGeometry args={[0.16, 12, 12]} />
           <meshPhongMaterial
             color={eyeColor}
             emissive={eyeColor}
@@ -93,7 +95,7 @@ function BossModel({ isHit, isDefeated }: ModelProps) {
           />
         </mesh>
         <mesh position={[0.4, 0.2, 0.95]}>
-          <sphereGeometry args={[0.16, 16, 16]} />
+          <sphereGeometry args={[0.16, 12, 12]} />
           <meshPhongMaterial
             color={eyeColor}
             emissive={eyeColor}
@@ -133,10 +135,13 @@ export interface RaidBoss3DProps {
 function RaidBoss3D({ isHit = false, isDefeated = false }: RaidBoss3DProps) {
   return (
     <Canvas
+      frameloop="demand"
       camera={{ position: [0, 0.3, 4.2], fov: 50 }}
-      gl={{ alpha: true, antialias: true }}
+      dpr={CANVAS_DPR}
+      gl={CANVAS_GL}
       style={{ width: '100%', height: '100%' }}
     >
+      <FrameLimiter />
       <ambientLight intensity={0.5} />
       <pointLight position={[3, 4, 5]} intensity={1} />
       <pointLight position={[-3, -2, -3]} intensity={0.3} color="#ff6666" />

@@ -449,11 +449,11 @@ describe('RaidRoom', () => {
   it('stores a valid characterConfig on join and includes it in room_state', () => {
     const ws = { send: vi.fn() } as any;
     const cfg = {
-      bodyShape: 'round',
-      bodyColor: '#34d399',
-      eyeStyle: 'dot',
-      accessory: 'antenna',
-      accessoryColor: '#fde047',
+      armorType: 'plate',
+      armorColor: '#2f9e69',
+      helmetType: 'barbute',
+      helmetColor: '#d4af37',
+      skinTone: '#e0a878',
     };
     (room as any).handlePlayerJoin(ws, { userId: 'u1', username: 'Alice' }, cfg);
     const stored = (room as any).state.players.get(ws);

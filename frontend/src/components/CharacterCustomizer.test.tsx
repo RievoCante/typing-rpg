@@ -19,10 +19,10 @@ describe('CharacterCustomizer', () => {
   it('renders the preview, all knob group labels, and Save', () => {
     const html = renderToString(<CharacterCustomizer onClose={() => {}} />);
     expect(html).toContain('data-avatar'); // live preview
-    expect(html).toContain('Body');
+    expect(html).toContain('Armor');
+    expect(html).toContain('Helmet');
+    expect(html).toContain('Skin');
     expect(html).toContain('Color');
-    expect(html).toContain('Eyes');
-    expect(html).toContain('Accessory');
     expect(html).toContain('Save');
   });
 });

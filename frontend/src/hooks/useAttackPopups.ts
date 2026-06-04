@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { playMonsterAttack } from '../utils/sfxEngine';
 
 export interface AttackItem {
   id: number;
@@ -15,6 +16,7 @@ export function useAttackPopups() {
 
   useEffect(() => {
     const onAttack = () => {
+      playMonsterAttack();
       const left = 15 + (Math.random() * 10 - 5);
       const top = 35 + (Math.random() * 20 - 10);
       const id = ++idRef.current;
