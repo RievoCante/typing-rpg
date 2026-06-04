@@ -45,6 +45,12 @@ export const usePerformanceTracking = ({
     setStartTime(null);
   }, []);
 
+  // Compensate for a pause: push startTime forward by the paused duration so
+  // `Date.now() - startTime` excludes the idle gap and WPM isn't penalized.
+  const addPausedTime = useCallback((ms: number) => {
+    setStartTime(prev => (prev !== null ? prev + ms : prev));
+  }, []);
+
   // Calculate final stats when session is completed
   const calculateFinalStats = useCallback((): PerformanceStats | null => {
     if (!hasStartedTyping || !startTime || text.length === 0) {
@@ -125,6 +131,7 @@ export const usePerformanceTracking = ({
     // Actions
     startSession,
     resetSession,
+    addPausedTime,
     calculateFinalStats,
     calculateCurrentWpm,
   };
