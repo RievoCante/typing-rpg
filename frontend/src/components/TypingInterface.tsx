@@ -758,6 +758,22 @@ export default function TypingInterface({
     return () => setPauseOverlayActive(false);
   }, [pauseOverlayVisible, setPauseOverlayActive]);
 
+  // Esc-to-resume when the typing surface is blurred (the player paused by
+  // clicking away). The container's onKeyDown only fires while focused, so a
+  // focus-loss pause can't be cleared via that handler — cover it at the window
+  // level. The focused case (typing or Esc-pause) is left to onKeyDown so we
+  // never double-toggle.
+  useEffect(() => {
+    if (!pauseOverlayVisible || isFocused) return;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      resume();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pauseOverlayVisible, isFocused, resume]);
+
   return (
     <>
       {currentMode === 'endless' && <ComboMeter />}
