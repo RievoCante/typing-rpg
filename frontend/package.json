@@ -19,7 +19,7 @@
     "@sentry/react": "^10.19.0",
     "@tailwindcss/vite": "^4.1.10",
     "@types/three": "^0.182.0",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^1.17.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
