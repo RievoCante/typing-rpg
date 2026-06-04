@@ -76,6 +76,11 @@ interface GameContextType {
   setIsPaused: (value: boolean) => void;
   isManuallyPaused: boolean;
   setIsManuallyPaused: (value: boolean) => void;
+  // True only while the "Paused — press Esc to resume" overlay is up (manual
+  // pause OR focus-loss, minus pre-fight/loadout/death/results states). Drives
+  // the monster animation freeze + centered pause icon so focus-loss matches Esc.
+  pauseOverlayActive: boolean;
+  setPauseOverlayActive: (value: boolean) => void;
   // Endless potion inventory
   potionCount: number;
   maxPotions: number;
@@ -157,6 +162,8 @@ export const GameContext = createContext<GameContextType>({
   setIsPaused: () => {},
   isManuallyPaused: false,
   setIsManuallyPaused: () => {},
+  pauseOverlayActive: false,
+  setPauseOverlayActive: () => {},
   // Endless potion inventory
   potionCount: 0,
   maxPotions: 3,
