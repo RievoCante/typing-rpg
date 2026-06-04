@@ -31,7 +31,6 @@ import {
 } from './utils/monsterSpawn';
 import { VARIANT_SIZE } from './utils/combatTuning';
 import BattleReport from './components/BattleReport';
-import LevelUpToast from './components/LevelUpToast';
 
 // Contexts
 import { useGameContext } from './hooks/useGameContext';
@@ -263,6 +262,8 @@ function GameContent() {
                 xpToNextLevel={xpToNextLevel}
                 xpGain={xpGain}
                 xpGainKey={xpGainNonce}
+                levelUpEvent={levelUpEvent}
+                onLevelUpDismiss={clearLevelUpEvent}
               />
             </SignedIn>
             <TypingInterface
@@ -282,17 +283,6 @@ function GameContent() {
 
         {/* Battle Report (full run recap) when the player dies */}
         {isPlayerDead && <BattleReport onRestart={handleDeathRestart} />}
-
-        {/* Subtle level-up celebration (Endless, signed-in only) */}
-        <SignedIn>
-          {levelUpEvent?.leveledUp && (
-            <LevelUpToast
-              level={levelUpEvent.newLevel}
-              milestone={levelUpEvent.milestoneReached}
-              onDismiss={clearLevelUpEvent}
-            />
-          )}
-        </SignedIn>
       </div>
     </div>
   );
