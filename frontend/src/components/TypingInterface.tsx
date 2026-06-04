@@ -306,6 +306,25 @@ export default function TypingInterface({
     setIsPaused(isManuallyPaused || !isFocused);
   }, [isManuallyPaused, isFocused, setIsPaused]);
 
+  // WPM must not count paused time. On each pause edge, stamp the time; on
+  // resume, push both timing clocks (live per-block + per-fight) forward by the
+  // idle gap so `Date.now() - startTime` excludes it. Both addPausedTime fns are
+  // stable, and they no-op before the clock starts, so an early focus blur is safe.
+  const pausedAtRef = useRef<number | null>(null);
+  const { addPausedTime: addPerfPausedTime } = performance;
+  const { addPausedTime: addFightPausedTime } = fightStats;
+  useEffect(() => {
+    const paused = isManuallyPaused || !isFocused;
+    if (paused) {
+      if (pausedAtRef.current === null) pausedAtRef.current = Date.now();
+    } else if (pausedAtRef.current !== null) {
+      const delta = Date.now() - pausedAtRef.current;
+      pausedAtRef.current = null;
+      addPerfPausedTime(delta);
+      addFightPausedTime(delta);
+    }
+  }, [isManuallyPaused, isFocused, addPerfPausedTime, addFightPausedTime]);
+
   // A dead player can't reach the resume control, so clear any manual pause.
   useEffect(() => {
     if (isPlayerDead) setIsManuallyPaused(false);

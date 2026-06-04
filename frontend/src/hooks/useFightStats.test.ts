@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { finalizeFightStats } from './useFightStats';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { finalizeFightStats, useFightStats } from './useFightStats';
 import type { WordAnalysisResult } from '../utils/wordAnalysis';
 
 const block = (over: Partial<WordAnalysisResult>): WordAnalysisResult => ({
@@ -106,5 +107,56 @@ describe('finalizeFightStats char breakdown', () => {
     expect(r.incorrectChars).toBe(3);
     expect(r.extraChars).toBe(1);
     expect(r.missedChars).toBe(3);
+  });
+});
+
+// @vitest-environment jsdom
+describe('useFightStats pause compensation', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const oneBlock = (chars: number): WordAnalysisResult =>
+    block({ totalCharsIncludingSpaces: chars });
+
+  it('excludes paused time from elapsed (WPM not penalized)', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.startFightIfNeeded()); // t=0
+    act(() => vi.advanceTimersByTime(60_000)); // 1 min typing
+    act(() => vi.advanceTimersByTime(120_000)); // 2 min paused...
+    act(() => result.current.addPausedTime(120_000)); // ...credited back
+    // 300 chars / 5 = 60 words over 1 real typing-minute => 60 wpm
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(60);
+  });
+
+  it('without compensation the same gap would tank WPM (control)', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.startFightIfNeeded());
+    act(() => vi.advanceTimersByTime(180_000)); // 1 typing + 2 paused, uncredited
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(20); // 300/5 / 3min — the bug
+  });
+
+  it('no-ops when the fight has not started', () => {
+    const { result } = renderHook(() => useFightStats());
+    act(() => result.current.addPausedTime(5_000)); // startRef still null
+    act(() => result.current.startFightIfNeeded());
+    act(() => vi.advanceTimersByTime(60_000));
+    let wpm = 0;
+    act(() => {
+      wpm = result.current.finalize(oneBlock(300)).finalWpm;
+    });
+    expect(wpm).toBe(60);
   });
 });

@@ -65,6 +65,13 @@ export function useFightStats() {
     if (startRef.current === null) startRef.current = Date.now();
   }, []);
 
+  // Compensate for a pause: push the fight start forward by the paused duration
+  // so the finalized fight WPM excludes idle time. Survives block refills, so a
+  // pause anywhere in the fight is credited back.
+  const addPausedTime = useCallback((ms: number) => {
+    if (startRef.current !== null) startRef.current += ms;
+  }, []);
+
   const foldBlock = useCallback((block: WordAnalysisResult) => {
     accumRef.current = {
       chars: accumRef.current.chars + block.totalCharsIncludingSpaces,
@@ -91,10 +98,16 @@ export function useFightStats() {
     startRef.current = null;
   }, []);
 
-  // Stable object identity: the four callbacks never change, so consumers can
+  // Stable object identity: the callbacks never change, so consumers can
   // safely list the returned object in effect deps without re-firing each render.
   return useMemo(
-    () => ({ startFightIfNeeded, foldBlock, finalize, resetFight }),
-    [startFightIfNeeded, foldBlock, finalize, resetFight]
+    () => ({
+      startFightIfNeeded,
+      addPausedTime,
+      foldBlock,
+      finalize,
+      resetFight,
+    }),
+    [startFightIfNeeded, addPausedTime, foldBlock, finalize, resetFight]
   );
 }
