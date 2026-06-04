@@ -12,7 +12,10 @@ const DEFAULT_SFX_VOLUME = 0.25;
 // max slider position stays comfortable. Better to start low and let players
 // turn it up. settings.volume keeps the raw slider value (for persistence/UI);
 // the ceiling is applied only at playback.
-const SFX_MAX_OUTPUT = 0.5;
+const SFX_MAX_OUTPUT = 0.3;
+// The monster-kill explosion is the loudest cue, so it gets an extra attenuation
+// on top of the global ceiling.
+const EXPLOSION_SCALE = 0.5;
 
 function readVolume(): number {
   try {
@@ -67,7 +70,7 @@ export function playExplosion() {
   if (!audio) return;
 
   const now = audio.currentTime;
-  const vol = settings.volume * SFX_MAX_OUTPUT;
+  const vol = settings.volume * SFX_MAX_OUTPUT * EXPLOSION_SCALE;
   const duration = 0.9;
   const sr = audio.sampleRate;
 
