@@ -595,11 +595,15 @@ export default function TypingInterface({
     setLoadoutPending(true);
     setAwaitingContinue(false);
     setKillResult(null);
+    // Always resume unpaused: a difficulty-change restart never flips
+    // isPlayerDead, so the death-path pause clear (above) won't fire and a
+    // pre-restart Esc pause would otherwise persist into the new run.
+    setIsManuallyPaused(false);
     fightStats.resetFight();
     sessionMetrics.reset();
     fightFinalizedRef.current = false;
     prevDefeatedRef.current = false;
-  }, [fightStats, sessionMetrics]);
+  }, [fightStats, sessionMetrics, setIsManuallyPaused]);
 
   useEffect(() => {
     if (currentMode !== 'endless') return;
