@@ -14,6 +14,26 @@ vi.mock('../hooks/useGameContext', () => ({
 }));
 
 import DifficultyDropdown from './DifficultyDropdown';
+import { resolveDifficultySelection } from '../hooks/useEndlessSettings';
+
+describe('resolveDifficultySelection', () => {
+  it('is a no-op when the difficulty is unchanged', () => {
+    expect(resolveDifficultySelection('common', 'common', true)).toBe('noop');
+    expect(resolveDifficultySelection('common', 'common', false)).toBe('noop');
+  });
+
+  it('applies instantly when the run has not started', () => {
+    expect(resolveDifficultySelection('beginner', 'advanced', false)).toBe(
+      'apply'
+    );
+  });
+
+  it('asks to confirm when changing during a started run', () => {
+    expect(resolveDifficultySelection('beginner', 'advanced', true)).toBe(
+      'confirm'
+    );
+  });
+});
 
 describe('DifficultyDropdown', () => {
   // isOpen defaults to false, so SSR renders only the closed button. It shows

@@ -177,6 +177,19 @@ function GameContent() {
     generateNewMonster(0);
   };
 
+  // Changing difficulty restarts the run on the new word pool. DifficultyDropdown
+  // dispatches 'restart-run' (it can't reach generateNewMonster, which lives
+  // here) after a confirm. The ref keeps the listener calling the latest restart
+  // closure without resubscribing every render. The difficulty change itself
+  // retriggers TypingInterface's text regen, so the run begins on the new pool.
+  const restartRunRef = useRef(handleDeathRestart);
+  restartRunRef.current = handleDeathRestart;
+  useEffect(() => {
+    const handler = () => restartRunRef.current();
+    window.addEventListener('restart-run', handler);
+    return () => window.removeEventListener('restart-run', handler);
+  }, []);
+
   // Big "+N XP" reward under the Player Level card on monster kill.
   // Nonce bumps every award so equal back-to-back amounts still animate.
   const [xpGain, setXpGain] = useState(0);
