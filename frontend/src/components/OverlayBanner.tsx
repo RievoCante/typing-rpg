@@ -17,7 +17,7 @@ export default function OverlayBanner({
   const bg = tone === 'celebrate' ? 'bg-black/20' : 'bg-black/30';
   return (
     <div
-      className={`absolute inset-0 ${bg} flex items-center justify-center z-10 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`absolute inset-0 ${bg} flex items-center justify-center z-10 ${onClick ? 'pointer-events-auto cursor-pointer' : ''}`}
       onClick={onClick}
     >
       <div
