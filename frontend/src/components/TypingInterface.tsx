@@ -595,11 +595,15 @@ export default function TypingInterface({
     setLoadoutPending(true);
     setAwaitingContinue(false);
     setKillResult(null);
+    // Always resume unpaused: a difficulty-change restart never flips
+    // isPlayerDead, so the death-path pause clear (above) won't fire and a
+    // pre-restart Esc pause would otherwise persist into the new run.
+    setIsManuallyPaused(false);
     fightStats.resetFight();
     sessionMetrics.reset();
     fightFinalizedRef.current = false;
     prevDefeatedRef.current = false;
-  }, [fightStats, sessionMetrics]);
+  }, [fightStats, sessionMetrics, setIsManuallyPaused]);
 
   useEffect(() => {
     if (currentMode !== 'endless') return;
@@ -757,6 +761,22 @@ export default function TypingInterface({
     setPauseOverlayActive(pauseOverlayVisible);
     return () => setPauseOverlayActive(false);
   }, [pauseOverlayVisible, setPauseOverlayActive]);
+
+  // Esc-to-resume when the typing surface is blurred (the player paused by
+  // clicking away). The container's onKeyDown only fires while focused, so a
+  // focus-loss pause can't be cleared via that handler — cover it at the window
+  // level. The focused case (typing or Esc-pause) is left to onKeyDown so we
+  // never double-toggle.
+  useEffect(() => {
+    if (!pauseOverlayVisible || isFocused) return;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      resume();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pauseOverlayVisible, isFocused, resume]);
 
   return (
     <>
