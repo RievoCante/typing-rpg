@@ -1,6 +1,12 @@
 // Manages background music playback, volume, mute, and persistence
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+// The slider runs 0–1, but the track is hot, so we map the slider onto a
+// quieter output ceiling: slider at max produces only this much element volume.
+// Every position is correspondingly quieter — safer to start low and let
+// players turn it up than to blast them.
+const BGM_MAX_OUTPUT = 0.45;
+
 export function useBgm(src = '/audio/typing-giggles.mp3') {
   const [volume, setVolume] = useState<number>(() => {
     const DEFAULT_VOLUME = 0.2;
@@ -32,7 +38,7 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
     el.loop = true;
     el.preload = 'auto';
     el.autoplay = true; // will be allowed only after a gesture
-    el.volume = muted ? 0 : volume;
+    el.volume = muted ? 0 : volume * BGM_MAX_OUTPUT;
     audioRef.current = el;
     return () => {
       el.pause();
@@ -47,7 +53,7 @@ export function useBgm(src = '/audio/typing-giggles.mp3') {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    el.volume = muted ? 0 : volume;
+    el.volume = muted ? 0 : volume * BGM_MAX_OUTPUT;
     try {
       localStorage.setItem('bgm:volume', String(volume));
       localStorage.setItem('bgm:muted', muted ? '1' : '0');
