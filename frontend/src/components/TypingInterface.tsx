@@ -587,19 +587,37 @@ export default function TypingInterface({
     }
   }, [currentMode, fightStats, sessionMetrics]);
 
+  // Reset to the start-of-run state: reshow the loadout picker (the player
+  // re-picks a weapon) and clear all fight/kill scratch state. Shared by both
+  // restart paths — death→revive and a difficulty-change restart.
+  const beginFreshRun = useCallback(() => {
+    setLoadoutPending(true);
+    setAwaitingContinue(false);
+    setKillResult(null);
+    fightStats.resetFight();
+    sessionMetrics.reset();
+    fightFinalizedRef.current = false;
+    prevDefeatedRef.current = false;
+  }, [fightStats, sessionMetrics]);
+
   useEffect(() => {
     if (currentMode !== 'endless') return;
     if (wasDeadRef.current && !isPlayerDead) {
-      setLoadoutPending(true);
-      setAwaitingContinue(false);
-      setKillResult(null);
-      fightStats.resetFight();
-      sessionMetrics.reset();
-      fightFinalizedRef.current = false;
-      prevDefeatedRef.current = false;
+      beginFreshRun();
     }
     wasDeadRef.current = isPlayerDead;
-  }, [currentMode, isPlayerDead, fightStats, sessionMetrics]);
+  }, [currentMode, isPlayerDead, beginFreshRun]);
+
+  // A difficulty-change restart ('restart-run', dispatched by DifficultyDropdown)
+  // restarts the run without the player dying, so isPlayerDead never transitions
+  // and the death effect above won't fire. Reshow the picker here too so the
+  // player re-picks a weapon instead of silently keeping the old loadout.
+  useEffect(() => {
+    if (currentMode !== 'endless') return;
+    const handler = () => beginFreshRun();
+    window.addEventListener('restart-run', handler);
+    return () => window.removeEventListener('restart-run', handler);
+  }, [currentMode, beginFreshRun]);
 
   const handleLoadoutConfirm = useCallback(() => {
     setLoadoutPending(false);
