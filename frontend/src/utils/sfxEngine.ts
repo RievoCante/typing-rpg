@@ -8,6 +8,11 @@ import { critSfxParams, type ComboTier } from './sfxTier';
 export const SFX_VOLUME_KEY = 'sfx:volume';
 export const SFX_MUTED_KEY = 'sfx:muted';
 const DEFAULT_SFX_VOLUME = 0.25;
+// The slider runs 0–1; this maps it onto a quieter output ceiling so even the
+// max slider position stays comfortable. Better to start low and let players
+// turn it up. settings.volume keeps the raw slider value (for persistence/UI);
+// the ceiling is applied only at playback.
+const SFX_MAX_OUTPUT = 0.5;
 
 function readVolume(): number {
   try {
@@ -62,7 +67,7 @@ export function playExplosion() {
   if (!audio) return;
 
   const now = audio.currentTime;
-  const vol = settings.volume;
+  const vol = settings.volume * SFX_MAX_OUTPUT;
   const duration = 0.9;
   const sr = audio.sampleRate;
 
@@ -130,7 +135,7 @@ export function playArpeggio(freqs: number[], noteLen: number, peak: number) {
   if (!audio) return;
 
   const now = audio.currentTime;
-  const vol = settings.volume * peak;
+  const vol = settings.volume * SFX_MAX_OUTPUT * peak;
 
   freqs.forEach((f, i) => {
     const start = now + i * noteLen;
@@ -199,7 +204,7 @@ export function playMonsterAttack() {
   if (!audio) return;
 
   const now = audio.currentTime;
-  const vol = settings.volume;
+  const vol = settings.volume * SFX_MAX_OUTPUT;
   const duration = 0.2;
   const sr = audio.sampleRate;
 
