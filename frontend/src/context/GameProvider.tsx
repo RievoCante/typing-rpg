@@ -19,6 +19,7 @@ import {
   VARIANT_HP_MULT,
   VARIANT_COMBO_SURGE,
   detectLevelUp,
+  totalCritChance,
   type LevelUpEvent,
 } from '../utils/combatTuning';
 
@@ -335,7 +336,12 @@ export const GameProvider = ({
         isSignedIn: weaponVault.isSignedIn,
       },
       comboStreak: combo.streak,
-      comboCritChance: combo.critChance,
+      // Displayed crit % must include the equipped weapon's flat bonus so it
+      // matches what rollDamage actually rolls (e.g. +4% weapon → 4%–54%).
+      comboCritChance: totalCritChance(
+        combo.streak,
+        weapon.equippedWeapon?.bonusCritChance ?? 0
+      ),
       registerComboCorrect,
       registerComboWrong: combo.registerWrongWord,
       runMetrics: runMetrics.state,
@@ -386,7 +392,6 @@ export const GameProvider = ({
       damageMonster,
       spawnMonster,
       combo.streak,
-      combo.critChance,
       registerComboCorrect,
       combo.registerWrongWord,
       runMetrics.state,
