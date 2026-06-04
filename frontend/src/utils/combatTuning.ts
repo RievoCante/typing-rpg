@@ -50,12 +50,25 @@ export const monsterMaxHp = (
 // streak 50). A wrong word halves the streak (see useComboSystem). Tuned down
 // from 1.5%/75% so a hot combo no longer trivializes kills.
 const CRIT_RAMP_PER_WORD = 0.01;
-const CRIT_CHANCE_CAP = 0.5;
+export const CRIT_CHANCE_CAP = 0.5;
 // Hard ceiling once a weapon's crit bonus is added on top of the streak chance.
-const TOTAL_CRIT_CHANCE_CAP = 0.7;
+export const TOTAL_CRIT_CHANCE_CAP = 0.7;
 
 export const critChanceForStreak = (streak: number): number =>
   Math.min(CRIT_CHANCE_CAP, Math.max(0, streak) * CRIT_RAMP_PER_WORD);
+
+// Total crit chance shown to the player and rolled in combat: streak ramp plus
+// the equipped weapon's flat bonus, clamped to the hard ceiling. Keeps the
+// ComboMeter display and rollDamage in sync (e.g. a +4% weapon → 4% at streak 0,
+// 54% at streak 50).
+export const totalCritChance = (
+  streak: number,
+  bonusCritChance: number = 0
+): number =>
+  Math.min(
+    TOTAL_CRIT_CHANCE_CAP,
+    critChanceForStreak(streak) + bonusCritChance
+  );
 
 // --- Level-derived progression payoff (Endless, signed-in only) ---
 // milestonesReached = floor(level / 5). Bonuses are DERIVED from level (no
@@ -109,10 +122,7 @@ export const rollDamage = (
   weapon: WeaponMods | null = null,
   level: number = 1
 ): DamageRoll => {
-  const critChance = Math.min(
-    TOTAL_CRIT_CHANCE_CAP,
-    critChanceForStreak(streak) + (weapon?.bonusCritChance ?? 0)
-  );
+  const critChance = totalCritChance(streak, weapon?.bonusCritChance ?? 0);
   const crit = rng() < critChance;
   const base = BASE_DMG + (weapon?.bonusDamage ?? 0) + levelDmgBonus(level);
   const mult = CRIT_MULT + (weapon?.critMultBonus ?? 0);

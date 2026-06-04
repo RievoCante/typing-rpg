@@ -1,28 +1,33 @@
 import { useGameContext } from '../hooks/useGameContext';
 import { useThemeContext } from '../hooks/useThemeContext';
+import { CRIT_CHANCE_CAP } from '../utils/combatTuning';
 
-// Tier purely for label/colour feel; crit math lives in combatTuning.
+// Tier purely for label/colour feel; crit math lives in combatTuning. Fill is
+// scaled against the streak cap (50%) so the bar reads full once the streak is
+// maxed; a weapon's flat crit bonus can push critChance slightly past the cap,
+// hence the clamp.
 function tier(streak: number, critChance: number) {
   if (streak <= 0)
     return { label: 'Combo', color: 'text-gray-500', fill: 0, glow: '' };
-  if (critChance >= 0.75)
+  const fill = Math.min(100, (critChance / CRIT_CHANCE_CAP) * 100);
+  if (critChance >= CRIT_CHANCE_CAP)
     return {
       label: '🔥 BLAZING',
       color: 'text-pink-400',
       fill: 100,
       glow: 'combo-glow-blazing',
     };
-  if (critChance >= 0.4)
+  if (critChance >= CRIT_CHANCE_CAP * 0.6)
     return {
       label: '🔥 Hot',
       color: 'text-orange-400',
-      fill: (critChance / 0.75) * 100,
+      fill,
       glow: 'combo-glow-hot',
     };
   return {
     label: 'Heating',
     color: 'text-yellow-300',
-    fill: (critChance / 0.75) * 100,
+    fill,
     glow: '',
   };
 }

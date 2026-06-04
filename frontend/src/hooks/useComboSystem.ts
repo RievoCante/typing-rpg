@@ -1,9 +1,5 @@
 import { useCallback, useReducer } from 'react';
-import {
-  critChanceForStreak,
-  rollDamage,
-  type DamageRoll,
-} from '../utils/combatTuning';
+import { rollDamage, type DamageRoll } from '../utils/combatTuning';
 import type { Weapon } from '../utils/weapons';
 
 // --- Pure reducer (exported for tests, following useRaidState.ts convention) ---
@@ -83,7 +79,6 @@ export function useComboSystem() {
 
   return {
     streak: state.streak,
-    critChance: critChanceForStreak(state.streak),
     registerCorrectWord,
     registerWrongWord,
     reset,

@@ -4,6 +4,7 @@ import {
   BASE_DMG,
   CRIT_MULT,
   critChanceForStreak,
+  totalCritChance,
   rollDamage,
   monsterMaxHp,
   VARIANT_HP_MULT,
@@ -41,6 +42,15 @@ describe('combatTuning', () => {
     expect(critChanceForStreak(20)).toBeCloseTo(0.2);
     expect(critChanceForStreak(50)).toBeCloseTo(0.5);
     expect(critChanceForStreak(100)).toBeCloseTo(0.5); // clamped
+  });
+
+  it('totalCritChance adds a weapon bonus on top of the streak ramp', () => {
+    // +4% weapon: starts at 4%, maxes at 54% (50% streak cap + 4%).
+    expect(totalCritChance(0, 0.04)).toBeCloseTo(0.04);
+    expect(totalCritChance(50, 0.04)).toBeCloseTo(0.54);
+    expect(totalCritChance(0)).toBeCloseTo(0); // no weapon
+    expect(totalCritChance(50)).toBeCloseTo(0.5); // no weapon, streak cap
+    expect(totalCritChance(50, 0.5)).toBeCloseTo(0.7); // clamped at total cap
   });
 
   it('rollDamage returns crit damage when rng is below crit chance', () => {
