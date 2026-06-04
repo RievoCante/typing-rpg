@@ -94,6 +94,7 @@ export default function TypingInterface({
     setIsPaused,
     isManuallyPaused,
     setIsManuallyPaused,
+    setPauseOverlayActive,
     registerCorrectWord,
     drinkPotion,
     monsterHp,
@@ -737,6 +738,25 @@ export default function TypingInterface({
     !loadoutPending &&
     !awaitingContinue &&
     !isCurrentMonsterDefeated;
+  // The paused overlay shows on manual pause OR focus-loss, but not during the
+  // pre-fight/loadout/death/results states. This is the single source of truth
+  // for the on-surface banner AND the monster animation freeze + pause icon, so
+  // clicking away freezes the monster exactly like pressing Esc.
+  const pauseOverlayVisible =
+    (isManuallyPaused || !isFocused) &&
+    !awaitingContinue &&
+    !isProcessingCompletion &&
+    !isPlayerDead &&
+    !dailyLocked &&
+    !loadoutPending &&
+    !(currentMode === 'endless' && isCurrentMonsterDefeated);
+
+  // Mirror the overlay state into context so the Monster (rendered in App) can
+  // freeze its animation + show the pause icon whenever the overlay is up.
+  useEffect(() => {
+    setPauseOverlayActive(pauseOverlayVisible);
+    return () => setPauseOverlayActive(false);
+  }, [pauseOverlayVisible, setPauseOverlayActive]);
 
   return (
     <>
@@ -796,15 +816,7 @@ export default function TypingInterface({
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg overflow-hidden">
             <OverlayBanner
-              visible={
-                (isManuallyPaused || !isFocused) &&
-                !awaitingContinue &&
-                !isProcessingCompletion &&
-                !isPlayerDead &&
-                !dailyLocked &&
-                !loadoutPending &&
-                !(currentMode === 'endless' && isCurrentMonsterDefeated)
-              }
+              visible={pauseOverlayVisible}
               message="Paused — press Esc to resume"
               tone="info"
               onClick={resume}

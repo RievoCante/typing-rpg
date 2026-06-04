@@ -72,7 +72,7 @@ function GameContent() {
     levelUpEvent,
     clearLevelUpEvent,
     addRunXp,
-    isManuallyPaused,
+    pauseOverlayActive,
   } = useGameContext();
 
   const dailyProgress = useDailyProgress();
@@ -242,10 +242,10 @@ function GameContent() {
                   scale={monsterVisuals.scale}
                   shape={monsterShape}
                   eyeStyle={monsterVisuals.eyeStyle}
-                  paused={isManuallyPaused}
+                  paused={pauseOverlayActive}
                 />
               </Suspense>
-              {isManuallyPaused && (
+              {pauseOverlayActive && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <Pause
                     size={96}
