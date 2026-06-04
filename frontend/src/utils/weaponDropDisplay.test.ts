@@ -9,8 +9,8 @@ describe('weaponEffectLines', () => {
   it('lists only non-zero stats, one line each', () => {
     expect(weaponEffectLines(byId('dragonfang'))).toEqual([
       '+5 Damage',
-      '+10% Crit Chance',
-      '+1× Crit Damage',
+      '+6% Crit Chance',
+      '+0.5× Crit Damage',
     ]);
   });
 

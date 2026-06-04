@@ -1,16 +1,18 @@
 import type { MonsterTypeEnum, MonsterVariant } from '../context/GameContext';
 
 // Fixed monster HP per tier. HP is decoupled from the words typed: each correct
-// word deals BASE_DMG (or BASE_DMG * CRIT_MULT on a crit). Tuned so a "cold"
-// normal monster (~1 dmg/word) dies in ~24 words (≈ today's default), while a
-// hot combo accelerates kills. Phase 2 (monster variety) extends this map.
+// word deals BASE_DMG (or BASE_DMG * CRIT_MULT on a crit). Base scale is ×10 so
+// flat weapon bonuses (+1..+5) read as +10%..+50% of base instead of stealth
+// multipliers, and fractional level/crit math survives integer rounding. A
+// "cold" normal monster (~10 dmg/word) still dies in ~24 words, while a hot
+// combo accelerates kills. Phase 2 (monster variety) extends this map.
 export const MONSTER_MAX_HP: Record<MonsterTypeEnum, number> = {
-  normal: 24,
-  'mini-boss': 48,
-  boss: 90,
+  normal: 240,
+  'mini-boss': 480,
+  boss: 900,
 };
 
-export const BASE_DMG = 1;
+export const BASE_DMG = 10;
 export const CRIT_MULT = 2;
 
 // Monster variants (Endless). HP stacks on top of the tier HP, so an elite
@@ -44,12 +46,13 @@ export const monsterMaxHp = (
   variant: MonsterVariant = 'common'
 ): number => Math.round(MONSTER_MAX_HP[type] * VARIANT_HP_MULT[variant]);
 
-// Crit chance rises 1.5% per consecutive correct word, capped at 75% (reached
-// at streak 50). A wrong word halves the streak (see useComboSystem).
-const CRIT_RAMP_PER_WORD = 0.015;
-const CRIT_CHANCE_CAP = 0.75;
+// Crit chance rises 1% per consecutive correct word, capped at 50% (reached at
+// streak 50). A wrong word halves the streak (see useComboSystem). Tuned down
+// from 1.5%/75% so a hot combo no longer trivializes kills.
+const CRIT_RAMP_PER_WORD = 0.01;
+const CRIT_CHANCE_CAP = 0.5;
 // Hard ceiling once a weapon's crit bonus is added on top of the streak chance.
-const TOTAL_CRIT_CHANCE_CAP = 0.95;
+const TOTAL_CRIT_CHANCE_CAP = 0.7;
 
 export const critChanceForStreak = (streak: number): number =>
   Math.min(CRIT_CHANCE_CAP, Math.max(0, streak) * CRIT_RAMP_PER_WORD);
