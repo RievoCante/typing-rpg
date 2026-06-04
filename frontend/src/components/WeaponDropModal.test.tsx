@@ -13,7 +13,7 @@ describe('WeaponDropModal', () => {
     );
     expect(html).toContain('Dragonfang');
     expect(html).toContain('+5 Damage');
-    expect(html).toContain('+10% Crit Chance');
+    expect(html).toContain('+6% Crit Chance');
     expect(html).toContain('Take');
     expect(html).toContain('Press ENTER to take');
   });

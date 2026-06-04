@@ -15,17 +15,17 @@ import {
 
 describe('combatTuning', () => {
   it('maps tiers to fixed HP', () => {
-    expect(MONSTER_MAX_HP.normal).toBe(24);
-    expect(MONSTER_MAX_HP['mini-boss']).toBe(48);
-    expect(MONSTER_MAX_HP.boss).toBe(90);
+    expect(MONSTER_MAX_HP.normal).toBe(240);
+    expect(MONSTER_MAX_HP['mini-boss']).toBe(480);
+    expect(MONSTER_MAX_HP.boss).toBe(900);
   });
 
   it('scales HP by variant on top of tier HP', () => {
-    expect(monsterMaxHp('normal')).toBe(24); // common default
-    expect(monsterMaxHp('normal', 'common')).toBe(24);
-    expect(monsterMaxHp('normal', 'elite')).toBe(36); // 24 * 1.5
-    expect(monsterMaxHp('boss', 'rare')).toBe(180); // 90 * 2
-    expect(monsterMaxHp('mini-boss', 'elite')).toBe(72); // 48 * 1.5
+    expect(monsterMaxHp('normal')).toBe(240); // common default
+    expect(monsterMaxHp('normal', 'common')).toBe(240);
+    expect(monsterMaxHp('normal', 'elite')).toBe(360); // 240 * 1.5
+    expect(monsterMaxHp('boss', 'rare')).toBe(1800); // 900 * 2
+    expect(monsterMaxHp('mini-boss', 'elite')).toBe(720); // 480 * 1.5
   });
 
   it('grants a combo surge only for elite/rare kills', () => {
@@ -35,12 +35,12 @@ describe('combatTuning', () => {
     expect(VARIANT_HP_MULT.rare).toBeGreaterThan(VARIANT_HP_MULT.elite);
   });
 
-  it('ramps crit chance 1.5% per streak, capped at 75%', () => {
+  it('ramps crit chance 1% per streak, capped at 50%', () => {
     expect(critChanceForStreak(0)).toBeCloseTo(0);
-    expect(critChanceForStreak(5)).toBeCloseTo(0.075);
-    expect(critChanceForStreak(20)).toBeCloseTo(0.3);
-    expect(critChanceForStreak(50)).toBeCloseTo(0.75);
-    expect(critChanceForStreak(100)).toBeCloseTo(0.75); // clamped
+    expect(critChanceForStreak(5)).toBeCloseTo(0.05);
+    expect(critChanceForStreak(20)).toBeCloseTo(0.2);
+    expect(critChanceForStreak(50)).toBeCloseTo(0.5);
+    expect(critChanceForStreak(100)).toBeCloseTo(0.5); // clamped
   });
 
   it('rollDamage returns crit damage when rng is below crit chance', () => {
@@ -59,18 +59,18 @@ describe('combatTuning', () => {
 
   it('rollDamage adds weapon bonus damage to a non-crit hit', () => {
     const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0 };
-    // streak 0 → 0% streak crit, rng 0.99 → no crit. damage = 1 + 3 = 4.
+    // streak 0 → 0% streak crit, rng 0.99 → no crit. damage = 10 + 3 = 13.
     expect(rollDamage(0, () => 0.99, weapon)).toEqual({
-      damage: 4,
+      damage: 13,
       crit: false,
     });
   });
 
   it('rollDamage applies weapon crit multiplier bonus on a crit', () => {
     const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0.5 };
-    // streak 50 → 75% crit, rng 0.1 → crit. (1+3) * (2+0.5) = 10.
+    // streak 50 → 50% crit, rng 0.1 → crit. (10+3) * (2+0.5) = 32.5 → 33.
     expect(rollDamage(50, () => 0.1, weapon)).toEqual({
-      damage: 10,
+      damage: 33,
       crit: true,
     });
   });
@@ -82,40 +82,40 @@ describe('combatTuning', () => {
     expect(rollDamage(0, () => 0.4).crit).toBe(false);
   });
 
-  it('rollDamage caps total crit chance at 95% even with a weapon', () => {
+  it('rollDamage caps total crit chance at 70% even with a weapon', () => {
     const weapon = { bonusDamage: 0, bonusCritChance: 0.5, critMultBonus: 0 };
-    // streak 50 (0.75) + 0.5 = 1.25 → capped 0.95.
-    expect(rollDamage(50, () => 0.94, weapon).crit).toBe(true);
-    expect(rollDamage(50, () => 0.96, weapon).crit).toBe(false);
+    // streak 50 (0.5) + 0.5 = 1.0 → capped 0.7.
+    expect(rollDamage(50, () => 0.69, weapon).crit).toBe(true);
+    expect(rollDamage(50, () => 0.71, weapon).crit).toBe(false);
   });
 
   it('rollDamage adds the level damage bonus to a non-crit hit', () => {
-    // streak 0, rng 0.99 → no crit. level 20 → +1.0 bonus. base = 1 + 0 + 1 = 2.
+    // streak 0, rng 0.99 → no crit. level 20 → +1.0 bonus. base = 10 + 0 + 1 = 11.
     expect(rollDamage(0, () => 0.99, null, 20)).toEqual({
-      damage: 2,
+      damage: 11,
       crit: false,
     });
   });
 
   it('rollDamage caps the level damage bonus at +1.0', () => {
-    // level 50 also yields +1.0 (capped). base = 1 + 1 = 2.
+    // level 50 also yields +1.0 (capped). base = 10 + 1 = 11.
     expect(rollDamage(0, () => 0.99, null, 50)).toEqual({
-      damage: 2,
+      damage: 11,
       crit: false,
     });
   });
 
   it('rollDamage stacks weapon bonus and level bonus on the base', () => {
     const weapon = { bonusDamage: 3, bonusCritChance: 0, critMultBonus: 0 };
-    // base = 1 + 3 + 0.25 (level 5) = 4.25 → round → 4.
+    // base = 10 + 3 + 0.25 (level 5) = 13.25 → round → 13.
     expect(rollDamage(0, () => 0.99, weapon, 5)).toEqual({
-      damage: 4,
+      damage: 13,
       crit: false,
     });
   });
 
   it('rollDamage defaults level to 1 (no bonus) when omitted', () => {
-    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 1, crit: false });
+    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 10, crit: false });
   });
 });
 

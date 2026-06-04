@@ -53,19 +53,19 @@ describe('comboReducer', () => {
   });
 });
 
-// Verify rollDamage integration: streak-0 roll with rng=0.99 → no crit, damage=1
+// Verify rollDamage integration: streak-0 roll with rng=0.99 → no crit, damage=10
 import { rollDamage } from '../utils/combatTuning';
 
 describe('rollDamage (streak 0, rng=0.99)', () => {
-  it('returns damage=1, crit=false', () => {
-    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 1, crit: false });
+  it('returns damage=10, crit=false', () => {
+    expect(rollDamage(0, () => 0.99)).toEqual({ damage: 10, crit: false });
   });
 });
 
 describe('rollDamage with level bonus (streak 0, rng=0.99)', () => {
-  it('level 20 adds +1.0 → damage=2', () => {
+  it('level 20 adds +1.0 → damage=11', () => {
     expect(rollDamage(0, () => 0.99, null, 20)).toEqual({
-      damage: 2,
+      damage: 11,
       crit: false,
     });
   });
