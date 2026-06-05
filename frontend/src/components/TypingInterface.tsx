@@ -603,7 +603,11 @@ export default function TypingInterface({
     sessionMetrics.reset();
     fightFinalizedRef.current = false;
     prevDefeatedRef.current = false;
-  }, [fightStats, sessionMetrics, setIsManuallyPaused]);
+    // Regenerate the prompt so the new run starts on fresh, untyped text.
+    // restartSession bumps restartKey -> text regen -> resetTypingState; without
+    // it the previous run's typed/locked progress (charStatus, cursor) persists.
+    restartSession();
+  }, [fightStats, sessionMetrics, setIsManuallyPaused, restartSession]);
 
   useEffect(() => {
     if (currentMode !== 'endless') return;
