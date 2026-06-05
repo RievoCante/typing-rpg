@@ -34,26 +34,22 @@ export default function BattleReport({ onRestart }: BattleReportProps) {
   const { runMetrics } = useGameContext();
   const dark = theme === 'dark';
 
-  const {
-    chart,
-    critCount,
-    totalXp,
-    monstersDefeated,
-    bestWpm,
-    elapsedSeconds,
-    loot,
-  } = runMetrics;
+  const { chart, totalXp, monstersDefeated, bestWpm, elapsedSeconds, loot } =
+    runMetrics;
 
   const series = buildGraphSeries(chart, GRAPH_W, GRAPH_H);
   const accuracy = runAccuracy(chart.err, chart.raw);
   const letter = grade(accuracy);
   const avgConsistency = consistency(chart.raw);
+  const avgWpm = chart.wpm.length
+    ? Math.round(chart.wpm.reduce((a, b) => a + b, 0) / chart.wpm.length)
+    : 0;
 
   const stats: { label: string; value: string }[] = [
     { label: 'Monsters', value: String(monstersDefeated) },
     { label: 'Total XP', value: `+${totalXp}` },
     { label: 'Best WPM', value: String(bestWpm) },
-    { label: 'Crits', value: String(critCount) },
+    { label: 'Avg WPM', value: String(avgWpm) },
     { label: 'Consistency', value: `${avgConsistency}%` },
     { label: 'Duration', value: formatDuration(elapsedSeconds) },
   ];
