@@ -23,7 +23,7 @@
     "@cloudflare/workers-types": "^4.20250801.0",
     "@types/bun": "latest",
     "@types/node": "^24.1.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.1.8",
     "drizzle-kit": "^0.31.4",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
