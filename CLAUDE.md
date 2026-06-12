@@ -20,11 +20,11 @@ Read those for product/feature-level questions. This file holds engineering rule
 
 ## Git Workflow
 
-- **Branch per feature off `dev`.** For any new feature/fix, create a branch from `dev` (e.g. `feature/raid-emotes`); never commit directly to `dev` or `main`.
-- **One worktree per feature branch (agents).** This project runs many parallel AI agents, so each agent's branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy. Agents: call `EnterWorktree` before editing; humans: `git worktree add`.
-- **Agent merges feature → `dev`** once the feature is complete and CI passes (see Verification below). The merge isn't done until you've run the **Vault Sync** step below (or decided the change isn't vault-worthy) — treat it as part of the merge, not a separate task to be asked for. Then delete the worktree.
-- **`dev` is the integration + test branch; `main` is production.** The user keeps their main checkout on `dev` and runs the local server there to test merged features — no need to enter agent worktrees. After testing, open a PR `dev → main`. Merging to `main` triggers backend CD (see Deployment).
-- **Squash-merge `dev → main`, then re-sync.** Because the PR is squash-merged, merge `origin/main` back into `dev` afterward to keep history clean and avoid phantom commits in the next PR.
+- **Branch per feature off `dev`.** The worktree *is* the feature branch — agents: `EnterWorktree`, then `git reset --hard dev` (EnterWorktree defaults to `origin/main`); humans: `git worktree add <path> dev`. Never commit directly to `dev` or `main`.
+- **One worktree per feature (agents).** This project runs many parallel AI agents, so each agent's branch MUST live in its own worktree to avoid clobbering other agents and the user's working copy.
+- **Merge feature → `dev`** once complete and CI passes (see Verification below). Run **Vault Sync** below as part of the merge (or decide it's not vault-worthy) — not a separate task to be asked for. Then delete the worktree.
+- **`dev` is the integration + test branch; `main` is production.** The user keeps their main checkout on `dev` and runs the local server there to test merged features — no need to enter agent worktrees.
+- **Promote `dev → main` by fast-forward, never squash.** When the user is happy with tested `dev`: `git checkout main && git merge --ff-only dev && git push`. `main` becomes an exact snapshot of `dev` — no divergence, no re-sync, no phantom commits. Pushing `main` triggers backend CD (see Deployment).
 
 ## Vault Sync (after merge → `dev`)
 
