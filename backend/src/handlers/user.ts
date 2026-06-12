@@ -36,12 +36,14 @@ export const createUser = async (c: AppContext) => {
   const db = c.get('db');
 
   let username = parsed.success && parsed.data?.username ? parsed.data.username : 'NewPlayer';
+  let displayName: string | null = null;
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
     const clerkUser = await clerkClient.users.getUser(auth.userId);
     const clerkUsername = clerkUser.username;
-    const displayName = clerkUsername || `${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}`.trim() || null;
-    username = parsed.success && parsed.data?.username ? parsed.data.username : (displayName ?? username);
+    const fullName = `${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}`.trim() || null;
+    username = parsed.success && parsed.data?.username ? parsed.data.username : (clerkUsername ?? username);
+    displayName = fullName;
   } catch (e) {
     console.error('Clerk username fetch failed for user', auth.userId, ':', e);
     // keep fallback/parsed username
@@ -49,10 +51,10 @@ export const createUser = async (c: AppContext) => {
 
   await db
     .insert(users)
-    .values({ userId: auth.userId, username })
+    .values({ userId: auth.userId, username, displayName })
     .onConflictDoUpdate({
       target: users.userId,
-      set: { username },
+      set: { username, displayName },
     });
 
   const user = await db.query.users.findFirst({
@@ -72,6 +74,37 @@ export const getUser = async (c: AppContext) => {
   if (!user) return jsonError(c, 404, 'Not found');
 
   return c.json({ success: true, user });
+};
+
+// PATCH /me — update the signed-in user's display name (preserves case).
+const displayNameSchema = z.object({
+  displayName: z.string().min(1).max(50).nullable(),
+});
+
+export const updateDisplayName = async (c: AppContext) => {
+  const auth = getAuth(c);
+  if (!auth?.userId) return jsonError(c, 401, 'Unauthorized');
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return jsonError(c, 400, 'Invalid JSON body');
+  }
+  const parsed = displayNameSchema.safeParse(body);
+  if (!parsed.success) {
+    return jsonError(c, 400, 'Validation failed', parsed.error.format());
+  }
+
+  const db = c.get('db');
+  const updated = await db
+    .update(users)
+    .set({ displayName: parsed.data.displayName, updatedAt: new Date() })
+    .where(eq(users.userId, auth.userId))
+    .returning({ userId: users.userId });
+
+  if (updated.length === 0) return jsonError(c, 404, 'User not found');
+  return c.json({ success: true, displayName: parsed.data.displayName });
 };
 
 // PATCH /me/character — persist the signed-in user's cosmetic avatar config.

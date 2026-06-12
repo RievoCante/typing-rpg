@@ -24,6 +24,16 @@ export function useApi() {
     [authFetch]
   );
 
+  const updateDisplayName = useCallback(
+    (displayName: string | null) =>
+      authFetch('/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName }),
+      }),
+    [authFetch]
+  );
+
   const updateCharacter = useCallback(
     (config: PlayerAvatarConfig) =>
       authFetch('/me/character', {
@@ -96,6 +106,7 @@ export function useApi() {
   return {
     getMe,
     createMe,
+    updateDisplayName,
     updateCharacter,
     createSession,
     getRecentSessions,

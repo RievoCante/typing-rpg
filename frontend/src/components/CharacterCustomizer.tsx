@@ -12,6 +12,7 @@ import {
 } from '../utils/avatarConfig';
 import { useCharacter } from '../hooks/useCharacter';
 import { useThemeContext } from '../hooks/useThemeContext';
+import { useApi } from '../hooks/useApi';
 import PlayerAvatar3D from './PlayerAvatar3D';
 
 interface Props {
@@ -21,9 +22,11 @@ interface Props {
 export default function CharacterCustomizer({ onClose }: Props) {
   const { config, save } = useCharacter();
   const { theme } = useThemeContext();
+  const { getMe, updateDisplayName } = useApi();
   const [draft, setDraft] = useState<PlayerAvatarConfig>(
     config ?? DEFAULT_AVATAR_CONFIG
   );
+  const [displayName, setDisplayName] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // If the modal opens before the saved config has loaded, adopt it once it
@@ -32,6 +35,26 @@ export default function CharacterCustomizer({ onClose }: Props) {
   useEffect(() => {
     if (config && !editedRef.current) setDraft(config);
   }, [config]);
+
+  // Load displayName from user profile
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getMe();
+        if (res.ok) {
+          const data = await res.json();
+          const name = data?.user?.displayName ?? '';
+          if (!cancelled) setDisplayName(name);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [getMe]);
 
   // Close on Escape, matching the click-outside affordance.
   useEffect(() => {
@@ -54,7 +77,10 @@ export default function CharacterCustomizer({ onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await save(draft);
+      await Promise.all([
+        save(draft),
+        updateDisplayName(displayName.trim() || null),
+      ]);
       onClose();
     } catch {
       setError('Could not save. Please try again.');
@@ -83,6 +109,24 @@ export default function CharacterCustomizer({ onClose }: Props) {
           <X size={18} />
         </button>
         <h2 className="text-lg font-bold mb-4">Customize Character</h2>
+
+        <div className="mb-4">
+          <label className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1 block">
+            Display Name
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            placeholder="Your name on the leaderboard"
+            maxLength={50}
+            className={`w-full px-3 py-2 rounded border text-sm ${
+              theme === 'dark'
+                ? 'bg-[#1E1F2B] border-gray-600 text-white placeholder-gray-500'
+                : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+            } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+          />
+        </div>
 
         <div className="mx-auto mb-4 h-40 w-40">
           <PlayerAvatar3D config={draft} isAlive hpPercent={100} />

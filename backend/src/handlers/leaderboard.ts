@@ -20,6 +20,7 @@ export const getLevelLeaderboard = async (c: AppContext) => {
       columns: {
         userId: true,
         username: true,
+        displayName: true,
         level: true,
         xp: true,
         updatedAt: true,
@@ -32,7 +33,7 @@ export const getLevelLeaderboard = async (c: AppContext) => {
     const items = rows.map((u, idx) => ({
       rank: offset + idx + 1,
       userId: u.userId,
-      username: u.username,
+      username: u.displayName ?? u.username,
       level: u.level,
       xp: u.xp,
       updatedAt: u.updatedAt ?? null,
@@ -74,6 +75,7 @@ export const getTodayDailyWpmLeaderboard = async (c: AppContext) => {
 
     const rows = await db
       .select({
+        displayName: users.displayName,
         username: users.username,
         wpm: maxWpm,
         createdAt: minCreatedAt,
@@ -87,14 +89,14 @@ export const getTodayDailyWpmLeaderboard = async (c: AppContext) => {
           lt(gameSessions.createdAt, dayEnd)
         )
       )
-      .groupBy(gameSessions.userId, users.username)
+      .groupBy(gameSessions.userId, users.displayName, users.username)
       .orderBy(desc(maxWpm), asc(minCreatedAt))
       .limit(limit)
       .offset(offset);
 
     const items = rows.map((r, idx) => ({
       rank: offset + idx + 1,
-      username: r.username,
+      username: r.displayName ?? r.username,
       wpm: r.wpm ?? 0,
     }));
 

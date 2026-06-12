@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/node";
 import { sentry } from "@hono/sentry";
 
 import { createDbClient } from "./db";
-import { getUser, createUser, updateCharacter } from "./handlers/user";
+import { getUser, createUser, updateCharacter, updateDisplayName } from "./handlers/user";
 import { getVault, unlockWeapons, selectLoadout } from "./handlers/vault";
 import {
   createSession,
@@ -71,6 +71,7 @@ app.get("/", (c) => c.text("Welcome to the Typing RPG API!"));
 // user routes
 app.get("/me", authMiddleware, limiter, getUser);
 app.post("/me", authMiddleware, limiter, createUser);
+app.patch("/me", authMiddleware, limiter, updateDisplayName);
 app.patch("/me/character", authMiddleware, limiter, updateCharacter);
 
 // weapon vault routes (Phase 3b)
