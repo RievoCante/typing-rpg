@@ -25,6 +25,9 @@ export const users = sqliteTable('users', {
   unlockedWeapons: text('unlocked_weapons').default('[]').notNull(),
   // Selected loadout weapon id (the Endless starting weapon); null = Fists.
   loadoutWeapon: text('loadout_weapon'),
+  // Display name shown on leaderboards (allows any case, unlike Clerk username).
+  // Null means fall back to username.
+  displayName: text('display_name'),
 });
 
 /**
