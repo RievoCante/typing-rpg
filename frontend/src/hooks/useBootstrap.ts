@@ -12,14 +12,9 @@ export function useBootstrap(markCompletedToday: () => void) {
     typeof window !== 'undefined' &&
     sessionStorage.getItem('bootstrap_done') === '1';
   const [bootstrapping, setBootstrapping] = useState(!alreadyBootstrapped);
-  const didRunRef = useRef(false);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    // Only run once per mount (not once per session), so username sync fires
-    // on every page refresh.
-    if (didRunRef.current) return;
-    didRunRef.current = true;
-
     const start = Date.now();
     let cancelled = false;
     const finish = () => {
@@ -39,31 +34,39 @@ export function useBootstrap(markCompletedToday: () => void) {
       return () => clearTimeout(id);
     };
 
-    (async () => {
-      try {
-        if (isSignedIn) {
-          const r1 = await getMe();
-          if (r1.status === 404) {
-            await createMe();
-          } else if (r1.ok) {
-            // Re-sync username from Clerk on every boot (handles username changes)
-            await createMe();
-          }
+    // API calls only once per mount (even in StrictMode double-fire).
+    // Splash screen is still shown on first visit.
+    if (!hasRun.current) {
+      hasRun.current = true;
+      (async () => {
+        try {
+          if (isSignedIn) {
+            const r1 = await getMe();
+            if (r1.status === 404) {
+              await createMe();
+            } else if (r1.ok) {
+              // Re-sync username from Clerk on every boot (handles username changes)
+              await createMe();
+            }
 
-          const r2 = await getDailyStatus();
-          if (r2.ok) {
-            const { completedToday } = await r2.json();
-            if (completedToday) {
-              markCompletedToday();
+            const r2 = await getDailyStatus();
+            if (r2.ok) {
+              const { completedToday } = await r2.json();
+              if (completedToday) {
+                markCompletedToday();
+              }
             }
           }
+        } catch {
+          // ignore
+        } finally {
+          finish();
         }
-      } catch {
-        // ignore
-      } finally {
-        finish();
-      }
-    })();
+      })();
+    } else {
+      // StrictMode second run: just finish the splash timer.
+      finish();
+    }
 
     return () => {
       cancelled = true;

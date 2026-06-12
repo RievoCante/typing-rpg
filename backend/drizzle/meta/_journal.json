@@ -78,6 +78,13 @@
       "when": 1781254428668,
       "tag": "0010_elite_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1781255981045,
+      "tag": "0011_clear_synced_display_names",
+      "breakpoints": true
     }
   ]
 }

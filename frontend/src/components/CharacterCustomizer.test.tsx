@@ -12,6 +12,14 @@ vi.mock('../hooks/useCharacter', () => ({
 vi.mock('../hooks/useThemeContext', () => ({
   useThemeContext: () => ({ theme: 'dark', toggleTheme: () => {} }),
 }));
+// The component loads/saves the leaderboard display name via useApi (which calls
+// Clerk's useAuth); mock it so the SSR smoke render doesn't need a ClerkProvider.
+vi.mock('../hooks/useApi', () => ({
+  useApi: () => ({
+    getMe: async () => ({ ok: false }),
+    updateDisplayName: async () => ({ ok: true }),
+  }),
+}));
 
 import CharacterCustomizer from './CharacterCustomizer';
 
