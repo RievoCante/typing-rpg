@@ -35,15 +35,21 @@ export const createUser = async (c: AppContext) => {
 
   const db = c.get('db');
 
+  // `username` is the Clerk-synced handle; `displayName` is user-owned (set via PATCH /me)
+  // and is intentionally never written here so boot sync can't clobber the user's choice.
+  // Leaderboard display precedence: displayName -> username (Clerk) -> firstName (Clerk),
+  // where the firstName fallback is baked into `username` below since the leaderboard
+  // can only read DB columns.
   let username = parsed.success && parsed.data?.username ? parsed.data.username : 'NewPlayer';
-  let displayName: string | null = null;
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
     const clerkUser = await clerkClient.users.getUser(auth.userId);
     const clerkUsername = clerkUser.username;
-    const fullName = `${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}`.trim() || null;
-    username = parsed.success && parsed.data?.username ? parsed.data.username : (clerkUsername ?? username);
-    displayName = fullName;
+    const firstName = clerkUser.firstName?.trim() || null;
+    username =
+      parsed.success && parsed.data?.username
+        ? parsed.data.username
+        : (clerkUsername ?? firstName ?? username);
   } catch (e) {
     console.error('Clerk username fetch failed for user', auth.userId, ':', e);
     // keep fallback/parsed username
@@ -51,10 +57,10 @@ export const createUser = async (c: AppContext) => {
 
   await db
     .insert(users)
-    .values({ userId: auth.userId, username, displayName })
+    .values({ userId: auth.userId, username })
     .onConflictDoUpdate({
       target: users.userId,
-      set: { username, displayName },
+      set: { username, updatedAt: new Date() },
     });
 
   const user = await db.query.users.findFirst({
