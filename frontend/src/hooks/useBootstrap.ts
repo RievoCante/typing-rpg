@@ -12,11 +12,14 @@ export function useBootstrap(markCompletedToday: () => void) {
     typeof window !== 'undefined' &&
     sessionStorage.getItem('bootstrap_done') === '1';
   const [bootstrapping, setBootstrapping] = useState(!alreadyBootstrapped);
-  const didRunRef = useRef(alreadyBootstrapped);
+  const didRunRef = useRef(false);
 
   useEffect(() => {
-    // Only run once per browser session; skip when navigating between routes
+    // Only run once per mount (not once per session), so username sync fires
+    // on every page refresh.
     if (didRunRef.current) return;
+    didRunRef.current = true;
+
     const start = Date.now();
     let cancelled = false;
     const finish = () => {
@@ -31,7 +34,6 @@ export function useBootstrap(markCompletedToday: () => void) {
           } catch {
             // ignore storage errors
           }
-          didRunRef.current = true;
         }
       }, delay);
       return () => clearTimeout(id);
