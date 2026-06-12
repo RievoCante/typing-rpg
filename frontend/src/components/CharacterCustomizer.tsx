@@ -29,6 +29,12 @@ export default function CharacterCustomizer({ onClose }: Props) {
   const [displayName, setDisplayName] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The real saved displayName (null if never set) and the username we
+  // prefilled with as a fallback. Used at save time so opening the modal and
+  // saving without touching the name doesn't lock the prefilled username in as
+  // an explicit displayName (which would then shadow future Clerk username changes).
+  const savedDisplayNameRef = useRef<string | null>(null);
+  const prefilledUsernameRef = useRef<string>('');
   // If the modal opens before the saved config has loaded, adopt it once it
   // arrives — but never clobber edits the user has already made.
   const editedRef = useRef(false);
@@ -36,7 +42,9 @@ export default function CharacterCustomizer({ onClose }: Props) {
     if (config && !editedRef.current) setDraft(config);
   }, [config]);
 
-  // Load displayName from user profile
+  // Prefill the field with the player's current leaderboard name: their saved
+  // displayName if set, otherwise their username (the fallback the leaderboard
+  // already shows), so they see and can edit what's live today.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -44,8 +52,13 @@ export default function CharacterCustomizer({ onClose }: Props) {
         const res = await getMe();
         if (res.ok) {
           const data = await res.json();
-          const name = data?.user?.displayName ?? '';
-          if (!cancelled) setDisplayName(name);
+          const saved: string | null = data?.user?.displayName ?? null;
+          const username: string = data?.user?.username ?? '';
+          if (!cancelled) {
+            savedDisplayNameRef.current = saved;
+            prefilledUsernameRef.current = username;
+            setDisplayName(saved ?? username);
+          }
         }
       } catch {
         // ignore
@@ -77,9 +90,16 @@ export default function CharacterCustomizer({ onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const trimmed = displayName.trim();
+      // If the user never had a saved name and left the prefilled username
+      // untouched, persist null (keep falling back to username) rather than
+      // pinning the username as an explicit displayName.
+      const isUntouchedFallback =
+        savedDisplayNameRef.current === null &&
+        trimmed === prefilledUsernameRef.current.trim();
       await Promise.all([
         save(draft),
-        updateDisplayName(displayName.trim() || null),
+        updateDisplayName(isUntouchedFallback ? null : trimmed || null),
       ]);
       onClose();
     } catch {
