@@ -1,22 +1,25 @@
-// Handles initial bootstrap: ensure user exists, fetch daily status, set mode, and enforce splash duration
+// Handles initial bootstrap: ensure user exists, fetch daily status, and enforce splash duration.
+// Note: this intentionally does NOT set the game mode — the app always lands in the
+// default 'endless' mode (see GameProvider). Mode only changes by user action.
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useApi } from './useApi';
-import { useGameContext } from './useGameContext';
 
 export function useBootstrap(markCompletedToday: () => void) {
   const { isSignedIn } = useAuth();
   const { getMe, createMe, getDailyStatus } = useApi();
-  const { setCurrentMode } = useGameContext();
   const alreadyBootstrapped =
     typeof window !== 'undefined' &&
     sessionStorage.getItem('bootstrap_done') === '1';
   const [bootstrapping, setBootstrapping] = useState(!alreadyBootstrapped);
-  const didRunRef = useRef(alreadyBootstrapped);
+  const didRunRef = useRef(false);
 
   useEffect(() => {
-    // Only run once per browser session; skip when navigating between routes
+    // Only run once per mount (not once per session), so username sync fires
+    // on every page refresh.
     if (didRunRef.current) return;
+    didRunRef.current = true;
+
     const start = Date.now();
     let cancelled = false;
     const finish = () => {
@@ -31,7 +34,6 @@ export function useBootstrap(markCompletedToday: () => void) {
           } catch {
             // ignore storage errors
           }
-          didRunRef.current = true;
         }
       }, delay);
       return () => clearTimeout(id);
@@ -41,20 +43,20 @@ export function useBootstrap(markCompletedToday: () => void) {
       try {
         if (isSignedIn) {
           const r1 = await getMe();
-          if (r1.status === 404) await createMe();
+          if (r1.status === 404) {
+            await createMe();
+          } else if (r1.ok) {
+            // Re-sync username from Clerk on every boot (handles username changes)
+            await createMe();
+          }
 
           const r2 = await getDailyStatus();
           if (r2.ok) {
             const { completedToday } = await r2.json();
             if (completedToday) {
               markCompletedToday();
-              setCurrentMode('endless');
-            } else {
-              setCurrentMode('daily');
             }
           }
-        } else {
-          setCurrentMode('daily');
         }
       } catch {
         // ignore
@@ -66,14 +68,7 @@ export function useBootstrap(markCompletedToday: () => void) {
     return () => {
       cancelled = true;
     };
-  }, [
-    isSignedIn,
-    getMe,
-    createMe,
-    getDailyStatus,
-    setCurrentMode,
-    markCompletedToday,
-  ]);
+  }, [isSignedIn, getMe, createMe, getDailyStatus, markCompletedToday]);
 
   return { bootstrapping };
 }
