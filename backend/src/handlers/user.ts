@@ -39,8 +39,11 @@ export const createUser = async (c: AppContext) => {
   try {
     const clerkClient = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
     const clerkUser = await clerkClient.users.getUser(auth.userId);
-    username = parsed.success && parsed.data?.username ? parsed.data.username : (clerkUser.username ?? username);
-  } catch {
+    const clerkUsername = clerkUser.username;
+    const displayName = clerkUsername || `${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}`.trim() || null;
+    username = parsed.success && parsed.data?.username ? parsed.data.username : (displayName ?? username);
+  } catch (e) {
+    console.error('Clerk username fetch failed for user', auth.userId, ':', e);
     // keep fallback/parsed username
   }
 

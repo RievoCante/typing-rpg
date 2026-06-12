@@ -41,7 +41,12 @@ export function useBootstrap(markCompletedToday: () => void) {
       try {
         if (isSignedIn) {
           const r1 = await getMe();
-          if (r1.status === 404) await createMe();
+          if (r1.status === 404) {
+            await createMe();
+          } else if (r1.ok) {
+            // Re-sync username from Clerk on every boot (handles username changes)
+            await createMe();
+          }
 
           const r2 = await getDailyStatus();
           if (r2.ok) {
