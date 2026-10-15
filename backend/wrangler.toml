@@ -3,6 +3,8 @@
 
 # The name of your Worker. This will be part of its URL.
 name = "typing-rpg-backend"
+# Account-scoped CI tokens cannot enumerate user memberships.
+account_id = "2f3c4cf05dd016ffe51fcf7d262cb501"
 
 # The entry point for your application.
 main = "src/index.ts"
