@@ -20,9 +20,11 @@ database_name = "typing-rpg-db"
 database_id = "d1c1d295-2035-4109-9c2b-f5693c835cd5"
 migrations_dir = "drizzle"
 
-[[kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "0e8f22caff7a40f596a9bcded20f2f6f"
+# Native rate limiting avoids a KV write for every API request.
+[[ratelimits]]
+name = "API_RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
 
 # wrangler.toml (wrangler v3.88.0^)
 [observability.logs]

@@ -86,7 +86,7 @@ jobs:
       # Run unit tests
       - name: Run tests
         working-directory: ./backend
-        run: bun test
+        run: bun run test
 
   # Job 3: Deploy backend to Cloudflare Workers (only on main branch)
   deploy-backend:

@@ -9,7 +9,9 @@ import { RaidRoom } from '../rooms/RaidRoom';
 export type Bindings = {
   DB: D1Database;
   CLERK_SECRET_KEY: string;
-  RATE_LIMIT_KV: KVNamespace;
+  API_RATE_LIMITER: {
+    limit(options: { key: string }): Promise<{ success: boolean }>;
+  };
   SENTRY_DSN: string;
   MODE: string;
   RAIDS_KV: KVNamespace;

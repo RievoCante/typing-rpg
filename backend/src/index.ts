@@ -17,9 +17,9 @@ import {
   getTodayDailyWpmLeaderboard,
 } from "./handlers/leaderboard";
 import { recordEvent } from "./handlers/events";
-import { Bindings, Variables } from "./core/types";
+import { Bindings, Variables, AppContext } from "./core/types";
 import { authMiddleware } from "./core/auth";
-import { kvRateLimit } from "./core/rateLimit";
+import { rateLimit } from "./core/rateLimit";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import { validateRaidWsAuth } from "./core/raidAuth";
 
@@ -56,14 +56,12 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-// Rate limit: per-user if signed in, else per-IP. No-op if KV not bound.
-const keyFn = (c: any) =>
-  getAuth(c)?.userId ?? c.req.header("cf-connecting-ip") ?? "anon";
-const limiter = kvRateLimit(keyFn, {
-  windowMs: 60_000,
-  limit: 120,
-  prefix: "api",
-});
+// Rate limit: stable, distinct user/IP keys shared across protected API routes.
+const keyFn = (c: AppContext) => {
+  const userId = getAuth(c)?.userId;
+  return userId ? `user:${userId}` : `ip:${c.req.header("cf-connecting-ip") ?? "anon"}`;
+};
+const limiter = rateLimit(keyFn);
 
 // ROUTES
 app.get("/", (c) => c.text("Welcome to the Typing RPG API!"));
