@@ -78,6 +78,12 @@ large-vendor-chunk advisories remain. Actual RaidView was visually checked with
 mock rooms and compiled project CSS at desktop and mobile sizes, using a temporary
 local harness without credentials or production API calls.
 
+The exact legacy backend CI command, `bun test`, fails four existing RaidRoom
+fake-timer tests with 31 timer errors on both baseline and updated code. Those
+tests use Vitest fake timers. The workflow now invokes `bun run test`, matching
+the package's Vitest script and the passing full suite. No test was removed or
+weakened to accommodate the runner.
+
 No production deployment or remote push was performed by this change. Production
 quota usage is not expected to change until release. Post-release monitoring must
 verify the new binding and reduction in RATE_LIMIT_KV writes.
