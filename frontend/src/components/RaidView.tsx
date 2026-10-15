@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useRaidSocket } from '../hooks/useRaidSocket';
 import { useRaidState } from '../hooks/useRaidState';
+import { useRaidRooms } from '../hooks/useRaidRooms';
 import { useGameContext } from '../hooks/useGameContext';
 import { useCharacter } from '../hooks/useCharacter';
 import RaidLobbyScreen from './RaidLobbyScreen';
@@ -10,14 +11,6 @@ import RaidGame from './RaidGame';
 import RaidResultScreen from './RaidResultScreen';
 
 type Phase = 'room-list' | 'in-room';
-
-interface LobbyRoom {
-  roomId: string;
-  hostName: string;
-  playerCount: number;
-  maxPlayers: number;
-  status: string;
-}
 
 interface RoomResponse {
   roomCode: string;
@@ -31,8 +24,6 @@ interface RoomResponse {
 export default function RaidView() {
   const [phase, setPhase] = useState<Phase>('room-list');
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<LobbyRoom[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
@@ -46,25 +37,7 @@ export default function RaidView() {
   const { config: characterConfig, ready: characterReady } = useCharacter();
   const apiUrl = import.meta.env.VITE_API_URL;
 
-  // Fetch room list when in room-list phase, poll every 5 seconds
-  const fetchRooms = useCallback(async () => {
-    try {
-      const res = await fetch(`${apiUrl}/api/raid/rooms`);
-      const data = await res.json();
-      setRooms(Array.isArray(data.rooms) ? data.rooms : []);
-    } catch {
-      setRooms([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl]);
-
-  useEffect(() => {
-    if (phase !== 'room-list') return;
-    fetchRooms();
-    const id = setInterval(fetchRooms, 5000);
-    return () => clearInterval(id);
-  }, [phase, fetchRooms]);
+  const { rooms, loading } = useRaidRooms(apiUrl, phase === 'room-list');
 
   // Reset join state when leaving a room. Credentials are set when the
   // backend responds to create/join — never generated locally.
@@ -188,7 +161,6 @@ export default function RaidView() {
     setLocalUserId(null);
     setUsername(null);
     setPhase('room-list');
-    setLoading(true);
   };
 
   if (phase === 'room-list') {

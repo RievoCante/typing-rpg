@@ -1,46 +1,26 @@
-// Simple KV-backed rate limiter for Cloudflare Workers (Hono)
-// No-ops if KV binding is missing, so dev remains unaffected.
+import type { MiddlewareHandler } from 'hono';
+import type { Bindings, Variables, AppContext } from './types';
 
-import type { Context, Next } from 'hono';
-
-export type RateLimitOptions = {
-  windowMs: number; // e.g., 60_000
-  limit: number; // e.g., 120
-  prefix?: string; // key prefix
-};
-
-export const kvRateLimit = (
-  keyFn: (c: Context) => string,
-  opts: RateLimitOptions,
-) => {
-  const { windowMs, limit, prefix = 'rl' } = opts;
-  return async (c: Context, next: Next) => {
-    const kv = (c.env as any).RATE_LIMIT_KV as KVNamespace | undefined;
-    if (!kv) return next(); // no KV in dev → skip limiting
-
-    const key = `${prefix}:${keyFn(c)}`;
-    const now = Date.now();
-    const bucketRaw = await kv.get(key, 'json');
-    let bucket = (bucketRaw as { count: number; reset: number } | null) ?? null;
-
-    if (!bucket || now > bucket.reset) {
-      bucket = { count: 0, reset: now + windowMs };
+// Workers counters are per Cloudflare location and eventually consistent.
+// The binding configuration in wrangler.toml owns the 120 requests / 60s limit.
+export const rateLimit = (
+  keyFn: (c: AppContext) => string,
+): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> => {
+  return async (c, next) => {
+    // Fail closed on missing configuration and service errors, including locally.
+    // Wrangler dev provides a local implementation of the configured binding.
+    if (!c.env.API_RATE_LIMITER) {
+      throw new Error('API_RATE_LIMITER binding is required');
     }
 
-    bucket.count += 1;
-
-    // Use absolute expiration (seconds) and ensure at least 60s in the future to satisfy KV constraints.
-    const nowSec = Math.ceil(now / 1000);
-    let expirationSec = Math.ceil(bucket.reset / 1000);
-    if (expirationSec - nowSec < 60) expirationSec = nowSec + 60;
-    await kv.put(key, JSON.stringify(bucket), { expiration: expirationSec });
-
-    if (bucket.count > limit) {
-      const retryAfter = Math.max(0, Math.ceil((bucket.reset - now) / 1000));
-      c.header('Retry-After', retryAfter.toString());
+    const { success } = await c.env.API_RATE_LIMITER.limit({
+      key: `api:${keyFn(c)}`,
+    });
+    if (!success) {
+      // The API supplies no reset time; wait one complete configured period.
+      c.header('Retry-After', '60');
       return c.json({ error: 'Too Many Requests' }, 429);
     }
-
     await next();
   };
 };
